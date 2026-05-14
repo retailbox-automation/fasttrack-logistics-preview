@@ -1,0 +1,2921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fast Track · Logistics Control Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   FAST TRACK · LOGISTICS CONTROL CENTER
+   Maritime operations command aesthetic.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg-deep: #0A0F1C;
+  --bg-elevated: #131A2A;
+  --bg-overlay: #1A2236;
+  --bg-hover: #1F293E;
+  --bg-glow: rgba(217, 119, 6, 0.08);
+
+  --border: #232C44;
+  --border-bright: #344166;
+  --border-accent: rgba(217, 119, 6, 0.35);
+
+  --text: #E8E4D9;
+  --text-dim: #8B8478;
+  --text-dimmer: #5D5A52;
+  --text-bright: #FBFAF6;
+
+  --accent: #D97706;
+  --accent-bright: #F59E0B;
+  --accent-deep: #92400E;
+  --accent-glow: rgba(245, 158, 11, 0.15);
+
+  --ok: #10B981;
+  --ok-bg: rgba(16, 185, 129, 0.1);
+  --warn: #F59E0B;
+  --warn-bg: rgba(245, 158, 11, 0.1);
+  --crit: #EF4444;
+  --crit-bg: rgba(239, 68, 68, 0.1);
+  --info: #60A5FA;
+  --info-bg: rgba(96, 165, 250, 0.1);
+  --cancel: #6B7280;
+  --cancel-bg: rgba(107, 114, 128, 0.1);
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(217, 119, 6, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(59, 130, 246, 0.03) 0%, transparent 40%),
+    linear-gradient(180deg, var(--bg-deep) 0%, #060A14 100%);
+  background-attachment: fixed;
+}
+
+::selection { background: var(--accent); color: var(--bg-deep); }
+
+button { font: inherit; cursor: pointer; background: none; border: none; color: inherit; }
+input { font: inherit; color: inherit; background: none; border: none; outline: none; }
+
+.app {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  display: grid;
+  grid-template-columns: 280px 1fr auto;
+  align-items: center;
+  height: 64px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 15, 28, 0.85);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+
+.brand__mark {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-deep);
+  color: var(--bg-deep);
+  border-radius: 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.04em;
+}
+
+.brand__text { display: flex; flex-direction: column; line-height: 1.1; }
+
+.brand__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  color: var(--text-bright);
+}
+
+.brand__sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.header__title { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+
+.header__title-main {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.header__title-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.header__actions { display: flex; align-items: center; gap: 16px; }
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  width: 320px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: border-color 150ms, background 150ms;
+}
+
+.search:focus-within {
+  border-color: var(--accent);
+  background: var(--bg-overlay);
+}
+
+.search input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-bright);
+}
+
+.search input::placeholder { color: var(--text-dimmer); font-family: var(--font-mono); }
+
+.search__kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dimmer);
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  transition: all 150ms;
+}
+
+.user-chip:hover { background: var(--bg-hover); border-color: var(--border-bright); }
+
+.user-chip__avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--bg-deep);
+}
+
+.user-chip__name { font-size: 12px; color: var(--text); }
+
+/* ── STATS STRIP ── */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) auto;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(19, 26, 42, 0.4) 0%, rgba(10, 15, 28, 0.2) 100%);
+  gap: 32px;
+}
+
+.stat__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.stat__value {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text-bright);
+  font-feature-settings: "tnum";
+}
+
+.stat__value--ok { color: var(--ok); }
+.stat__value--warn { color: var(--warn); }
+.stat__value--crit { color: var(--crit); }
+
+.stat__delta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.stat__delta--up { color: var(--ok); }
+.stat__delta--down { color: var(--crit); }
+
+.clock {
+  font-family: var(--font-mono);
+  text-align: right;
+  border-left: 1px solid var(--border);
+  padding-left: 32px;
+}
+
+.clock__time {
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-bright);
+  letter-spacing: 0.04em;
+  font-feature-settings: "tnum";
+}
+
+.clock__date {
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.clock__indicator {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+  margin-right: 6px;
+  vertical-align: middle;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── MAIN ── */
+.main {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  overflow: hidden;
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: rgba(19, 26, 42, 0.3);
+  overflow-y: auto;
+  padding: 20px 0;
+}
+
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.sidebar-section { margin-bottom: 28px; }
+
+.sidebar-section__title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dimmer);
+  padding: 0 20px;
+  margin-bottom: 8px;
+}
+
+.filter-list { list-style: none; }
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 120ms;
+}
+
+.filter-item:hover { color: var(--text); background: var(--bg-hover); }
+
+.filter-item.active {
+  color: var(--text-bright);
+  background: var(--bg-glow);
+  border-left-color: var(--accent);
+}
+
+.filter-item__label { display: flex; align-items: center; gap: 8px; }
+
+.filter-item__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+.filter-item__count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dimmer);
+  font-feature-settings: "tnum";
+}
+
+.filter-item.active .filter-item__count { color: var(--accent-bright); }
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: calc(100% - 32px);
+  margin: 8px 16px;
+  padding: 11px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 150ms;
+}
+
+.sidebar-btn:hover { background: var(--bg-hover); border-color: var(--accent); color: var(--accent-bright); }
+
+.sidebar-btn--primary {
+  background: var(--accent-deep);
+  border-color: var(--accent);
+  color: var(--text-bright);
+}
+
+.sidebar-btn--primary:hover { background: var(--accent); color: var(--bg-deep); }
+
+/* ── DASHBOARD ── */
+.dashboard {
+  overflow-y: auto;
+  padding: 28px 32px;
+}
+
+.dashboard::-webkit-scrollbar { width: 8px; }
+.dashboard::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.dashboard__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dashboard__title-block { display: flex; flex-direction: column; gap: 4px; }
+
+.dashboard__crumb {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.dashboard__title { display: flex; align-items: baseline; gap: 12px; }
+
+.dashboard__title h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+  color: var(--text-bright);
+}
+
+.dashboard__title-count {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-dim);
+  font-feature-settings: "tnum";
+}
+
+.dashboard__actions { display: flex; gap: 8px; align-items: center; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  transition: all 150ms;
+}
+
+.btn:hover { background: var(--bg-hover); border-color: var(--border-bright); }
+
+.btn--accent {
+  background: var(--accent-deep);
+  border-color: var(--accent);
+  color: var(--text-bright);
+}
+
+.btn--accent:hover { background: var(--accent); color: var(--bg-deep); }
+
+.btn--ghost { background: transparent; border-color: transparent; }
+.btn--ghost:hover { background: var(--bg-elevated); }
+
+/* ── CARDS ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  position: relative;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 18px 18px 22px;
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--cancel);
+  transition: width 180ms;
+}
+
+.card--ok::before { background: var(--ok); }
+.card--warn::before { background: var(--warn); }
+.card--crit::before { background: var(--crit); box-shadow: 0 0 12px var(--crit); }
+.card--info::before { background: var(--info); }
+
+.card:hover {
+  background: var(--bg-overlay);
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+}
+
+.card:hover::before { width: 5px; }
+
+.card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.card__id-block { display: flex; flex-direction: column; gap: 2px; }
+
+.card__po {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-bright);
+  letter-spacing: 0.02em;
+}
+
+.card__cruise-id {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.05em;
+}
+
+.card__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.card__status::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+
+.card__status--ok { background: var(--ok-bg); color: var(--ok); }
+.card__status--ok::before { background: var(--ok); }
+.card__status--warn { background: var(--warn-bg); color: var(--warn); }
+.card__status--warn::before { background: var(--warn); }
+.card__status--crit { background: var(--crit-bg); color: var(--crit); }
+.card__status--crit::before { background: var(--crit); animation: pulse 1.5s infinite; }
+.card__status--info { background: var(--info-bg); color: var(--info); }
+.card__status--info::before { background: var(--info); }
+.card__status--cancel { background: var(--cancel-bg); color: var(--cancel); }
+.card__status--cancel::before { background: var(--cancel); }
+
+.card__vessel-line { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+
+.card__vessel {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+}
+
+.card__vessel-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+}
+
+.card__dept {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.card__goods {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card__footer {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.card__port { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+.card__port-icon { color: var(--text-dimmer); width: 11px; height: 11px; }
+
+.card__days {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.card__days--urgent { color: var(--crit); font-weight: 600; }
+
+.card__amount {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-bright);
+  font-feature-settings: "tnum";
+}
+
+.card__ai-flag {
+  position: absolute;
+  top: 12px; right: 80px;
+  width: 18px; height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--bg-deep);
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: -0.02em;
+}
+
+/* ═══ INBOX (Email AI) view ═══ */
+.inbox-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-inbox .inbox-view { display: block; }
+body.view-inbox .dashboard { display: none; }
+
+.inbox-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.inbox-stat {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.inbox-stat__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.inbox-stat__value {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--text-bright);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.inbox-stat__value--warn { color: var(--warn); }
+.inbox-stat__value--ok { color: var(--ok); }
+.inbox-stat__delta { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin-top: 6px; }
+.inbox-stat__delta--up { color: var(--ok); }
+
+.inbox-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 0;
+  height: calc(100vh - 360px);
+  min-height: 480px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.inbox-list { border-right: 1px solid var(--border); overflow-y: auto; background: rgba(10, 15, 28, 0.4); }
+.inbox-list::-webkit-scrollbar { width: 6px; }
+.inbox-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+.inbox-item { padding: 14px 18px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 120ms; border-left: 2px solid transparent; }
+.inbox-item:hover { background: var(--bg-hover); }
+.inbox-item--active { background: var(--bg-glow); border-left-color: var(--accent); }
+
+.inbox-item__line1 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 8px; }
+.inbox-item__from { font-size: 12px; font-weight: 600; color: var(--text-bright); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-item__time { font-family: var(--font-mono); font-size: 10px; color: var(--text-dimmer); flex-shrink: 0; }
+.inbox-item__subject { font-size: 12px; color: var(--text); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.35; }
+.inbox-item--urgent .inbox-item__subject { color: var(--crit); font-weight: 500; }
+.inbox-item__preview { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-item__meta { display: flex; gap: 6px; margin-top: 6px; }
+.inbox-item__tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--bg-overlay);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.inbox-item__tag--ai { background: rgba(217,119,6,0.12); color: var(--accent-bright); border-color: var(--border-accent); }
+.inbox-item__tag--urgent { background: var(--crit-bg); color: var(--crit); border-color: rgba(239,68,68,0.3); }
+.inbox-item__tag--lang { color: var(--info); border-color: rgba(96,165,250,0.3); }
+
+.inbox-detail { overflow-y: auto; padding: 26px 30px; }
+.inbox-detail::-webkit-scrollbar { width: 6px; }
+.inbox-detail::-webkit-scrollbar-thumb { background: var(--border); }
+
+.inbox-detail__from-label { font-family: var(--font-mono); font-size: 9px; color: var(--text-dimmer); letter-spacing: 0.18em; text-transform: uppercase; }
+.inbox-detail__sender { font-size: 13px; color: var(--text-bright); font-weight: 600; margin-top: 4px; }
+.inbox-detail__sender-org { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.inbox-detail__subject {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-bright);
+  margin: 16px 0 12px;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+.inbox-detail__meta-row { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.inbox-detail__body {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.65;
+  white-space: pre-line;
+  margin-bottom: 8px;
+  padding: 16px 18px;
+  background: rgba(10, 15, 28, 0.4);
+  border-left: 2px solid var(--border);
+  border-radius: 0 4px 4px 0;
+}
+
+.draft-reply {
+  margin-top: 28px;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(96, 165, 250, 0.03) 100%);
+  border: 1px solid var(--border-accent);
+  border-radius: 6px;
+  padding: 22px 20px 20px;
+  position: relative;
+}
+.draft-reply::before {
+  content: "AI · DRAFT REPLY";
+  position: absolute;
+  top: -10px; left: 16px;
+  background: var(--accent-deep);
+  color: var(--text-bright);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+}
+.draft-reply__hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin-bottom: 10px; }
+.draft-reply__textarea {
+  width: 100%;
+  background: rgba(10,15,28,0.6);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 13px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-bright);
+  line-height: 1.55;
+  min-height: 150px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 150ms;
+}
+.draft-reply__textarea:focus { border-color: var(--accent); }
+.draft-reply__actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; align-items: center; }
+.draft-reply__status { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin-right: auto; }
+.draft-reply__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  transition: all 150ms;
+}
+.draft-reply__btn:hover { background: var(--bg-hover); border-color: var(--border-bright); }
+.draft-reply__btn--approve {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--bg-deep);
+  font-weight: 600;
+}
+.draft-reply__btn--approve:hover { background: #34d399; }
+.draft-reply__btn--reject { color: var(--crit); border-color: rgba(239, 68, 68, 0.3); }
+
+/* ═══ LIST VIEW (table) ═══ */
+.list-view { display: none; }
+body.layout-list .card-grid { display: none; }
+body.layout-list .list-view { display: block; }
+
+.list-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.list-table thead th {
+  background: rgba(10, 15, 28, 0.6);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  font-weight: 600;
+}
+.list-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 100ms;
+}
+.list-table tbody tr:hover { background: var(--bg-hover); }
+.list-table tbody tr:last-child { border-bottom: none; }
+.list-table td {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--text);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border);
+}
+.list-table tbody tr:last-child td { border-bottom: none; }
+.list-table__po { font-family: var(--font-mono); font-weight: 500; color: var(--text-bright); font-size: 12px; }
+.list-table__cruise { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); display: block; margin-top: 2px; letter-spacing: 0.04em; }
+.list-table__vessel { font-family: var(--font-display); font-weight: 500; font-size: 14px; color: var(--text-bright); }
+.list-table__vessel-code { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-left: 4px; letter-spacing: 0.06em; }
+.list-table__dept { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+.list-table__amount { font-family: var(--font-mono); font-weight: 500; color: var(--text-bright); text-align: right; font-feature-settings: "tnum"; }
+.list-table__days { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: right; }
+.list-table__days--urgent { color: var(--crit); font-weight: 600; }
+.list-table__status { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 12px; font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.list-table__status::before { content: ""; width: 5px; height: 5px; border-radius: 50%; }
+.list-table__status--ok { background: var(--ok-bg); color: var(--ok); }
+.list-table__status--ok::before { background: var(--ok); }
+.list-table__status--warn { background: var(--warn-bg); color: var(--warn); }
+.list-table__status--warn::before { background: var(--warn); }
+.list-table__status--crit { background: var(--crit-bg); color: var(--crit); }
+.list-table__status--crit::before { background: var(--crit); animation: pulse 1.5s infinite; }
+.list-table__status--info { background: var(--info-bg); color: var(--info); }
+.list-table__status--info::before { background: var(--info); }
+.list-table__status--cancel { background: var(--cancel-bg); color: var(--cancel); }
+.list-table__status--cancel::before { background: var(--cancel); }
+.list-table__ai-dot { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; background: var(--accent); color: var(--bg-deep); border-radius: 50%; font-family: var(--font-display); font-weight: 700; font-size: 8px; letter-spacing: -0.02em; }
+
+.view-toggle { display: inline-flex; align-items: center; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.view-toggle__btn { padding: 6px 12px; font-size: 11px; color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 120ms; }
+.view-toggle__btn:hover { color: var(--text); }
+.view-toggle__btn--active { background: var(--accent-deep); color: var(--text-bright); }
+
+/* Magaya sync status pill (replaces "Import" framing) */
+.magaya-sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ok);
+  letter-spacing: 0.04em;
+  margin: 0 16px 12px;
+}
+.magaya-sync__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; flex-shrink: 0; }
+
+/* ── DRAWER ── */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms;
+  z-index: 100;
+}
+
+.drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+.drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 540px;
+  background: var(--bg-overlay);
+  border-left: 1px solid var(--border-bright);
+  transform: translateX(100%);
+  transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 101;
+  overflow-y: auto;
+}
+
+.drawer.open { transform: translateX(0); }
+
+.drawer::-webkit-scrollbar { width: 6px; }
+.drawer::-webkit-scrollbar-thumb { background: var(--border); }
+
+.drawer__close-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 15, 28, 0.5);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+}
+
+.drawer__close {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.drawer__close:hover { color: var(--text); }
+
+.drawer__actions { display: flex; gap: 6px; }
+
+.drawer__action {
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-dim);
+}
+
+.drawer__action:hover { color: var(--accent-bright); border-color: var(--accent); }
+
+.drawer__hero { padding: 24px 28px 20px; border-bottom: 1px solid var(--border); }
+
+.drawer__hero-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+
+.drawer__hero-po {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--accent-bright);
+}
+
+.drawer__hero-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  color: var(--text-bright);
+  margin-bottom: 6px;
+}
+
+.drawer__hero-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.drawer__section { padding: 22px 28px; border-bottom: 1px solid var(--border); }
+
+.drawer__section-title {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drawer__section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+
+.detail-pair { display: flex; flex-direction: column; gap: 3px; }
+
+.detail-pair__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dimmer);
+}
+
+.detail-pair__value { font-size: 13px; color: var(--text-bright); }
+
+.detail-pair__value--mono { font-family: var(--font-mono); font-size: 12px; }
+
+.detail-pair__value--big {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+/* ── TIMELINE ── */
+.timeline { position: relative; padding-left: 24px; }
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 6px; top: 4px; bottom: 4px;
+  width: 1px;
+  background: var(--border);
+}
+
+.timeline__item { position: relative; padding-bottom: 18px; }
+.timeline__item:last-child { padding-bottom: 0; }
+
+.timeline__dot {
+  position: absolute;
+  left: -24px; top: 2px;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: var(--bg-overlay);
+  border: 2px solid var(--text-dimmer);
+}
+
+.timeline__item--done .timeline__dot { background: var(--ok); border-color: var(--ok); }
+
+.timeline__item--current .timeline__dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2);
+}
+
+.timeline__item--pending .timeline__dot {
+  background: var(--bg-overlay);
+  border-color: var(--text-dimmer);
+}
+
+.timeline__date {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+.timeline__title { font-size: 13px; color: var(--text-bright); font-weight: 500; margin-bottom: 2px; }
+
+.timeline__meta { font-size: 11px; color: var(--text-dim); }
+
+/* ── AI BLOCK ── */
+.ai-block {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(96, 165, 250, 0.04) 100%);
+  border: 1px solid var(--border-accent);
+  border-radius: 6px;
+  padding: 18px;
+  position: relative;
+}
+
+.ai-block::before {
+  content: "AI";
+  position: absolute;
+  top: -10px; left: 16px;
+  background: var(--accent-deep);
+  color: var(--text-bright);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--accent);
+}
+
+.ai-comparison { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+.ai-input {
+  background: rgba(10, 15, 28, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.ai-input__label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--text-dimmer);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.ai-input__text { color: var(--text); }
+
+.ai-arrow {
+  display: flex;
+  justify-content: center;
+  color: var(--accent-bright);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ai-output {
+  background: rgba(245, 158, 11, 0.04);
+  border: 1px solid var(--border-accent);
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.ai-output__label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--accent-bright);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.ai-fact { display: flex; gap: 8px; margin-bottom: 6px; font-size: 12px; }
+.ai-fact:last-child { margin-bottom: 0; }
+
+.ai-fact__icon {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ai-fact__icon--ok { color: var(--ok); }
+.ai-fact__icon--warn { color: var(--warn); }
+.ai-fact__icon--info { color: var(--info); }
+
+.ai-fact__text { color: var(--text); line-height: 1.45; }
+.ai-fact__text strong { color: var(--text-bright); font-weight: 600; }
+.ai-fact__text em {
+  color: var(--accent-bright);
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.ai-suggestion {
+  margin-top: 14px;
+  padding: 12px;
+  background: rgba(96, 165, 250, 0.06);
+  border-left: 2px solid var(--info);
+  border-radius: 0 4px 4px 0;
+}
+
+.ai-suggestion__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--info);
+  margin-bottom: 6px;
+}
+
+.ai-suggestion__text { font-size: 12px; color: var(--text-bright); line-height: 1.5; }
+
+/* ── FOOTER ── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(6, 10, 20, 0.5);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
+.footer__left { display: flex; align-items: center; gap: 20px; }
+
+.footer__chip { display: flex; align-items: center; gap: 6px; }
+
+.footer__chip-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.footer__chip-dot--pulse { animation: pulse 2s infinite; }
+
+.footer__ports { display: flex; align-items: center; gap: 14px; }
+
+.footer__ports-label {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--text-dimmer);
+  text-transform: uppercase;
+}
+
+.footer__port { position: relative; padding-left: 10px; }
+
+.footer__port::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--text-dimmer);
+}
+
+.footer__port--active::before {
+  background: var(--accent-bright);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.card { animation: slideUpFade 400ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.card:nth-child(1)  { animation-delay: 30ms; }
+.card:nth-child(2)  { animation-delay: 60ms; }
+.card:nth-child(3)  { animation-delay: 90ms; }
+.card:nth-child(4)  { animation-delay: 120ms; }
+.card:nth-child(5)  { animation-delay: 150ms; }
+.card:nth-child(6)  { animation-delay: 180ms; }
+.card:nth-child(7)  { animation-delay: 210ms; }
+.card:nth-child(8)  { animation-delay: 240ms; }
+.card:nth-child(9)  { animation-delay: 270ms; }
+.card:nth-child(10) { animation-delay: 300ms; }
+.card:nth-child(11) { animation-delay: 330ms; }
+.card:nth-child(12) { animation-delay: 360ms; }
+
+/* ── IMPORT MODAL ── */
+.import-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.import-modal-overlay.open { display: flex; }
+
+.import-modal {
+  width: 480px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-bright);
+  border-radius: 8px;
+  padding: 32px;
+}
+
+.import-modal__title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  margin-bottom: 6px;
+  color: var(--text-bright);
+}
+
+.import-modal__sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+
+.import-modal__drop {
+  border: 2px dashed var(--border-bright);
+  border-radius: 6px;
+  padding: 36px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 18px;
+  transition: all 150ms;
+}
+
+.import-modal__drop:hover {
+  border-color: var(--accent);
+  color: var(--text);
+  background: var(--bg-glow);
+}
+
+.import-modal__drop strong {
+  display: block;
+  color: var(--text-bright);
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.import-modal__progress { display: none; margin-top: 18px; }
+.import-modal__progress.active { display: block; }
+
+.import-modal__progress-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.import-modal__progress-bar {
+  height: 4px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.import-modal__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+  border-radius: 2px;
+  width: 0%;
+  transition: width 200ms;
+}
+
+.import-modal__steps {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.import-modal__step { display: flex; gap: 8px; padding: 3px 0; }
+.import-modal__step--done { color: var(--ok); }
+
+.import-modal__buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* ── ICONS ── */
+.icon {
+  width: 14px; height: 14px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon--sm { width: 13px; height: 13px; }
+.icon--xs { width: 12px; height: 12px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand__mark">FT</div>
+      <div class="brand__text">
+        <div class="brand__name">FAST TRACK</div>
+        <div class="brand__sub">WORLDWIDE LOGISTICS</div>
+      </div>
+    </div>
+    <div class="header__title">
+      <div class="header__title-main">Logistics Control Center</div>
+      <div class="header__title-sub">MSC CRUISES · U.S. CARIBBEAN OPERATIONS</div>
+    </div>
+    <div class="header__actions">
+      <div class="search">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="search-input" placeholder="PO, cruise, vessel, or vendor…">
+        <span class="search__kbd">⌘K</span>
+      </div>
+      <button class="user-chip">
+        <div class="user-chip__avatar">AY</div>
+        <div class="user-chip__name">Andrés Y.</div>
+        <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat">
+      <div class="stat__label">Active Shipments</div>
+      <div class="stat__value">1,185</div>
+      <div class="stat__delta stat__delta--up">↑ 23 since yesterday</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Total Spend (YTD)</div>
+      <div class="stat__value">$817K</div>
+      <div class="stat__delta">median $512 / line</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Attention</div>
+      <div class="stat__value stat__value--warn">23</div>
+      <div class="stat__delta">awaiting documents</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Critical</div>
+      <div class="stat__value stat__value--crit">4</div>
+      <div class="stat__delta stat__delta--down">departure &lt; 48h</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Departures Today</div>
+      <div class="stat__value">2</div>
+      <div class="stat__delta">Divina · Seascape</div>
+    </div>
+    <div class="clock">
+      <div class="clock__time"><span class="clock__indicator"></span><span id="clock-time">10:24:00</span></div>
+      <div class="clock__date" id="clock-date">EDT · Thursday, May 14 2026</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <main class="main">
+    <aside class="sidebar" id="sidebar"></aside>
+    <section class="dashboard">
+      <div class="dashboard__header">
+        <div class="dashboard__title-block">
+          <div class="dashboard__crumb">U.S. Caribbean Team · Active</div>
+          <div class="dashboard__title">
+            <h1>Shipment Overview</h1>
+            <span class="dashboard__title-count" id="title-count">156 of 1,185 in view</span>
+          </div>
+        </div>
+        <div class="dashboard__actions">
+          <button class="btn btn--ghost">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+            Sort: Departure
+          </button>
+          <div class="view-toggle">
+            <button class="view-toggle__btn view-toggle__btn--active" id="layout-cards-btn">
+              <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Cards
+            </button>
+            <button class="view-toggle__btn" id="layout-list-btn">
+              <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              List
+            </button>
+          </div>
+          <button class="btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Export view
+          </button>
+        </div>
+      </div>
+      <div class="card-grid" id="card-grid"></div>
+      <div class="list-view" id="list-view">
+        <table class="list-table">
+          <thead>
+            <tr>
+              <th>PO / Cruise</th>
+              <th>Vessel</th>
+              <th>Department</th>
+              <th>Goods</th>
+              <th>Port</th>
+              <th style="text-align:right;">Days</th>
+              <th style="text-align:right;">Amount</th>
+              <th>Status</th>
+              <th style="text-align:center;">AI</th>
+            </tr>
+          </thead>
+          <tbody id="list-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="inbox-view" id="inbox-view">
+      <div class="dashboard__header">
+        <div class="dashboard__title-block">
+          <div class="dashboard__crumb">Customer service · AI-drafted replies</div>
+          <div class="dashboard__title">
+            <h1>Inbox</h1>
+            <span class="dashboard__title-count">12 awaiting your review · 8 sent today · avg response <strong style="color:var(--ok)">6 min</strong> (was 4 hrs)</span>
+          </div>
+        </div>
+        <div class="dashboard__actions">
+          <button class="btn btn--ghost">All inboxes ▾</button>
+          <button class="btn btn--ghost">Filter ▾</button>
+          <button class="btn">Send daily digest</button>
+        </div>
+      </div>
+      <div class="inbox-stats">
+        <div class="inbox-stat">
+          <div class="inbox-stat__label">Awaiting your review</div>
+          <div class="inbox-stat__value inbox-stat__value--warn">12</div>
+          <div class="inbox-stat__delta">↑ 3 in last hour</div>
+        </div>
+        <div class="inbox-stat">
+          <div class="inbox-stat__label">Sent today (AI drafted)</div>
+          <div class="inbox-stat__value inbox-stat__value--ok">8</div>
+          <div class="inbox-stat__delta inbox-stat__delta--up">↑ 5 vs yesterday</div>
+        </div>
+        <div class="inbox-stat">
+          <div class="inbox-stat__label">Avg response time</div>
+          <div class="inbox-stat__value inbox-stat__value--ok">6 min</div>
+          <div class="inbox-stat__delta inbox-stat__delta--up">↓ from 4 hours</div>
+        </div>
+        <div class="inbox-stat">
+          <div class="inbox-stat__label">Languages handled today</div>
+          <div class="inbox-stat__value">4</div>
+          <div class="inbox-stat__delta">EN · ES · IT · PT</div>
+        </div>
+      </div>
+      <div class="inbox-grid">
+        <aside class="inbox-list" id="inbox-list"></aside>
+        <section class="inbox-detail" id="inbox-detail"></section>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__left">
+      <div class="footer__chip">
+        <span class="footer__chip-dot footer__chip-dot--pulse"></span>
+        Magaya connected · last sync 4 min ago
+      </div>
+      <div class="footer__chip">AI engine · v2.1 · 8 languages</div>
+    </div>
+    <div class="footer__ports">
+      <span class="footer__ports-label">Active Ports:</span>
+      <span class="footer__port footer__port--active">MIA</span>
+      <span class="footer__port footer__port--active">PCV</span>
+      <span class="footer__port footer__port--active">Ocean Cay</span>
+      <span class="footer__port footer__port--active">Philipsburg</span>
+      <span class="footer__port">SSZ</span>
+      <span class="footer__port">ITJ</span>
+      <span class="footer__port">DXB</span>
+    </div>
+  </footer>
+</div>
+
+<!-- DRAWER -->
+<div class="drawer-overlay" id="drawer-overlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer__close-bar">
+    <button class="drawer__close" id="drawer-close">
+      <svg class="icon" viewBox="0 0 24 24"><path d="m19 12-7 7m0-14 7 7M5 12h14"/></svg>
+      Close
+    </button>
+    <div class="drawer__actions">
+      <button class="drawer__action" title="Add note">
+        <svg class="icon icon--sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15h6"/></svg>
+      </button>
+      <button class="drawer__action" title="Assign">
+        <svg class="icon icon--sm" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M5 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/></svg>
+      </button>
+      <button class="drawer__action" title="Share">
+        <svg class="icon icon--sm" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="drawer-content"></div>
+</aside>
+
+<!-- IMPORT MODAL -->
+<div class="import-modal-overlay" id="import-modal-overlay">
+  <div class="import-modal">
+    <div class="import-modal__title">Magaya · Auto-Sync</div>
+    <div class="import-modal__sub">Connected directly to your Magaya instance. Every 15 minutes, new shipments and notes flow in automatically — no manual Excel work, ever.</div>
+    <div class="import-modal__drop" style="border-style:solid;border-color:rgba(16,185,129,0.35);background:rgba(16,185,129,0.05);text-align:left;padding:18px 22px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#10B981;animation:pulse 2s infinite;"></span>
+        <strong style="color:#FBFAF6;font-size:14px;display:inline;margin:0;">Connected · Sync running</strong>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B8478;line-height:1.7;">
+        Endpoint: <span style="color:#E8E4D9;">magaya.fasttrackgroup.com/api/v2</span><br>
+        Schedule: <span style="color:#E8E4D9;">every 15 min · 96 syncs / day</span><br>
+        Last sync: <span style="color:#10B981;">4 min ago · 12 new shipments · 8 emails parsed</span><br>
+        Next sync: <span style="color:#E8E4D9;">in 11 min</span>
+      </div>
+    </div>
+    <div class="import-modal__progress" id="import-progress">
+      <div class="import-modal__progress-label">
+        <span id="import-progress-label">Parsing rows…</span>
+        <span id="import-progress-pct">0%</span>
+      </div>
+      <div class="import-modal__progress-bar">
+        <div class="import-modal__progress-fill" id="import-progress-fill"></div>
+      </div>
+      <div class="import-modal__steps" id="import-steps"></div>
+    </div>
+    <div class="import-modal__buttons">
+      <button class="btn" id="import-cancel">Close</button>
+      <button class="btn btn--accent" id="import-start">Run sync now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   DATA  ·  Real values from sample-data-snapshot.md
+   ═══════════════════════════════════════════════════════════════════ */
+
+const SIDEBAR_DATA = {
+  views: [
+    { label: "All Shipments",        count: "1,185", active: true, view: "dashboard" },
+    { label: "Inbox · Email AI",     count: "12", view: "inbox", highlight: true },
+    { label: "Today's Departures",   count: "8" },
+    { label: "Needs Attention",      count: "23" },
+    { label: "Critical",             count: "4" },
+    { label: "AI-Flagged",           count: "17" },
+  ],
+  vessels: [
+    { label: "Seascape · SC",        count: "169", dot: "#3B82F6" },
+    { label: "Meraviglia · MR",      count: "138", dot: "#8B5CF6" },
+    { label: "Seashore · SH",        count: "138", dot: "#EC4899" },
+    { label: "Bellissima · BE",      count: "123", dot: "#10B981" },
+    { label: "Armonia · AM",         count: "122", dot: "#F59E0B" },
+    { label: "Divina · DI",          count: "54",  dot: "#06B6D4" },
+  ],
+  departments: [
+    { label: "Engine",               count: "222" },
+    { label: "Shops",                count: "192" },
+    { label: "Medical",              count: "93" },
+    { label: "Beverage and Food",    count: "64" },
+    { label: "Hotel Purchasing",     count: "27" },
+    { label: "Deck and Safety",      count: "22" },
+  ],
+  regions: [
+    { label: "U.S. · Caribbean",     count: "693" },
+    { label: "Goa · Mediterranean",  count: "312" },
+    { label: "Brasil · S. America",  count: "180" },
+  ],
+};
+
+const SHIPMENTS = [
+  {
+    po: "25DI-00151",
+    cruise: "DI20241230MIAMIA",
+    vesselCode: "DI",
+    vessel: "Divina",
+    dept: "ENGINE",
+    goods: "Spare part — gearbox bearing, 2 boxes 45kg",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    port: "Ocean Cay",
+    days: 3,
+    amount: 611,
+    status: "ok",
+    statusLabel: "Ready to load",
+    aiFlag: false,
+    type: "OFFLOAD/TRANSHIPMENT",
+    warehouse: "Miami Gardens · Aisle 3-B",
+    customs: "Cleared · CBP-2024-12891",
+    timeline: [
+      { date: "Dec 15", title: "Received in Miami warehouse", meta: "Receiving · Mark Robles", status: "done" },
+      { date: "Dec 17", title: "Customs cleared", meta: "CBP-2024-12891 · Mark Robles", status: "done" },
+      { date: "Dec 20", title: "Truck assignment", meta: "Truck #14 · Ocean Cay run", status: "done" },
+      { date: "Dec 28", title: "Load onto Divina", meta: "Pending · 2 days remaining", status: "current" },
+      { date: "Dec 30", title: "Departure DI20241230MIAMIA", meta: "Scheduled · Ocean Cay via Seaside", status: "pending" },
+    ],
+    aiSuggestion: "All documents cleared. Recommend assigning to truck dispatch queue today to maintain Dec 28 load window.",
+  },
+  {
+    po: "25SC-00098",
+    cruise: "SC20250105MIAMIA",
+    vesselCode: "SC",
+    vessel: "Seascape",
+    dept: "CASINO",
+    goods: "Playing cards, chip sets — replenishment",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    port: "—",
+    days: null,
+    amount: 312,
+    status: "cancel",
+    statusLabel: "Cancelled",
+    aiFlag: true,
+    type: "CANCELLED BY JESUS",
+    warehouse: "Miami Gardens · Holding",
+    customs: "Not initiated",
+    timeline: [
+      { date: "Dec 10", title: "PO created", meta: "Casino dept · Vendor confirmed", status: "done" },
+      { date: "Dec 12", title: "Received in warehouse", meta: "Mark Robles · 1 box 4kg", status: "done" },
+      { date: "Dec 14", title: "Cancelled in source system", meta: "Status text: 'CANCELLED BY JESUS'", status: "done" },
+      { date: "—",      title: "Pending review", meta: "Reason not recorded · Cinthya to confirm", status: "current" },
+    ],
+    aiNote: {
+      raw: "CANCELLED BY JESUS",
+      facts: [
+        { type: "ok",   parts: ["Detected status: ", { strong: "Cancelled" }] },
+        { type: "ok",   parts: ["Cancelled by: ", { strong: "Jesús" }, " (staff override)"] },
+        { type: "warn", parts: ["Reason: ", { strong: "Not specified" }, " in source system"] },
+      ],
+      suggestion: "Source data contains only staff name. Recommend Cinthya contact Jesús for cancellation reason and update record. AI has tagged this shipment for follow-up review.",
+    },
+  },
+  {
+    po: "25MR-00246",
+    cruise: "MR20241229NYCNYC",
+    vesselCode: "MR",
+    vessel: "Meraviglia",
+    dept: "QUALITYREFURBISHMENT",
+    goods: "Tinted glass panels, restaurant deck — refurb",
+    vendor: "TAILOR MADE LOGISTIC SRL",
+    port: "Dubai",
+    days: 9,
+    amount: 2150,
+    status: "warn",
+    statusLabel: "Pending vendor",
+    aiFlag: true,
+    type: "PICK-UP FROM AIRPORT",
+    warehouse: "Goa · In transit",
+    customs: "Pending · UAE import permit",
+    timeline: [
+      { date: "Jan 8",  title: "Requested by Mark", meta: "Origin: Mexico · documents pending", status: "done" },
+      { date: "Jan 12", title: "Vendor confirmed", meta: "TAILOR MADE LOGISTIC SRL", status: "done" },
+      { date: "Jan 18", title: "Awaiting customs documentation", meta: "UAE import permit · pending", status: "current" },
+      { date: "Jan 22", title: "Expected airport pickup DXB", meta: "Sharaf Shipping Agency", status: "pending" },
+    ],
+    aiNote: {
+      raw: "request 8 de enero por mark de carga viene de mexico, esperando documento aduanas",
+      facts: [
+        { type: "ok",   parts: ["Language detected: ", { em: "Spanish" }] },
+        { type: "ok",   parts: ["Date requested: ", { strong: "Jan 8" }] },
+        { type: "ok",   parts: ["Requested by: ", { strong: "Mark" }] },
+        { type: "ok",   parts: ["Origin: ", { strong: "Mexico" }] },
+        { type: "warn", parts: ["Blocker: ", { strong: "Customs document missing" }] },
+      ],
+      suggestion: "Spanish-language note parsed into structured fields. AI extracted person (Mark), date, origin, and identified the customs document as the blocker. Suggest contacting vendor for UAE import permit ETA.",
+    },
+  },
+  {
+    po: "25AM-00211",
+    cruise: "AM20250118MEDMED",
+    vesselCode: "AM",
+    vessel: "Armonia",
+    dept: "ENGINE",
+    goods: "Wärtsilä turbocharger spare · ALMACO, HOBART (DUTIES)",
+    vendor: "WALLEM SHIPPING LIMITED",
+    port: "Dubai",
+    days: 5,
+    amount: 11422,
+    status: "warn",
+    statusLabel: "High value · review",
+    aiFlag: true,
+    type: "PICK-UP FROM AIRPORT",
+    warehouse: "Goa · Inbound",
+    customs: "Pending · duties review",
+    timeline: [
+      { date: "Jan 5",  title: "PO created · Engine dept", meta: "ALMACO, HOBART duties flagged", status: "done" },
+      { date: "Jan 9",  title: "Vendor confirmed", meta: "WALLEM SHIPPING LIMITED", status: "done" },
+      { date: "Jan 14", title: "Air freight in transit", meta: "Korea → Dubai", status: "done" },
+      { date: "Jan 18", title: "Duties review pending", meta: "$11,422 ticket · Goa customs", status: "current" },
+      { date: "Jan 23", title: "Load on Armonia", meta: "Scheduled · Mediterranean cruise", status: "pending" },
+    ],
+    aiNote: {
+      raw: "ALMACO, HOBART (DUTIES)",
+      facts: [
+        { type: "ok",   parts: ["Detected vendors: ", { strong: "ALMACO" }, ", ", { strong: "HOBART" }] },
+        { type: "warn", parts: ["Duties flag: ", { strong: "customs duties applicable" }] },
+        { type: "info", parts: ["Ticket size $11,422 — ", { strong: "above $5,000 review threshold" }] },
+      ],
+      suggestion: "High-value shipment with explicit duties flag. AI auto-routed for executive review per Fast Track policy on $5K+ tickets. Goa team notified.",
+    },
+  },
+  {
+    po: "25DI-00135",
+    cruise: "DI20250106MIAMIA",
+    vesselCode: "DI",
+    vessel: "Divina",
+    dept: "BEVERAGE AND FOOD",
+    goods: "Fresh produce · refrigerated · 12 pallets",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    port: "Ocean Cay",
+    days: 0,
+    amount: 1234,
+    status: "crit",
+    statusLabel: "Departure today",
+    aiFlag: false,
+    type: "TRANSPORT FROM WH",
+    warehouse: "Miami Gardens · Cold storage",
+    customs: "Cleared",
+    timeline: [
+      { date: "Jan 2",  title: "Received cold storage", meta: "12 pallets refrigerated", status: "done" },
+      { date: "Jan 4",  title: "Customs cleared", meta: "Perishables · expedited", status: "done" },
+      { date: "Jan 5",  title: "Truck dispatched", meta: "Truck #22 · Port of Miami", status: "done" },
+      { date: "Today",  title: "Departure DI20250106 · 4 hours", meta: "Critical · vessel sailing at 14:00", status: "current" },
+    ],
+    aiSuggestion: "Critical timing: vessel sails in 4 hours. AI confirmed truck #22 arrived at Port of Miami 11:42. All clear for boarding.",
+  },
+  {
+    po: "25BE-00088",
+    cruise: "BE20250109MEDMED",
+    vesselCode: "BE",
+    vessel: "Bellissima",
+    dept: "MEDICAL",
+    goods: "Medical utensils, CO2 Cylinder · 6 boxes",
+    vendor: "F.LLI CHIESURA S.R.L.",
+    port: "Genoa",
+    days: 1,
+    amount: 245,
+    status: "ok",
+    statusLabel: "Ready to load",
+    aiFlag: false,
+    type: "LOCAL COURIER/LCL",
+    warehouse: "Goa · Bay 7",
+    customs: "Cleared · EU intra-zone",
+    timeline: [
+      { date: "Jan 5",  title: "Vendor delivery received", meta: "F.LLI CHIESURA · Italian medical", status: "done" },
+      { date: "Jan 6",  title: "Customs cleared", meta: "EU intra-zone · no duties", status: "done" },
+      { date: "Jan 7",  title: "Loading list assigned", meta: "Bellissima Mediterranean cruise", status: "done" },
+      { date: "Jan 8",  title: "Awaiting truck dispatch", meta: "Departure in 24 hours", status: "current" },
+    ],
+    aiSuggestion: "Standard medical replenishment. All compliance checks passed. No action required.",
+  },
+  {
+    po: "25SE-00152",
+    cruise: "SE20250114MIAMIA",
+    vesselCode: "SE",
+    vessel: "Seaside",
+    dept: "SHOPS",
+    goods: "JEWELLERY · WATCHES · HOROLOGICAL INSTRUMENTS",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    port: "Ocean Cay",
+    days: 4,
+    amount: 4200,
+    status: "warn",
+    statusLabel: "Customs pending",
+    aiFlag: true,
+    type: "OFFLOAD/TRANSHIPMENT",
+    warehouse: "Miami Gardens · Secure vault",
+    customs: "Pending · luxury goods declaration",
+    timeline: [
+      { date: "Jan 6",  title: "Vendor delivery", meta: "12 watches, 8 jewelry pieces · secure vault", status: "done" },
+      { date: "Jan 8",  title: "Insurance verified", meta: "$4,200 declared value", status: "done" },
+      { date: "Jan 10", title: "Customs declaration submitted", meta: "Luxury goods · review pending", status: "current" },
+      { date: "Jan 13", title: "Truck dispatch", meta: "Scheduled", status: "pending" },
+      { date: "Jan 14", title: "Departure SE20250114", meta: "Seaside · Ocean Cay run", status: "pending" },
+    ],
+    aiNote: {
+      raw: "JEWELLERY 12pcs / WATCHES 8pcs / HOROLOGICAL 4pcs · onboard shop replenishment",
+      facts: [
+        { type: "ok",   parts: ["Department auto-classified: ", { strong: "SHOPS" }] },
+        { type: "ok",   parts: ["Goods category: ", { strong: "Luxury · Horological/Jewelry" }] },
+        { type: "info", parts: ["Total pieces: ", { strong: "24" }, " · onboard retail"] },
+        { type: "warn", parts: ["Customs route: ", { strong: "Luxury declaration required" }] },
+      ],
+      suggestion: "AI grouped JEWELLERY + WATCHES + HOROLOGICAL into single SHOPS category and flagged for luxury customs declaration. Cinthya can track all 24 items as a single workflow instead of three separate lines.",
+    },
+  },
+  {
+    po: "25SH-00301",
+    cruise: "SH20250112MIAMIA",
+    vesselCode: "SH",
+    vessel: "Seashore",
+    dept: "HOTEL PURCHASING",
+    goods: "Linen, towels, amenity kits — Caribbean run",
+    vendor: "FREEPORT SHIP SERVICES LTD",
+    port: "Philipsburg",
+    days: 6,
+    amount: 720,
+    status: "ok",
+    statusLabel: "Ready to load",
+    aiFlag: false,
+    type: "LOCAL COURIER/LCL",
+    warehouse: "Miami Gardens · Bay 12",
+    customs: "Cleared",
+    timeline: [
+      { date: "Jan 4",  title: "Received", meta: "FREEPORT SHIP SERVICES delivery", status: "done" },
+      { date: "Jan 6",  title: "Customs cleared", meta: "Standard textile import", status: "done" },
+      { date: "Jan 8",  title: "Loading list assigned", meta: "Seashore Caribbean cruise", status: "done" },
+      { date: "Jan 12", title: "Departure SH20250112", meta: "Scheduled", status: "pending" },
+    ],
+    aiSuggestion: "Routine hotel supply replenishment. No action required.",
+  },
+  {
+    po: "25VI-00074",
+    cruise: "VI20250115ITJITJ",
+    vesselCode: "VI",
+    vessel: "Virtuosa",
+    dept: "TECH",
+    goods: "Networking equipment · Wartsila MISTI control unit",
+    vendor: "MSC DO BRASIL - SANTOS",
+    port: "Santos",
+    days: 8,
+    amount: 498,
+    status: "info",
+    statusLabel: "In transit",
+    aiFlag: true,
+    type: "PICK-UP FROM AIRPORT",
+    warehouse: "Santos · Inbound",
+    customs: "Brazil import · pending",
+    timeline: [
+      { date: "Jan 3",  title: "Vendor confirmed", meta: "MSC DO BRASIL - SANTOS", status: "done" },
+      { date: "Jan 5",  title: "Air freight booked", meta: "Frankfurt → Santos", status: "done" },
+      { date: "Jan 8",  title: "In transit", meta: "Estimated arrival Santos Jan 11", status: "current" },
+      { date: "Jan 12", title: "Brazil customs", meta: "Standard import review", status: "pending" },
+      { date: "Jan 15", title: "Departure VI20250115", meta: "Itajaí round trip", status: "pending" },
+    ],
+    aiNote: {
+      raw: "MISTI, WARTSILA (DUTIES)",
+      facts: [
+        { type: "ok",   parts: ["Detected manufacturer: ", { strong: "Wärtsilä" }, " (engine systems)"] },
+        { type: "ok",   parts: ["Component series: ", { strong: "MISTI" }] },
+        { type: "warn", parts: ["Duties flag · ", { strong: "customs duties apply" }] },
+      ],
+      suggestion: "Wärtsilä engine component identified. AI noted duties flag and routed to Brasil team customs queue.",
+    },
+  },
+  {
+    po: "25GR-00033",
+    cruise: "GR20250120ITJITJ",
+    vesselCode: "GR",
+    vessel: "Grandiosa",
+    dept: "ENTERTAINMENT",
+    goods: "Show props · costume set · stage lighting filters",
+    vendor: "SPAMAT SNC DI TOTORIZZO L&C",
+    port: "Itajaí",
+    days: 5,
+    amount: 980,
+    status: "ok",
+    statusLabel: "Ready to load",
+    aiFlag: false,
+    type: "LOCAL COURIER/LCL",
+    warehouse: "Santos · Bay 4",
+    customs: "Cleared",
+    timeline: [
+      { date: "Jan 7",  title: "Received Santos warehouse", meta: "SPAMAT delivery", status: "done" },
+      { date: "Jan 9",  title: "Customs cleared", meta: "Brazil import · standard", status: "done" },
+      { date: "Jan 12", title: "Truck dispatch scheduled", meta: "Santos → Itajaí", status: "current" },
+      { date: "Jan 20", title: "Departure GR20250120", meta: "Grandiosa Brazil cruise", status: "pending" },
+    ],
+    aiSuggestion: "Routine entertainment department supply. All clear.",
+  },
+  {
+    po: "25SC-00104",
+    cruise: "SC20250108MIAMIA",
+    vesselCode: "SC",
+    vessel: "Seascape",
+    dept: "SHOPS",
+    goods: "Onboard retail · Food Items · Medical utensils — RETURN",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    port: "Miami",
+    days: 2,
+    amount: -1339,
+    status: "info",
+    statusLabel: "Credit · refund",
+    aiFlag: true,
+    type: "TO BE CREDIT TO MSC",
+    warehouse: "Miami Gardens",
+    customs: "—",
+    timeline: [
+      { date: "Dec 28", title: "Original PO 25SC-00098", meta: "Sent to Seascape · departed Jan 5", status: "done" },
+      { date: "Jan 3",  title: "Return initiated", meta: "Excess items returned by ship store", status: "done" },
+      { date: "Jan 6",  title: "Credit calculated", meta: "-$1,339 refund to MSC", status: "current" },
+      { date: "Jan 8",  title: "Credit posted", meta: "Awaiting MSC confirmation", status: "pending" },
+    ],
+    aiNote: {
+      raw: "OFFLOAD - RETURN SUPPLIER · refund -1339",
+      facts: [
+        { type: "ok",   parts: ["Type: ", { strong: "Credit / refund to MSC" }] },
+        { type: "info", parts: ["Amount: ", { strong: "-$1,339" }, " (largest credit YTD)"] },
+        { type: "info", parts: ["Linked to original PO ", { em: "25SC-00098" }] },
+      ],
+      suggestion: "Return-supplier event auto-linked to original outbound PO. AI suggests Cinthya verify MSC has been notified of credit before closing this record.",
+    },
+  },
+  {
+    po: "25ER-00019",
+    cruise: "ER20250122DXBDXB",
+    vesselCode: "ER",
+    vessel: "Euribia",
+    dept: "DECK AND SAFETY",
+    goods: "Life raft inspection kit · safety harnesses",
+    vendor: "SHARAF SHIPPING AGENCY LLC",
+    port: "Dubai",
+    days: 7,
+    amount: 1567,
+    status: "ok",
+    statusLabel: "Ready to load",
+    aiFlag: false,
+    type: "PICK-UP FROM AIRPORT",
+    warehouse: "Goa · Bay 2",
+    customs: "Cleared · safety equipment exempt",
+    timeline: [
+      { date: "Jan 5",  title: "Vendor confirmed", meta: "SHARAF SHIPPING AGENCY LLC", status: "done" },
+      { date: "Jan 9",  title: "Air freight received", meta: "DXB → Goa transit", status: "done" },
+      { date: "Jan 12", title: "Customs cleared", meta: "Safety equipment · exempt", status: "done" },
+      { date: "Jan 15", title: "Loading list assigned", meta: "Euribia Mediterranean cruise", status: "current" },
+      { date: "Jan 22", title: "Departure ER20250122", meta: "Scheduled", status: "pending" },
+    ],
+    aiSuggestion: "Routine safety equipment replenishment. SOLAS compliance documents on file. No action required.",
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════════
+   DOM helpers — safe construction via createElement
+   ═══════════════════════════════════════════════════════════════════ */
+
+function el(tag, props, children) {
+  const node = document.createElement(tag);
+  if (props) {
+    for (const key in props) {
+      const val = props[key];
+      if (key === "class") node.className = val;
+      else if (key === "text") node.textContent = val;
+      else if (key === "title") node.title = val;
+      else if (key.startsWith("data-")) node.setAttribute(key, val);
+      else node[key] = val;
+    }
+  }
+  if (children) {
+    for (const c of children) {
+      if (c == null) continue;
+      if (typeof c === "string") node.appendChild(document.createTextNode(c));
+      else node.appendChild(c);
+    }
+  }
+  return node;
+}
+
+const svgNS = "http://www.w3.org/2000/svg";
+function svgIcon(paths, cls) {
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("class", "icon " + (cls || ""));
+  for (const p of paths) {
+    let elem;
+    if (p.circle) {
+      elem = document.createElementNS(svgNS, "circle");
+      Object.entries(p.circle).forEach(([k, v]) => elem.setAttribute(k, v));
+    } else {
+      elem = document.createElementNS(svgNS, "path");
+      elem.setAttribute("d", p);
+    }
+    svg.appendChild(elem);
+  }
+  return svg;
+}
+
+function formatAmount(n) {
+  const negative = n < 0;
+  const abs = Math.abs(n);
+  const formatted = "$" + abs.toLocaleString("en-US");
+  return negative ? "−" + formatted : formatted;
+}
+
+function formatDays(d) {
+  if (d === null || d === undefined) return "—";
+  if (d === 0) return "TODAY";
+  if (d === 1) return "1 day";
+  return d + " days";
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════════════════════════════════ */
+
+function buildSidebar() {
+  const sidebar = document.getElementById("sidebar");
+
+  const section = (title, items, withDots) => {
+    const sec = el("div", { class: "sidebar-section" });
+    sec.appendChild(el("div", { class: "sidebar-section__title", text: title }));
+    const ul = el("ul", { class: "filter-list" });
+    items.forEach((it, i) => {
+      const li = el("li", { class: "filter-item" + (it.active ? " active" : "") });
+      const labelWrap = el("span", { class: "filter-item__label" });
+      if (withDots && it.dot) {
+        const dot = el("span", { class: "filter-item__dot" });
+        dot.style.background = it.dot;
+        labelWrap.appendChild(dot);
+      }
+      labelWrap.appendChild(document.createTextNode(it.label));
+      li.appendChild(labelWrap);
+      li.appendChild(el("span", { class: "filter-item__count", text: it.count }));
+      li.addEventListener("click", () => {
+        sec.querySelectorAll(".filter-item").forEach(x => x.classList.remove("active"));
+        li.classList.add("active");
+        if (it.view) switchView(it.view);
+        else if (title === "Views") switchView("dashboard");
+      });
+      ul.appendChild(li);
+    });
+    sec.appendChild(ul);
+    return sec;
+  };
+
+  sidebar.appendChild(section("Views",       SIDEBAR_DATA.views));
+  sidebar.appendChild(section("Vessels",     SIDEBAR_DATA.vessels, true));
+  sidebar.appendChild(section("Departments", SIDEBAR_DATA.departments));
+  sidebar.appendChild(section("Region",      SIDEBAR_DATA.regions));
+
+  // Magaya auto-sync status pill (live indicator, replaces "import" framing)
+  const syncPill = el("div", { class: "magaya-sync" }, [
+    el("span", { class: "magaya-sync__dot" }),
+    el("span", {}, [
+      el("strong", { text: "Magaya · auto-sync" }),
+      el("div", { text: "every 15 min · last sync 4 min ago", style: "color:var(--text-dim);margin-top:2px;font-size:9px;" }),
+    ]),
+  ]);
+  sidebar.appendChild(syncPill);
+
+  const importBtn = el("button", { class: "sidebar-btn sidebar-btn--primary", id: "import-btn" }, [
+    svgIcon(["M21 12a9 9 0 1 1-6.219-8.56", "M16 8h5V3"]),
+    " Magaya sync settings",
+  ]);
+  sidebar.appendChild(importBtn);
+
+  const exportBtn = el("button", { class: "sidebar-btn" }, [
+    svgIcon(["M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"]),
+    " Export view",
+  ]);
+  sidebar.appendChild(exportBtn);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CARDS
+   ═══════════════════════════════════════════════════════════════════ */
+
+function buildCard(s, idx) {
+  const card = el("article", { class: "card card--" + s.status, "data-idx": String(idx) });
+
+  const header = el("div", { class: "card__header" });
+  const idBlock = el("div", { class: "card__id-block" }, [
+    el("div", { class: "card__po", text: s.po }),
+    el("div", { class: "card__cruise-id", text: s.cruise }),
+  ]);
+  header.appendChild(idBlock);
+  header.appendChild(el("div", { class: "card__status card__status--" + s.status, text: s.statusLabel }));
+  card.appendChild(header);
+
+  if (s.aiFlag) {
+    card.appendChild(el("div", { class: "card__ai-flag", title: "AI-classified", text: "AI" }));
+  }
+
+  const vesselLine = el("div", { class: "card__vessel-line" }, [
+    el("div", { class: "card__vessel", text: s.vessel }),
+    el("div", { class: "card__vessel-code", text: "· " + s.vesselCode }),
+  ]);
+  card.appendChild(vesselLine);
+
+  card.appendChild(el("div", { class: "card__dept", text: s.dept }));
+  card.appendChild(el("div", { class: "card__goods", text: s.goods }));
+
+  const portIcon = svgIcon([
+    "M12 2v20M2 12h20M12 2a10 10 0 0 1 10 10M12 22a10 10 0 0 1-10-10"
+  ], "card__port-icon");
+  const portEl = el("div", { class: "card__port" }, [portIcon, document.createTextNode(s.port)]);
+
+  const daysCls = "card__days" + (s.days !== null && s.days <= 1 ? " card__days--urgent" : "");
+  const daysEl = el("div", { class: daysCls, text: formatDays(s.days) });
+
+  const footer = el("div", { class: "card__footer" }, [
+    portEl,
+    daysEl,
+    el("div", { class: "card__amount", text: formatAmount(s.amount) }),
+  ]);
+  card.appendChild(footer);
+
+  card.addEventListener("click", () => openDrawer(s));
+  return card;
+}
+
+function renderCards() {
+  const grid = document.getElementById("card-grid");
+  while (grid.firstChild) grid.removeChild(grid.firstChild);
+  SHIPMENTS.forEach((s, i) => grid.appendChild(buildCard(s, i)));
+}
+
+function buildListRow(s, idx) {
+  const tr = el("tr", { "data-idx": String(idx) });
+
+  // PO + Cruise
+  const td1 = el("td", {});
+  td1.appendChild(el("span", { class: "list-table__po", text: s.po }));
+  td1.appendChild(el("span", { class: "list-table__cruise", text: s.cruise }));
+  tr.appendChild(td1);
+
+  // Vessel
+  const td2 = el("td", {});
+  td2.appendChild(el("span", { class: "list-table__vessel", text: s.vessel }));
+  td2.appendChild(el("span", { class: "list-table__vessel-code", text: "· " + s.vesselCode }));
+  tr.appendChild(td2);
+
+  // Department
+  tr.appendChild(el("td", { class: "list-table__dept", text: s.dept }));
+
+  // Goods (truncated)
+  const td4 = el("td", {});
+  td4.style.maxWidth = "260px";
+  td4.style.overflow = "hidden";
+  td4.style.textOverflow = "ellipsis";
+  td4.style.whiteSpace = "nowrap";
+  td4.appendChild(document.createTextNode(s.goods));
+  tr.appendChild(td4);
+
+  // Port
+  tr.appendChild(el("td", { text: s.port }));
+
+  // Days
+  const daysCls = "list-table__days" + (s.days !== null && s.days <= 1 ? " list-table__days--urgent" : "");
+  tr.appendChild(el("td", { class: daysCls, text: formatDays(s.days) }));
+
+  // Amount
+  tr.appendChild(el("td", { class: "list-table__amount", text: formatAmount(s.amount) }));
+
+  // Status
+  const td8 = el("td", {});
+  td8.appendChild(el("span", { class: "list-table__status list-table__status--" + s.status, text: s.statusLabel }));
+  tr.appendChild(td8);
+
+  // AI flag
+  const td9 = el("td", {});
+  td9.style.textAlign = "center";
+  if (s.aiFlag) td9.appendChild(el("span", { class: "list-table__ai-dot", text: "AI" }));
+  tr.appendChild(td9);
+
+  tr.addEventListener("click", () => openDrawer(s));
+  return tr;
+}
+
+function renderList() {
+  const tbody = document.getElementById("list-tbody");
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  SHIPMENTS.forEach((s, i) => tbody.appendChild(buildListRow(s, i)));
+}
+
+function setLayout(layout) {
+  document.body.classList.remove("layout-cards", "layout-list");
+  document.body.classList.add("layout-" + layout);
+  const cardsBtn = document.getElementById("layout-cards-btn");
+  const listBtn = document.getElementById("layout-list-btn");
+  if (cardsBtn) cardsBtn.classList.toggle("view-toggle__btn--active", layout === "cards");
+  if (listBtn) listBtn.classList.toggle("view-toggle__btn--active", layout === "list");
+}
+
+function setupLayoutToggle() {
+  const cardsBtn = document.getElementById("layout-cards-btn");
+  const listBtn = document.getElementById("layout-list-btn");
+  if (cardsBtn) cardsBtn.addEventListener("click", () => setLayout("cards"));
+  if (listBtn) listBtn.addEventListener("click", () => setLayout("list"));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DRAWER
+   ═══════════════════════════════════════════════════════════════════ */
+
+function buildAiFactText(parts) {
+  const span = el("div", { class: "ai-fact__text" });
+  for (const p of parts) {
+    if (typeof p === "string") {
+      span.appendChild(document.createTextNode(p));
+    } else if (p.strong) {
+      span.appendChild(el("strong", { text: p.strong }));
+    } else if (p.em) {
+      span.appendChild(el("em", { text: p.em }));
+    }
+  }
+  return span;
+}
+
+function buildAiBlock(s) {
+  const block = el("div", { class: "ai-block" });
+
+  if (s.aiNote) {
+    const cmp = el("div", { class: "ai-comparison" });
+
+    const input = el("div", { class: "ai-input" }, [
+      el("span", { class: "ai-input__label", text: "Raw note · from Magaya" }),
+      el("span", { class: "ai-input__text", text: s.aiNote.raw }),
+    ]);
+    cmp.appendChild(input);
+    cmp.appendChild(el("div", { class: "ai-arrow", text: "▼" }));
+
+    const output = el("div", { class: "ai-output" });
+    output.appendChild(el("span", { class: "ai-output__label", text: "AI-parsed" }));
+    for (const f of s.aiNote.facts) {
+      const factRow = el("div", { class: "ai-fact" });
+      const icon = f.type === "ok" ? "✓" : f.type === "warn" ? "!" : "ⓘ";
+      factRow.appendChild(el("span", { class: "ai-fact__icon ai-fact__icon--" + f.type, text: icon }));
+      factRow.appendChild(buildAiFactText(f.parts));
+      output.appendChild(factRow);
+    }
+    cmp.appendChild(output);
+    block.appendChild(cmp);
+
+    const sug = el("div", { class: "ai-suggestion" }, [
+      el("div", { class: "ai-suggestion__label", text: "↳ AI recommendation" }),
+      el("div", { class: "ai-suggestion__text", text: s.aiNote.suggestion }),
+    ]);
+    block.appendChild(sug);
+  } else if (s.aiSuggestion) {
+    const sug = el("div", { class: "ai-suggestion", style: "margin-top:0;" });
+    sug.style.marginTop = "0";
+    sug.appendChild(el("div", { class: "ai-suggestion__label", text: "↳ AI recommendation" }));
+    sug.appendChild(el("div", { class: "ai-suggestion__text", text: s.aiSuggestion }));
+    block.appendChild(sug);
+  }
+  return block;
+}
+
+function buildDrawerContent(s) {
+  const frag = document.createDocumentFragment();
+
+  // Hero
+  const hero = el("div", { class: "drawer__hero" });
+  const meta = el("div", { class: "drawer__hero-meta" });
+  meta.appendChild(el("div", { class: "drawer__hero-po", text: s.po }));
+  meta.appendChild(el("div", { class: "card__status card__status--" + s.status, text: s.statusLabel }));
+  if (s.aiFlag) {
+    const flag = el("div", { class: "card__ai-flag", text: "AI" });
+    flag.style.position = "static";
+    meta.appendChild(flag);
+  }
+  hero.appendChild(meta);
+  hero.appendChild(el("div", { class: "drawer__hero-title", text: s.vessel + " · " + s.dept }));
+  const sub = s.cruise + " · " + (s.days !== null ? "departure to " + s.port + " in " + formatDays(s.days).toLowerCase() : "no scheduled departure");
+  hero.appendChild(el("div", { class: "drawer__hero-sub", text: sub }));
+  frag.appendChild(hero);
+
+  // Overview
+  const overview = el("div", { class: "drawer__section" });
+  overview.appendChild(el("div", { class: "drawer__section-title", text: "Overview" }));
+  const grid = el("div", { class: "detail-grid" });
+  const pair = (label, value, valueCls) => el("div", { class: "detail-pair" }, [
+    el("div", { class: "detail-pair__label", text: label }),
+    el("div", { class: "detail-pair__value" + (valueCls ? " " + valueCls : ""), text: value }),
+  ]);
+  grid.appendChild(pair("Goods", s.goods));
+  grid.appendChild(pair("Value", formatAmount(s.amount), "detail-pair__value--big"));
+  grid.appendChild(pair("Vendor", s.vendor, "detail-pair__value--mono"));
+  grid.appendChild(pair("Type of shipment", s.type, "detail-pair__value--mono"));
+  grid.appendChild(pair("Warehouse location", s.warehouse));
+  grid.appendChild(pair("Customs status", s.customs));
+  overview.appendChild(grid);
+  frag.appendChild(overview);
+
+  // Timeline
+  const tlSection = el("div", { class: "drawer__section" });
+  tlSection.appendChild(el("div", { class: "drawer__section-title", text: "Timeline" }));
+  const tl = el("div", { class: "timeline" });
+  for (const t of s.timeline) {
+    const item = el("div", { class: "timeline__item timeline__item--" + t.status });
+    item.appendChild(el("div", { class: "timeline__dot" }));
+    item.appendChild(el("div", { class: "timeline__date", text: t.date }));
+    item.appendChild(el("div", { class: "timeline__title", text: t.title }));
+    item.appendChild(el("div", { class: "timeline__meta", text: t.meta }));
+    tl.appendChild(item);
+  }
+  tlSection.appendChild(tl);
+  frag.appendChild(tlSection);
+
+  // AI Block
+  if (s.aiNote || s.aiSuggestion) {
+    const aiSection = el("div", { class: "drawer__section" });
+    aiSection.appendChild(el("div", { class: "drawer__section-title", text: "AI Analysis" }));
+    aiSection.appendChild(buildAiBlock(s));
+    frag.appendChild(aiSection);
+  }
+
+  return frag;
+}
+
+function openDrawer(s) {
+  const content = document.getElementById("drawer-content");
+  while (content.firstChild) content.removeChild(content.firstChild);
+  content.appendChild(buildDrawerContent(s));
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("drawer-overlay").classList.add("open");
+}
+
+function closeDrawer() {
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("drawer-overlay").classList.remove("open");
+}
+
+document.getElementById("drawer-close").addEventListener("click", closeDrawer);
+document.getElementById("drawer-overlay").addEventListener("click", closeDrawer);
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLOCK
+   ═══════════════════════════════════════════════════════════════════ */
+
+function tickClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  document.getElementById("clock-time").textContent = hh + ":" + mm + ":" + ss;
+  const date = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  document.getElementById("clock-date").textContent = "EDT · " + date;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   IMPORT MODAL
+   ═══════════════════════════════════════════════════════════════════ */
+
+function setupImport() {
+  const overlay = document.getElementById("import-modal-overlay");
+  const startBtn = document.getElementById("import-start");
+  const cancelBtn = document.getElementById("import-cancel");
+  const progress = document.getElementById("import-progress");
+  const fill = document.getElementById("import-progress-fill");
+  const pct = document.getElementById("import-progress-pct");
+  const label = document.getElementById("import-progress-label");
+  const steps = document.getElementById("import-steps");
+
+  const btn = document.getElementById("import-btn");
+  btn.addEventListener("click", () => {
+    overlay.classList.add("open");
+    progress.classList.remove("active");
+    fill.style.width = "0%";
+    pct.textContent = "0%";
+    while (steps.firstChild) steps.removeChild(steps.firstChild);
+  });
+
+  cancelBtn.addEventListener("click", () => overlay.classList.remove("open"));
+
+  startBtn.addEventListener("click", () => {
+    progress.classList.add("active");
+    while (steps.firstChild) steps.removeChild(steps.firstChild);
+    const stepData = [
+      { pct: 18,  label: "Reading Magaya export · 4 sheets · 1,945 rows",         tag: "Parsed 1,945 rows" },
+      { pct: 38,  label: "Normalizing departments · 13 canonical · multilingual", tag: "Normalized 13 departments" },
+      { pct: 58,  label: "Classifying shipment types · 7 categories",             tag: "Classified 1,089 records" },
+      { pct: 76,  label: "AI extraction · messy notes · 3 languages",             tag: "Extracted 312 structured facts" },
+      { pct: 90,  label: "Cross-matching POs and Cruise IDs",                     tag: "Matched 1,089 / 1,089" },
+      { pct: 100, label: "Done · 1,185 shipments ready",                          tag: "✓ Import complete" },
+    ];
+    let i = 0;
+    const run = () => {
+      if (i >= stepData.length) {
+        setTimeout(() => overlay.classList.remove("open"), 1200);
+        return;
+      }
+      const step = stepData[i++];
+      fill.style.width = step.pct + "%";
+      pct.textContent = step.pct + "%";
+      label.textContent = step.label;
+      const div = el("div", { class: "import-modal__step" + (step.pct === 100 ? " import-modal__step--done" : ""), text: step.tag });
+      steps.appendChild(div);
+      setTimeout(run, step.pct === 100 ? 800 : 700);
+    };
+    run();
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   KEYBOARD
+   ═══════════════════════════════════════════════════════════════════ */
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeDrawer();
+    document.getElementById("import-modal-overlay").classList.remove("open");
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+    e.preventDefault();
+    document.getElementById("search-input").focus();
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   EMAIL INBOX DATA  ·  Real-context emails per Andrés's criteria
+   ═══════════════════════════════════════════════════════════════════ */
+
+const EMAILS = [
+  {
+    id: 0,
+    from: "Marco Bianchi",
+    fromOrg: "MSC Procurement & Logistic S.p.A.",
+    subject: "FW: Ocean Cay – Material Ready for DI20241230",
+    preview: "Confirm truck dispatch by Dec 22. Material ready at Miami warehouse...",
+    time: "10:42 AM",
+    lang: "EN",
+    urgent: true,
+    aiReady: true,
+    body: "Mikhail,\n\nMaterial for cruise DI20241230MIAMIA is ready at your Miami warehouse. Please confirm truck dispatch by Dec 22 at 10:00 AM. All customs documents already cleared. Vessel sails Dec 30.\n\nBest,\nMarco Bianchi\nMSC Procurement & Logistic",
+    aiSummary: [
+      { type: "ok", parts: ["Cruise: ", { strong: "DI20241230MIAMIA" }, " (Divina)"] },
+      { type: "ok", parts: ["Deadline: ", { strong: "Dec 22 · 10:00 AM" }] },
+      { type: "ok", parts: ["Linked POs: ", { em: "25DI-00151, 25DI-00135" }] },
+      { type: "info", parts: ["Customs already cleared, truck dispatch pending"] },
+    ],
+    draftReply: "Hi Marco,\n\nConfirmed. Truck #14 dispatched Dec 22 at 09:30 AM ET for Ocean Cay loading. ETA at port: 10:00 AM. All customs documents on file.\n\nLinked POs in dispatch: 25DI-00151 (Engine), 25DI-00135 (F&B). Ready for vessel load Dec 28.\n\nBest,\nFast Track Logistics",
+  },
+  {
+    id: 1,
+    from: "Mark Robles",
+    fromOrg: "Fast Track · Miami Warehouse",
+    subject: "request 8 de enero por mark de carga viene de mexico",
+    preview: "esperando documento aduanas para PO 25MR-00246...",
+    time: "9:18 AM",
+    lang: "ES",
+    urgent: false,
+    aiReady: true,
+    body: "Mikhail,\n\nrequest 8 de enero por mark de carga viene de mexico, esperando documento aduanas para PO 25MR-00246 destino Dubai vía Sharaf Shipping.\n\nQuestion: ¿podemos liberar sin documento, o esperamos?\n\nMark",
+    aiSummary: [
+      { type: "ok", parts: ["Language detected: ", { em: "Spanish" }] },
+      { type: "ok", parts: ["Date: ", { strong: "Jan 8" }, " · requested by Mark"] },
+      { type: "ok", parts: ["Origin: ", { strong: "Mexico" }, " · destination Dubai"] },
+      { type: "warn", parts: ["Blocker: ", { strong: "Customs document missing" }] },
+      { type: "info", parts: ["Linked PO: ", { em: "25MR-00246" }, " (Meraviglia)"] },
+    ],
+    draftReply: "Hola Mark,\n\nNo, no podemos liberar sin el documento aduanas — Sharaf Shipping requiere CBP form 7501 firmado antes de aceptar la carga en Dubai.\n\nAcción: contacta directo al broker mexicano hoy y solicita el documento por email a customs@fasttrackgroup.us. Ponme en copia. Si tarda más de 24 hrs, escalamos.\n\nSaludos,\nFast Track",
+  },
+  {
+    id: 2,
+    from: "Giuseppe Conti",
+    fromOrg: "MSC Italia · DIPARTIMENTI",
+    subject: "URGENTE: Documenti necessari per Meraviglia ENGINE",
+    preview: "DIPARTIMENTO ENGINE – PO 25MR-00246 documenti mancanti — vessel parte fra 3 giorni",
+    time: "8:55 AM",
+    lang: "IT",
+    urgent: true,
+    aiReady: true,
+    body: "Ciao,\n\nUrgente: documenti mancanti per cruise MR20250118 (Meraviglia), DIPARTIMENTO ENGINE, PO 25MR-00246.\n\nManca: CITES certificato e bill of lading firmato. Vessel parte dal porto fra 3 giorni.\n\nGrazie,\nGiuseppe Conti\nMSC Italia",
+    aiSummary: [
+      { type: "ok", parts: ["Language: ", { em: "Italian" }] },
+      { type: "warn", parts: ["URGENT: ", { strong: "vessel departs in 3 days" }] },
+      { type: "ok", parts: ["Cruise: ", { strong: "MR20250118" }, " (Meraviglia)"] },
+      { type: "warn", parts: ["Missing: CITES cert + signed bill of lading"] },
+      { type: "info", parts: ["Department: ", { em: "ENGINE" }] },
+    ],
+    draftReply: "Ciao Giuseppe,\n\nCITES certificato già richiesto al broker mercoledì scorso. Confermo invio entro oggi 18:00 ET. Bill of lading firmato lo otteniamo da Wallem Shipping Korea entro 24 ore.\n\nGarantisco tutto in tempo per la partenza fra 3 giorni. Ti aggiorno appena ricevo conferma da entrambi.\n\nSaluti,\nFast Track",
+  },
+  {
+    id: 3,
+    from: "Ana Pereira",
+    fromOrg: "FREEPORT SHIP SERVICES · Bahamas",
+    subject: "Customs hold: Cruise SC20250105 – 3 of 12 pallets missing manifest",
+    preview: "Need updated documentation ASAP — vessel scheduled to depart Jan 5 morning",
+    time: "Yesterday 4:32 PM",
+    lang: "EN",
+    urgent: true,
+    aiReady: true,
+    body: "Hi team,\n\nCustoms hold at Freeport for SC20250105 (Seascape). Manifest missing for 3 of 12 pallets in transit. Need updated documentation ASAP — vessel departs Jan 5 morning.\n\nPallets affected: PO 25SC-00098 (Casino), 25SC-00104 (Shops return).\n\nAna Pereira\nFreeport Customs Broker",
+    aiSummary: [
+      { type: "warn", parts: ["Customs hold · ", { strong: "3 of 12 pallets" }, " missing manifest"] },
+      { type: "ok", parts: ["Cruise: ", { strong: "SC20250105" }, " (Seascape)"] },
+      { type: "warn", parts: ["Linked PO: ", { em: "25SC-00098" }, " was CANCELLED — manifest obsolete?"] },
+      { type: "info", parts: ["Suggest: confirm cancellation impact on manifest"] },
+    ],
+    draftReply: "Hi Ana,\n\nThanks for the heads up. Two updates:\n\n1. PO 25SC-00098 was cancelled by our staff (Jesús) on Dec 14 — pallets associated should be removed from manifest. Updated version coming by EOD.\n\n2. PO 25SC-00104 is a return-to-supplier shipment ($-1,339 credit). Original outbound manifest applies — will send link.\n\nUpdated manifest with you in 4 hours.\n\nFast Track Operations",
+  },
+  {
+    id: 4,
+    from: "Hyun Park",
+    fromOrg: "Wallem Shipping · Korea",
+    subject: "Invoice PO 25AM-00211 payment status?",
+    preview: "Wärtsilä turbocharger $11,422 — 30 days overdue, terms are Net-30",
+    time: "Yesterday 11:20 AM",
+    lang: "EN",
+    urgent: false,
+    aiReady: true,
+    body: "Mikhail,\n\nFollowing up on invoice for PO 25AM-00211 — Wärtsilä turbocharger spare for Armonia.\n\nAmount: $11,422\nInvoice date: Nov 15 2024\nDays overdue: 30\n\nPlease confirm payment status. Our terms are Net-30. We'll escalate if not paid within 7 days.\n\nHyun Park\nWallem Shipping Korea",
+    aiSummary: [
+      { type: "info", parts: ["Invoice ", { strong: "$11,422" }, " · 30 days overdue"] },
+      { type: "warn", parts: ["High-value · above $5K review threshold"] },
+      { type: "ok", parts: ["PO ", { em: "25AM-00211" }, " · duties review pending Goa team"] },
+      { type: "info", parts: ["Recommend: explain duties hold + ETA"] },
+    ],
+    draftReply: "Hi Hyun,\n\nPayment held pending duties clearance at Goa customs (duties flag on ALMACO/HOBART components). Expected resolution within 5 business days.\n\nI've escalated to our AP team — payment will release as soon as duties review closes, latest Jan 23. Will email confirmation once paid.\n\nAppreciate your patience.\n\nFast Track AP",
+  },
+  {
+    id: 5,
+    from: "Officer J. Martinez",
+    fromOrg: "U.S. Customs and Border Protection",
+    subject: "Action required: missing customs declaration PO 25SE-00152",
+    preview: "Luxury goods declaration required (jewellery/watches) — 48 hour deadline",
+    time: "Yesterday 9:05 AM",
+    lang: "EN",
+    urgent: true,
+    aiReady: true,
+    body: "Re: PO 25SE-00152 — JEWELLERY/WATCHES/HOROLOGICAL shipment\n\nThis shipment requires Luxury Goods Declaration (form 3461 with insurance documentation). Currently classified as standard goods. Hold placed at Miami warehouse until corrected.\n\nDeadline: 48 hours from receipt.\n\nCBP Officer J. Martinez",
+    aiSummary: [
+      { type: "warn", parts: ["CBP hold · ", { strong: "Luxury declaration required" }] },
+      { type: "ok", parts: ["PO ", { em: "25SE-00152" }, " (Seaside · Shops dept)"] },
+      { type: "info", parts: ["Value $4,200 · 24 luxury items"] },
+      { type: "warn", parts: ["Deadline: ", { strong: "48 hours" }] },
+    ],
+    draftReply: "Officer Martinez,\n\nThank you for flagging. Submitting corrected form 3461 with insurance documentation today. Specific items:\n\n• 12 watches\n• 8 jewellery pieces\n• 4 horological instruments\n\nDeclared value: $4,200 · Insurance: Travelers Marine policy #MX-2024-8821\n\nUpdated paperwork on file by 5:00 PM today.\n\nFast Track Customs",
+  },
+  {
+    id: 6,
+    from: "Carlos Silva",
+    fromOrg: "MSC do Brasil · Santos",
+    subject: "Pedido status: PO 25GR-00033 entrega Itajaí",
+    preview: "Confirmação entrega Grandiosa props chegou Santos · 8 dias até partida",
+    time: "Yesterday 7:11 AM",
+    lang: "PT",
+    urgent: false,
+    aiReady: true,
+    body: "Olá,\n\nConfirmação: pedido PO 25GR-00033 (Grandiosa entertainment props) chegou ao armazém Santos. Pronto para despacho rodoviário Santos → Itajaí.\n\nPartida do vessel: Jan 20. Tempo disponível: 8 dias.\n\nAtenciosamente,\nCarlos Silva",
+    aiSummary: [
+      { type: "ok", parts: ["Language: ", { em: "Portuguese" }] },
+      { type: "ok", parts: ["PO ", { em: "25GR-00033" }, " arrived Santos warehouse"] },
+      { type: "ok", parts: ["Cruise: ", { strong: "GR20250120ITJITJ" }, " (Grandiosa)"] },
+      { type: "info", parts: ["Buffer: ", { strong: "8 days" }, " — comfortable"] },
+    ],
+    draftReply: "Oi Carlos,\n\nObrigado pela confirmação. Despacho rodoviário agendado para Jan 14 às 09:00 (Santos → Itajaí, transit ~6 horas).\n\nCom 8 dias de margem, temos buffer suficiente. Vou copiar SPAMAT SNC para coordenação do transporte.\n\nAbraços,\nFast Track Brasil",
+  },
+  {
+    id: 7,
+    from: "Sharaf Shipping Dubai",
+    fromOrg: "SHARAF SHIPPING AGENCY LLC",
+    subject: "Re: Cruise ER20250122 — air freight received Dubai",
+    preview: "Life raft inspection kit + safety harnesses received · SOLAS compliance filed",
+    time: "2 days ago",
+    lang: "EN",
+    urgent: false,
+    aiReady: true,
+    body: "Cargo received Dubai today for cruise ER20250122 (Euribia).\n\n• Life raft inspection kit — 6 units\n• Safety harnesses — 24 units\n\nWe'll handle Goa transit and dock loading. SOLAS compliance documents already filed.\n\nSharaf Shipping",
+    aiSummary: [
+      { type: "ok", parts: ["Cargo received Dubai · ", { strong: "30 safety items" }] },
+      { type: "ok", parts: ["Cruise: ", { strong: "ER20250122DXBDXB" }, " (Euribia)"] },
+      { type: "ok", parts: ["Compliance: SOLAS docs filed"] },
+      { type: "info", parts: ["Status: routine — no action required"] },
+    ],
+    draftReply: "Hi Sharaf team,\n\nThank you for the update. All looks good. We'll close this PO on our side once you confirm vessel boarding on Jan 22.\n\nFast Track",
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════════
+   INBOX VIEW  ·  Render list + detail
+   ═══════════════════════════════════════════════════════════════════ */
+
+let selectedEmailIdx = 0;
+
+function buildInboxList() {
+  const list = document.getElementById("inbox-list");
+  while (list.firstChild) list.removeChild(list.firstChild);
+  EMAILS.forEach((email, idx) => {
+    const item = el("div", {
+      class: "inbox-item" + (email.urgent ? " inbox-item--urgent" : "") + (idx === selectedEmailIdx ? " inbox-item--active" : ""),
+      "data-idx": String(idx),
+    });
+    const line1 = el("div", { class: "inbox-item__line1" }, [
+      el("div", { class: "inbox-item__from", text: email.from }),
+      el("div", { class: "inbox-item__time", text: email.time }),
+    ]);
+    item.appendChild(line1);
+    item.appendChild(el("div", { class: "inbox-item__subject", text: email.subject }));
+    item.appendChild(el("div", { class: "inbox-item__preview", text: email.preview }));
+
+    const meta = el("div", { class: "inbox-item__meta" });
+    meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--lang", text: email.lang }));
+    if (email.urgent) meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--urgent", text: "Urgent" }));
+    if (email.aiReady) meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--ai", text: "AI ready" }));
+    item.appendChild(meta);
+
+    item.addEventListener("click", () => {
+      selectedEmailIdx = idx;
+      buildInboxList();
+      buildInboxDetail(EMAILS[idx]);
+    });
+    list.appendChild(item);
+  });
+}
+
+function buildInboxDetail(email) {
+  const root = document.getElementById("inbox-detail");
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  root.appendChild(el("div", { class: "inbox-detail__from-label", text: "FROM" }));
+  root.appendChild(el("div", { class: "inbox-detail__sender", text: email.from }));
+  root.appendChild(el("div", { class: "inbox-detail__sender-org", text: email.fromOrg }));
+  root.appendChild(el("div", { class: "inbox-detail__subject", text: email.subject }));
+
+  const metaRow = el("div", { class: "inbox-detail__meta-row" });
+  metaRow.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--lang", text: email.lang }));
+  if (email.urgent) metaRow.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--urgent", text: "Urgent" }));
+  metaRow.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--ai", text: "AI processed" }));
+  metaRow.appendChild(el("span", { class: "inbox-item__time", text: email.time + " · received via Magaya sync" }));
+  root.appendChild(metaRow);
+
+  root.appendChild(el("div", { class: "inbox-detail__body", text: email.body }));
+
+  // AI summary block (reuse ai-block styles)
+  const ai = el("div", { class: "ai-block", style: "margin-top:18px;" });
+  const cmp = el("div", { class: "ai-comparison" });
+  const out = el("div", { class: "ai-output" });
+  out.appendChild(el("span", { class: "ai-output__label", text: "AI-parsed · key facts" }));
+  for (const f of email.aiSummary) {
+    const factRow = el("div", { class: "ai-fact" });
+    const icon = f.type === "ok" ? "✓" : f.type === "warn" ? "!" : "ⓘ";
+    factRow.appendChild(el("span", { class: "ai-fact__icon ai-fact__icon--" + f.type, text: icon }));
+    factRow.appendChild(buildAiFactText(f.parts));
+    out.appendChild(factRow);
+  }
+  cmp.appendChild(out);
+  ai.appendChild(cmp);
+  root.appendChild(ai);
+
+  // Draft reply block
+  const draft = el("div", { class: "draft-reply" });
+  draft.appendChild(el("div", { class: "draft-reply__hint", text: "Edit the AI draft, or approve and send as is. Your team always decides." }));
+  const ta = el("textarea", { class: "draft-reply__textarea" });
+  ta.value = email.draftReply;
+  draft.appendChild(ta);
+
+  const actions = el("div", { class: "draft-reply__actions" });
+  actions.appendChild(el("span", { class: "draft-reply__status", text: "Saved · ready to send" }));
+  actions.appendChild(el("button", { class: "draft-reply__btn draft-reply__btn--reject", text: "Reject" }));
+  actions.appendChild(el("button", { class: "draft-reply__btn", text: "Edit draft" }));
+  actions.appendChild(el("button", { class: "draft-reply__btn draft-reply__btn--approve", text: "Approve & Send" }));
+  draft.appendChild(actions);
+
+  root.appendChild(draft);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   VIEW SWITCHING  ·  Inbox ⇄ Shipments
+   ═══════════════════════════════════════════════════════════════════ */
+
+function switchView(view) {
+  document.body.classList.remove("view-inbox", "view-dashboard");
+  document.body.classList.add("view-" + view);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SEARCH  ·  Live filter cards
+   ═══════════════════════════════════════════════════════════════════ */
+
+function setupSearch() {
+  const input = document.getElementById("search-input");
+  if (!input) return;
+  input.addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const cards = document.querySelectorAll(".card");
+    let shown = 0;
+    cards.forEach((c) => {
+      const idx = parseInt(c.dataset.idx, 10);
+      const s = SHIPMENTS[idx];
+      const hay = [s.po, s.cruise, s.vessel, s.dept, s.goods, s.vendor, s.port].join(" ").toLowerCase();
+      if (!q || hay.includes(q)) {
+        c.style.display = "";
+        shown++;
+      } else {
+        c.style.display = "none";
+      }
+    });
+    const count = document.getElementById("title-count");
+    if (count) {
+      count.textContent = q ? shown + " matching" : "156 of 1,185 in view";
+    }
+  });
+}
+
+buildSidebar();
+renderCards();
+renderList();
+setupLayoutToggle();
+setupImport();
+setupSearch();
+buildInboxList();
+buildInboxDetail(EMAILS[0]);
+switchView("dashboard");
+setLayout("cards");
+tickClock();
+setInterval(tickClock, 1000);
+
+// URL hash → auto-open state for screenshots / deep links / auto-demo
+(function autoOpen() {
+  const h = (window.location.hash || "").replace("#", "");
+  if (!h) return;
+  setTimeout(() => {
+    if (h.startsWith("card-")) {
+      const idx = parseInt(h.replace("card-", ""), 10);
+      if (!isNaN(idx) && SHIPMENTS[idx]) openDrawer(SHIPMENTS[idx]);
+    } else if (h === "import" || h === "sync") {
+      const btn = document.getElementById("import-btn");
+      if (btn) btn.click();
+    } else if (h === "inbox") {
+      switchView("inbox");
+    } else if (h.startsWith("email-")) {
+      switchView("inbox");
+      const idx = parseInt(h.replace("email-", ""), 10);
+      if (!isNaN(idx) && EMAILS[idx]) {
+        selectedEmailIdx = idx;
+        buildInboxList();
+        buildInboxDetail(EMAILS[idx]);
+      }
+    } else if (h === "demo" || h === "auto") {
+      runAutoDemo();
+    } else if (h === "list") {
+      setLayout("list");
+    }
+  }, 250);
+})();
+
+/* ═══════════════════════════════════════════════════════════════════
+   AUTO-DEMO  ·  Self-running walkthrough for video recording
+   Trigger: open prototype with #demo or #auto
+   Duration: ~32 sec total
+   ═══════════════════════════════════════════════════════════════════ */
+
+function runAutoDemo() {
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  // Add visible "DEMO" indicator in corner
+  const pill = document.createElement("div");
+  pill.style.cssText = "position:fixed;top:74px;right:24px;z-index:9999;background:var(--accent-deep);color:#FBFAF6;border:1px solid var(--accent);border-radius:24px;padding:6px 14px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.16em;text-transform:uppercase;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.4);";
+  const dot = document.createElement("span");
+  dot.style.cssText = "display:inline-block;width:7px;height:7px;border-radius:50%;background:#EF4444;animation:pulse 1s infinite;";
+  pill.appendChild(dot);
+  const text = document.createElement("span");
+  text.textContent = "REC · Demo playing";
+  pill.appendChild(text);
+  document.body.appendChild(pill);
+
+  (async () => {
+    // 0-2s: Dashboard visible (let viewer absorb stats)
+    await sleep(2200);
+
+    // 2-6s: Click CANCELLED BY JESUS card (index 1) → drawer opens
+    const cards = document.querySelectorAll(".card");
+    if (cards[1]) cards[1].click();
+    await sleep(4000);
+
+    // 6-7s: Close drawer
+    closeDrawer();
+    await sleep(900);
+
+    // 7-9s: Click Spanish AI card (index 2) for second AI proof
+    const cards2 = document.querySelectorAll(".card");
+    if (cards2[2]) cards2[2].click();
+    await sleep(3800);
+    closeDrawer();
+    await sleep(700);
+
+    // 9-11s: Switch to Inbox view
+    const inboxItem = [...document.querySelectorAll(".filter-item")].find(li =>
+      li.textContent.includes("Inbox"));
+    if (inboxItem) inboxItem.click();
+    await sleep(2500);
+
+    // 11-15s: Click Spanish email (idx 1)
+    const emails = document.querySelectorAll(".inbox-item");
+    if (emails[1]) emails[1].click();
+    await sleep(4000);
+
+    // 15-19s: Click Italian urgent email (idx 2)
+    if (emails[2]) emails[2].click();
+    await sleep(4000);
+
+    // 19-22s: Click MSC Procurement (idx 0) — back to English
+    if (emails[0]) emails[0].click();
+    await sleep(3500);
+
+    // 22-25s: Open Magaya sync modal
+    const importBtn = document.getElementById("import-btn");
+    if (importBtn) importBtn.click();
+    await sleep(3500);
+
+    // 25-26s: Close modal
+    document.getElementById("import-modal-overlay").classList.remove("open");
+    await sleep(700);
+
+    // 26-28s: Back to dashboard
+    const allItem = [...document.querySelectorAll(".filter-item")].find(li =>
+      li.textContent.includes("All Shipments"));
+    if (allItem) allItem.click();
+    await sleep(1500);
+
+    // 28-32s: Switch to List view to show dense data alternative
+    const listBtn = document.getElementById("layout-list-btn");
+    if (listBtn) listBtn.click();
+    await sleep(3500);
+    // Back to cards
+    const cardsBtn = document.getElementById("layout-cards-btn");
+    if (cardsBtn) cardsBtn.click();
+    await sleep(1000);
+
+    // End — update pill
+    text.textContent = "Demo complete";
+    dot.style.background = "#10B981";
+    dot.style.animation = "none";
+    await sleep(2000);
+    pill.style.transition = "opacity 600ms";
+    pill.style.opacity = "0";
+    setTimeout(() => pill.remove(), 700);
+  })();
+}
+</script>
+</body>
+</html>
