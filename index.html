@@ -1475,7 +1475,7 @@ body.layout-list .list-view { display: block; }
         <div class="dashboard__actions">
           <button class="btn btn--ghost">
             <svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
-            Sort: Departure
+            Sort: Last updated
           </button>
           <div class="view-toggle">
             <button class="view-toggle__btn view-toggle__btn--active" id="layout-cards-btn">
@@ -1688,6 +1688,7 @@ const SIDEBAR_DATA = {
 const SHIPMENTS = [
   {
     po: "25DI-00151",
+    updatedAt: "2026-05-20",
     cruise: "DI20241230MIAMIA",
     vesselCode: "DI",
     vessel: "Divina",
@@ -1714,6 +1715,7 @@ const SHIPMENTS = [
   },
   {
     po: "25SC-00098",
+    updatedAt: "2026-05-22",
     cruise: "SC20250105MIAMIA",
     vesselCode: "SC",
     vessel: "Seascape",
@@ -1747,6 +1749,7 @@ const SHIPMENTS = [
   },
   {
     po: "25MR-00246",
+    updatedAt: "2026-05-22",
     cruise: "MR20241229NYCNYC",
     vesselCode: "MR",
     vessel: "Meraviglia",
@@ -1782,6 +1785,7 @@ const SHIPMENTS = [
   },
   {
     po: "25AM-00211",
+    updatedAt: "2026-05-21",
     cruise: "AM20250118MEDMED",
     vesselCode: "AM",
     vessel: "Armonia",
@@ -1816,6 +1820,7 @@ const SHIPMENTS = [
   },
   {
     po: "25DI-00135",
+    updatedAt: "2026-05-22",
     cruise: "DI20250106MIAMIA",
     vesselCode: "DI",
     vessel: "Divina",
@@ -1841,6 +1846,7 @@ const SHIPMENTS = [
   },
   {
     po: "25BE-00088",
+    updatedAt: "2026-05-21",
     cruise: "BE20250109MEDMED",
     vesselCode: "BE",
     vessel: "Bellissima",
@@ -1866,6 +1872,7 @@ const SHIPMENTS = [
   },
   {
     po: "25SE-00152",
+    updatedAt: "2026-05-21",
     cruise: "SE20250114MIAMIA",
     vesselCode: "SE",
     vessel: "Seaside",
@@ -1901,6 +1908,7 @@ const SHIPMENTS = [
   },
   {
     po: "25SH-00301",
+    updatedAt: "2026-05-20",
     cruise: "SH20250112MIAMIA",
     vesselCode: "SH",
     vessel: "Seashore",
@@ -1926,6 +1934,7 @@ const SHIPMENTS = [
   },
   {
     po: "25VI-00074",
+    updatedAt: "2026-05-17",
     cruise: "VI20250115ITJITJ",
     vesselCode: "VI",
     vessel: "Virtuosa",
@@ -1960,6 +1969,7 @@ const SHIPMENTS = [
   },
   {
     po: "25GR-00033",
+    updatedAt: "2026-05-19",
     cruise: "GR20250120ITJITJ",
     vesselCode: "GR",
     vessel: "Grandiosa",
@@ -1985,6 +1995,7 @@ const SHIPMENTS = [
   },
   {
     po: "25SC-00104",
+    updatedAt: "2026-05-20",
     cruise: "SC20250108MIAMIA",
     vesselCode: "SC",
     vessel: "Seascape",
@@ -2018,6 +2029,7 @@ const SHIPMENTS = [
   },
   {
     po: "25ER-00019",
+    updatedAt: "2026-05-18",
     cruise: "ER20250122DXBDXB",
     vesselCode: "ER",
     vessel: "Euribia",
@@ -2043,6 +2055,14 @@ const SHIPMENTS = [
     aiSuggestion: "Routine safety equipment replenishment. SOLAS compliance documents on file. No action required.",
   },
 ];
+
+// Sort: newest updatedAt first; tie-break by status priority (urgent → calm)
+const STATUS_PRIORITY = { crit: 0, warn: 1, info: 2, ok: 3, cancel: 4 };
+SHIPMENTS.sort((a, b) => {
+  const dateCmp = (b.updatedAt || "").localeCompare(a.updatedAt || "");
+  if (dateCmp !== 0) return dateCmp;
+  return (STATUS_PRIORITY[a.status] ?? 9) - (STATUS_PRIORITY[b.status] ?? 9);
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    DOM helpers — safe construction via createElement
