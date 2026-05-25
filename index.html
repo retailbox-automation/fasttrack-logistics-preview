@@ -614,20 +614,28 @@ input { font: inherit; color: inherit; background: none; border: none; outline: 
   font-feature-settings: "tnum";
 }
 
+.card__status-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .card__ai-flag {
-  position: absolute;
-  top: 12px; right: 80px;
-  width: 18px; height: 18px;
-  display: flex;
+  height: 18px;
+  padding: 0 7px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   background: var(--accent);
   color: var(--bg-deep);
-  border-radius: 50%;
-  font-family: var(--font-display);
-  font-weight: 700;
+  border-radius: 9px;
+  font-family: var(--font-mono);
+  font-weight: 600;
   font-size: 9px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 /* ═══ INBOX (Email AI) view ═══ */
@@ -868,7 +876,7 @@ body.layout-list .list-view { display: block; }
 .list-table__status--info::before { background: var(--info); }
 .list-table__status--cancel { background: var(--cancel-bg); color: var(--cancel); }
 .list-table__status--cancel::before { background: var(--cancel); }
-.list-table__ai-dot { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; background: var(--accent); color: var(--bg-deep); border-radius: 50%; font-family: var(--font-display); font-weight: 700; font-size: 8px; letter-spacing: -0.02em; }
+.list-table__ai-dot { display: inline-flex; height: 16px; padding: 0 6px; align-items: center; justify-content: center; background: var(--accent); color: var(--bg-deep); border-radius: 8px; font-family: var(--font-mono); font-weight: 600; font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
 
 .view-toggle { display: inline-flex; align-items: center; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
 .view-toggle__btn { padding: 6px 12px; font-size: 11px; color: var(--text-dim); cursor: pointer; display: inline-flex; align-items: center; gap: 5px; transition: all 120ms; }
@@ -1223,6 +1231,8 @@ body.layout-list .list-view { display: block; }
 }
 
 .footer__chip-dot--pulse { animation: pulse 2s infinite; }
+.footer__chip-dot--pending { background: var(--warn); }
+.footer__chip--pending { color: var(--text-dimmer); }
 
 .footer__ports { display: flex; align-items: center; gap: 14px; }
 
@@ -1421,8 +1431,8 @@ body.layout-list .list-view { display: block; }
   <div class="stats">
     <div class="stat">
       <div class="stat__label">Active Shipments</div>
-      <div class="stat__value">1,185</div>
-      <div class="stat__delta stat__delta--up">↑ 23 since yesterday</div>
+      <div class="stat__value">5,102</div>
+      <div class="stat__delta stat__delta--up">4,610 Loaded · 347 Waiting · 144 In Transit</div>
     </div>
     <div class="stat">
       <div class="stat__label">Total Spend (YTD)</div>
@@ -1441,8 +1451,8 @@ body.layout-list .list-view { display: block; }
     </div>
     <div class="stat">
       <div class="stat__label">Departures Today</div>
-      <div class="stat__value">2</div>
-      <div class="stat__delta">Divina · Seascape</div>
+      <div class="stat__value">15</div>
+      <div class="stat__delta">Seascape · Seashore · World America</div>
     </div>
     <div class="clock">
       <div class="clock__time"><span class="clock__indicator"></span><span id="clock-time">10:24:00</span></div>
@@ -1459,7 +1469,7 @@ body.layout-list .list-view { display: block; }
           <div class="dashboard__crumb">U.S. Caribbean Team · Active</div>
           <div class="dashboard__title">
             <h1>Shipment Overview</h1>
-            <span class="dashboard__title-count" id="title-count">156 of 1,185 in view</span>
+            <span class="dashboard__title-count" id="title-count">156 of 5,102 in view</span>
           </div>
         </div>
         <div class="dashboard__actions">
@@ -1552,9 +1562,21 @@ body.layout-list .list-view { display: block; }
     <div class="footer__left">
       <div class="footer__chip">
         <span class="footer__chip-dot footer__chip-dot--pulse"></span>
-        Magaya connected · last sync 4 min ago
+        Magaya · 37864 · synced 2026-05-22
       </div>
-      <div class="footer__chip">AI engine · v2.1 · 8 languages</div>
+      <div class="footer__chip footer__chip--pending">
+        <span class="footer__chip-dot footer__chip-dot--pending"></span>
+        CrunchTime · scoping
+      </div>
+      <div class="footer__chip footer__chip--pending">
+        <span class="footer__chip-dot footer__chip-dot--pending"></span>
+        INFOSHIP · scoping
+      </div>
+      <div class="footer__chip footer__chip--pending">
+        <span class="footer__chip-dot footer__chip-dot--pending"></span>
+        Click · scoping
+      </div>
+      <div class="footer__chip">AI engine · 5 languages · EN ES IT PT FR</div>
     </div>
     <div class="footer__ports">
       <span class="footer__ports-label">Active Ports:</span>
@@ -1633,20 +1655,20 @@ body.layout-list .list-view { display: block; }
 
 const SIDEBAR_DATA = {
   views: [
-    { label: "All Shipments",        count: "1,185", active: true, view: "dashboard" },
+    { label: "All Shipments",        count: "5,102", active: true, view: "dashboard" },
     { label: "Inbox · Email AI",     count: "12", view: "inbox", highlight: true },
-    { label: "Today's Departures",   count: "8" },
+    { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
     { label: "Critical",             count: "4" },
     { label: "AI-Flagged",           count: "17" },
   ],
   vessels: [
-    { label: "Seascape · SC",        count: "169", dot: "#3B82F6" },
-    { label: "Meraviglia · MR",      count: "138", dot: "#8B5CF6" },
-    { label: "Seashore · SH",        count: "138", dot: "#EC4899" },
-    { label: "Bellissima · BE",      count: "123", dot: "#10B981" },
-    { label: "Armonia · AM",         count: "122", dot: "#F59E0B" },
-    { label: "Divina · DI",          count: "54",  dot: "#06B6D4" },
+    { label: "MSC Seashore",         count: "1,470", dot: "#EC4899" },
+    { label: "MSC Meraviglia",       count: "1,202", dot: "#8B5CF6" },
+    { label: "MSC Seascape",         count: "957",   dot: "#3B82F6" },
+    { label: "MSC Seaside",          count: "444",   dot: "#F59E0B" },
+    { label: "MSC World America",    count: "330",   dot: "#10B981" },
+    { label: "MSC Ocean Cay",        count: "319",   dot: "#06B6D4" },
   ],
   departments: [
     { label: "Engine",               count: "222" },
@@ -2156,12 +2178,13 @@ function buildCard(s, idx) {
     el("div", { class: "card__cruise-id", text: s.cruise }),
   ]);
   header.appendChild(idBlock);
-  header.appendChild(el("div", { class: "card__status card__status--" + s.status, text: s.statusLabel }));
-  card.appendChild(header);
-
+  const statusGroup = el("div", { class: "card__status-group" });
   if (s.aiFlag) {
-    card.appendChild(el("div", { class: "card__ai-flag", title: "AI-classified", text: "AI" }));
+    statusGroup.appendChild(el("div", { class: "card__ai-flag", title: "AI-classified", text: "AI" }));
   }
+  statusGroup.appendChild(el("div", { class: "card__status card__status--" + s.status, text: s.statusLabel }));
+  header.appendChild(statusGroup);
+  card.appendChild(header);
 
   const vesselLine = el("div", { class: "card__vessel-line" }, [
     el("div", { class: "card__vessel", text: s.vessel }),
@@ -2455,7 +2478,7 @@ function setupImport() {
       { pct: 58,  label: "Classifying shipment types · 7 categories",             tag: "Classified 1,089 records" },
       { pct: 76,  label: "AI extraction · messy notes · 3 languages",             tag: "Extracted 312 structured facts" },
       { pct: 90,  label: "Cross-matching POs and Cruise IDs",                     tag: "Matched 1,089 / 1,089" },
-      { pct: 100, label: "Done · 1,185 shipments ready",                          tag: "✓ Import complete" },
+      { pct: 100, label: "Done · 5,102 shipments ready",                          tag: "✓ Import complete" },
     ];
     let i = 0;
     const run = () => {
@@ -2776,7 +2799,7 @@ function setupSearch() {
     });
     const count = document.getElementById("title-count");
     if (count) {
-      count.textContent = q ? shown + " matching" : "156 of 1,185 in view";
+      count.textContent = q ? shown + " matching" : "156 of 5,102 in view";
     }
   });
 }
