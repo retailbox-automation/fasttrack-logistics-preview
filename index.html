@@ -1604,7 +1604,7 @@ body.layout-list .pagination { display: none; }
         <div class="inbox-stat">
           <div class="inbox-stat__label">Languages handled today</div>
           <div class="inbox-stat__value">4</div>
-          <div class="inbox-stat__delta">EN · ES · IT · PT</div>
+          <div class="inbox-stat__delta">EN · ES · IT · FR</div>
         </div>
       </div>
       <div class="inbox-grid">
@@ -1633,7 +1633,7 @@ body.layout-list .pagination { display: none; }
         <span class="footer__chip-dot footer__chip-dot--pending"></span>
         Click · scoping
       </div>
-      <div class="footer__chip">AI engine · 5 languages · EN ES IT PT FR</div>
+      <div class="footer__chip">AI engine · 4 languages · EN ES IT FR</div>
     </div>
     <div class="footer__ports">
       <span class="footer__ports-label">Active Ports:</span>
@@ -4225,22 +4225,22 @@ const EMAILS = [
   },
   {
     id: 6,
-    from: "Carlos Silva",
-    fromOrg: "MSC do Brasil · Santos",
-    subject: "Pedido status: PO 25GR-00033 entrega Itajaí",
-    preview: "Confirmação entrega Grandiosa props chegou Santos · 8 dias até partida",
-    time: "Yesterday 7:11 AM",
-    lang: "PT",
+    from: "Sophie Dubois",
+    fromOrg: "Marine Équipement France · Le Havre",
+    subject: "Confirmation expédition — Inverseur automatique bain douche",
+    preview: "Pièce de rechange Bellissima prête à expédier · documents douane en préparation",
+    time: "Yesterday 8:42 AM",
+    lang: "FR",
     urgent: false,
     aiReady: true,
-    body: "Olá,\n\nConfirmação: pedido PO 25GR-00033 (Grandiosa entertainment props) chegou ao armazém Santos. Pronto para despacho rodoviário Santos → Itajaí.\n\nPartida do vessel: Jan 20. Tempo disponível: 8 dias.\n\nAtenciosamente,\nCarlos Silva",
+    body: "Bonjour,\n\nConfirmation : l'inverseur automatique bain douche (PO 25BE-00088) pour le MSC Bellissima est prêt à expédier depuis Le Havre. Les documents douaniers sont en cours de préparation.\n\nDépart prévu : 28 mai. Délai de transit estimé vers Miami : environ 14 jours.\n\nCordialement,\nSophie Dubois\nMarine Équipement France",
     aiSummary: [
-      { type: "ok", parts: ["Language: ", { em: "Portuguese" }] },
-      { type: "ok", parts: ["PO ", { em: "25GR-00033" }, " arrived Santos warehouse"] },
-      { type: "ok", parts: ["Cruise: ", { strong: "GR20250120ITJITJ" }, " (Grandiosa)"] },
-      { type: "info", parts: ["Buffer: ", { strong: "8 days" }, " — comfortable"] },
+      { type: "ok", parts: ["Language: ", { em: "French" }] },
+      { type: "ok", parts: ["PO ", { em: "25BE-00088" }, " (Bellissima · Hotel Purchasing)"] },
+      { type: "ok", parts: ["Origin: ", { strong: "Le Havre" }, " · ETA Miami: ~14 days"] },
+      { type: "warn", parts: ["Customs documents ", { strong: "in preparation" }] },
     ],
-    draftReply: "Oi Carlos,\n\nObrigado pela confirmação. Despacho rodoviário agendado para Jan 14 às 09:00 (Santos → Itajaí, transit ~6 horas).\n\nCom 8 dias de margem, temos buffer suficiente. Vou copiar SPAMAT SNC para coordenação do transporte.\n\nAbraços,\nFast Track Brasil",
+    draftReply: "Bonjour Sophie,\n\nMerci pour la confirmation. Veuillez nous transmettre les documents douaniers dès qu'ils seront prêts — nous pré-déclarerons l'entrée avec les douanes US pour gagner 2-3 jours sur le transit.\n\nCordialement,\nFast Track Customs",
   },
   {
     id: 7,
