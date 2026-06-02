@@ -688,6 +688,240 @@ body.view-inbox .pagination { display: none; }
 body.view-inbox .inbox-view { display: block; }
 body.view-inbox .dashboard { display: none; }
 
+/* ═══ INVENTORY view ═══ */
+.inventory-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-inventory .inventory-view { display: block; }
+body.view-inventory .dashboard { display: none; }
+body.view-inventory .inbox-view { display: none; }
+body.view-inventory .pagination { display: none; }
+
+.inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.inventory-title-block { display: flex; flex-direction: column; gap: 4px; }
+.inventory-crumb {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.inventory-title { display: flex; align-items: baseline; gap: 14px; }
+.inventory-title h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  color: var(--text-bright);
+  margin: 0;
+}
+.inventory-title-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.inventory-stats {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.inventory-stat {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.inventory-stat__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+.inventory-stat__value {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text-bright);
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum";
+}
+
+.inventory-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.inventory-table thead { background: rgba(19, 26, 42, 0.6); }
+.inventory-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.inventory-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+  font-family: var(--font-body);
+}
+.inventory-table tbody tr { transition: background 120ms; }
+.inventory-table tbody tr:hover { background: var(--bg-hover); cursor: pointer; }
+.inventory-table tbody tr:last-child td { border-bottom: none; }
+.inv-wr { font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); font-weight: 500; }
+.inv-part { font-family: var(--font-mono); font-size: 11px; color: var(--text-bright); }
+.inv-desc { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-pkg {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.inv-pkg--box { background: rgba(96, 165, 250, 0.12); color: var(--info); }
+.inv-pkg--pallet { background: rgba(217, 119, 6, 0.12); color: var(--accent-bright); }
+.inv-num { font-family: var(--font-mono); font-feature-settings: "tnum"; text-align: right; color: var(--text-bright); font-weight: 500; }
+.inv-loc { font-family: var(--font-mono); font-size: 11px; color: var(--text); }
+.inv-entry { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.muted-dash { color: var(--text-dimmer); }
+.td-num { text-align: right; }
+.inv-dept {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  background: rgba(139, 92, 246, 0.12);
+  color: #C4B5FD;
+}
+
+.inventory-actions { display: flex; align-items: center; gap: 12px; }
+
+/* ═══ INVENTORY entry modal ═══ */
+.inv-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(6, 10, 20, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: none;
+}
+.inv-modal-overlay.open { display: block; }
+.inv-modal {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 720px; max-width: 92vw;
+  max-height: 88vh; overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-bright);
+  border-radius: 8px;
+  z-index: 101;
+  display: none;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+.inv-modal.open { display: block; }
+
+.inv-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.inv-modal__title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-bright);
+}
+.inv-modal__close {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 120ms;
+}
+.inv-modal__close:hover { background: var(--bg-hover); color: var(--text); }
+
+.inv-form { padding: 18px 22px; }
+.inv-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+}
+.inv-form__field { display: flex; flex-direction: column; gap: 6px; }
+.inv-form__field--full { grid-column: 1 / -1; }
+.inv-form__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.inv-form__label .required { color: var(--accent-bright); margin-left: 3px; }
+.inv-form__input,
+.inv-form__select {
+  padding: 9px 12px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-bright);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: border-color 120ms;
+}
+.inv-form__input:focus,
+.inv-form__select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-deep);
+}
+.inv-form__hint {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dimmer);
+  margin-top: 2px;
+}
+
+.inv-form__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+  background: rgba(10, 15, 28, 0.4);
+}
+.inv-form__footer-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.inv-form__actions { display: flex; gap: 10px; }
+
 .inbox-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1612,7 +1846,195 @@ body.layout-list .pagination { display: none; }
         <section class="inbox-detail" id="inbox-detail"></section>
       </div>
     </section>
+
+    <!-- INVENTORY VIEW -->
+    <section class="inventory-view" id="inventory-view">
+      <div class="inventory-header">
+        <div class="inventory-title-block">
+          <div class="inventory-crumb">Warehouse · MSC Cruises USA</div>
+          <div class="inventory-title">
+            <h1>Inventory</h1>
+            <span class="inventory-title-count" id="inventory-title-count">— items</span>
+          </div>
+        </div>
+        <div class="inventory-actions">
+          <input id="inventory-search" placeholder="Search WR, part, description, location…" style="padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; width: 280px;">
+          <button class="btn btn--accent" id="inventory-add-btn">+ New item</button>
+        </div>
+      </div>
+
+      <div class="inventory-stats">
+        <div class="inventory-stat">
+          <div class="inventory-stat__label">Total items</div>
+          <div class="inventory-stat__value" id="inv-stat-total">—</div>
+        </div>
+        <div class="inventory-stat">
+          <div class="inventory-stat__label">Unique WRs</div>
+          <div class="inventory-stat__value" id="inv-stat-wrs">—</div>
+        </div>
+        <div class="inventory-stat">
+          <div class="inventory-stat__label">Total pieces</div>
+          <div class="inventory-stat__value" id="inv-stat-pieces">—</div>
+        </div>
+        <div class="inventory-stat">
+          <div class="inventory-stat__label">Total quantity</div>
+          <div class="inventory-stat__value" id="inv-stat-quantity">—</div>
+        </div>
+        <div class="inventory-stat">
+          <div class="inventory-stat__label">Locations used</div>
+          <div class="inventory-stat__value" id="inv-stat-locations">—</div>
+        </div>
+      </div>
+
+      <table class="inventory-table">
+        <thead>
+          <tr>
+            <th>Warehouse Receipt</th>
+            <th>Part #</th>
+            <th>Description</th>
+            <th>Department</th>
+            <th>Package</th>
+            <th style="text-align:right">Pieces</th>
+            <th style="text-align:right">Quantity</th>
+            <th>Location</th>
+            <th>Entry #</th>
+          </tr>
+        </thead>
+        <tbody id="inventory-tbody"></tbody>
+      </table>
+    </section>
   </main>
+
+  <!-- INVENTORY ENTRY MODAL -->
+  <div class="inv-modal-overlay" id="inv-modal-overlay"></div>
+  <div class="inv-modal" id="inv-modal">
+    <div class="inv-modal__header">
+      <div class="inv-modal__title" id="inv-modal-title">Add Inventory Item</div>
+      <button class="inv-modal__close" id="inv-modal-close">Close ✕</button>
+    </div>
+    <form class="inv-form" id="inv-form">
+      <div class="inv-form__grid">
+        <div class="inv-form__field">
+          <label class="inv-form__label">Warehouse Receipt<span class="required">*</span></label>
+          <input class="inv-form__input" name="warehouseReceipt" required placeholder="WR-26201" pattern="WR-[0-9]+">
+          <div class="inv-form__hint">Format: WR-NNNNN (sequential Magaya WR number)</div>
+        </div>
+        <div class="inv-form__field">
+          <label class="inv-form__label">Part Number<span class="required">*</span></label>
+          <input class="inv-form__input" name="partNumber" required placeholder="S1677385">
+          <div class="inv-form__hint">MSC part code (S1xxxxxx or P0xxxxxx)</div>
+        </div>
+
+        <div class="inv-form__field inv-form__field--full">
+          <label class="inv-form__label">Description<span class="required">*</span></label>
+          <input class="inv-form__input" name="description" required placeholder="Mens t-shirt gildan white">
+        </div>
+
+        <div class="inv-form__field">
+          <label class="inv-form__label">Department</label>
+          <select class="inv-form__select" name="department">
+            <option value="">— select —</option>
+            <option>F&B (Food & Beverage)</option>
+            <option>Hotel</option>
+            <option>Shop</option>
+            <option>Engine</option>
+            <option>Medical</option>
+            <option>Technology</option>
+            <option>Casino</option>
+            <option>MSC Foundation</option>
+            <option>Ocean Cay</option>
+          </select>
+        </div>
+        <div class="inv-form__field">
+          <label class="inv-form__label">Target Vessel</label>
+          <select class="inv-form__select" name="vessel">
+            <option value="">— stock (no vessel) —</option>
+            <option>MSC Seashore</option>
+            <option>MSC Meraviglia</option>
+            <option>MSC Seascape</option>
+            <option>MSC Seaside</option>
+            <option>MSC World America</option>
+            <option>MSC Ocean Cay</option>
+            <option>MSC Poesia</option>
+            <option>MSC Virtuosa</option>
+            <option>MSC Divina</option>
+          </select>
+        </div>
+
+        <div class="inv-form__field">
+          <label class="inv-form__label">Package<span class="required">*</span></label>
+          <select class="inv-form__select" name="packageUnit" required>
+            <option value="Box">Box</option>
+            <option value="Pallet">Pallet</option>
+          </select>
+        </div>
+        <div class="inv-form__field">
+          <label class="inv-form__label">PO Number (PON)</label>
+          <input class="inv-form__input" name="poNumber" placeholder="4597196559-OCY00018">
+          <div class="inv-form__hint">MSC PON — required before service per "No PO, no service" rule</div>
+        </div>
+
+        <div class="inv-form__field">
+          <label class="inv-form__label">Pieces<span class="required">*</span></label>
+          <input class="inv-form__input" type="number" name="pieces" required min="1" placeholder="9">
+          <div class="inv-form__hint">Number of physical units (boxes or pallets)</div>
+        </div>
+        <div class="inv-form__field">
+          <label class="inv-form__label">Quantity<span class="required">*</span></label>
+          <input class="inv-form__input" type="number" name="quantity" required min="1" placeholder="108">
+          <div class="inv-form__hint">Total item count across all pieces</div>
+        </div>
+
+        <div class="inv-form__field">
+          <label class="inv-form__label">Location Code<span class="required">*</span></label>
+          <input class="inv-form__input" name="locationCode" required placeholder="R2-A-2" pattern="R[0-9]+-[A-Z]-[0-9]+M?">
+          <div class="inv-form__hint">Format: R{rack}-{column}-{position}, e.g. R2-A-2 or R10-A-15M</div>
+        </div>
+        <div class="inv-form__field">
+          <label class="inv-form__label">Entry Number</label>
+          <input class="inv-form__input" name="entryNumber" placeholder="9Q4-0006095-4" pattern="[0-9A-Z]+-[0-9]+-[0-9]+">
+          <div class="inv-form__hint">Customs entry reference (optional, format 9Q4-XXXXXX-X)</div>
+        </div>
+
+        <div class="inv-form__field">
+          <label class="inv-form__label">Weight (lb)</label>
+          <input class="inv-form__input" type="number" name="weightLb" min="0" step="0.01" placeholder="188.00">
+          <div class="inv-form__hint">Pallets capped at 2,000 lb (FT operational rule)</div>
+        </div>
+        <div class="inv-form__field">
+          <label class="inv-form__label">Received Date</label>
+          <input class="inv-form__input" type="date" name="receivedDate">
+        </div>
+
+        <div class="inv-form__field">
+          <label class="inv-form__label">Received By (employee)</label>
+          <input class="inv-form__input" name="receivedBy" placeholder="Yamislev Barros">
+        </div>
+        <div class="inv-form__field">
+          <label class="inv-form__label">Status</label>
+          <select class="inv-form__select" name="status">
+            <option value="in_stock">In stock</option>
+            <option value="pulled">Pulled for shipment</option>
+            <option value="loaded">Loaded to truck/vessel</option>
+            <option value="bonded">Bonded (3-day release lead time)</option>
+          </select>
+        </div>
+
+        <div class="inv-form__field inv-form__field--full">
+          <label class="inv-form__label">Notes / Photo URL</label>
+          <input class="inv-form__input" name="notes" placeholder="optional notes, or paste pallet photo URL">
+        </div>
+      </div>
+
+      <div class="inv-form__footer">
+        <div class="inv-form__footer-hint">All fields with * are required. MSC reconciliation needs WR, Part, Desc, Package, Pieces, Quantity, Location.</div>
+        <div class="inv-form__actions">
+          <button type="button" class="btn btn--ghost" id="inv-form-cancel">Cancel</button>
+          <button type="submit" class="btn btn--accent">Save item</button>
+        </div>
+      </div>
+    </form>
+  </div>
 
   <!-- FOOTER -->
   <footer class="footer">
@@ -1713,7 +2135,8 @@ body.layout-list .pagination { display: none; }
 const SIDEBAR_DATA = {
   views: [
     { label: "All Shipments",        count: "5,102", active: true, view: "dashboard" },
-    { label: "Inbox · Email AI",     count: "12", view: "inbox", highlight: true },
+    { label: "Inventory · Warehouse", count: "29", view: "inventory", highlight: true },
+    { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
     { label: "Critical",             count: "4" },
@@ -4356,8 +4779,149 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory");
   document.body.classList.add("view-" + view);
+  if (view === "inventory") renderInventory();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INVENTORY  ·  Data + render + entry form
+   Schema mirrors MSC's Inventory Check (Ana Sanchez at MSC) —
+   the 8 reconciliation columns + FT operational fields.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const INVENTORY = [
+  // Loaded from "May Inventory Check.xlsx" sent by Andrés 2026-06-02
+  { warehouseReceipt: "WR-26201", partNumber: "S1677385", description: "Mens t Shirt gildan white", department: "MSC Foundation", packageUnit: "Box", pieces: 9, quantity: 108, locationCode: "R2-A-2", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-26201", partNumber: "S1677370", description: "MSC FOUNDATION UNISEX MOVE X CORAL 509060-36319 G40 WHITE S", department: "MSC Foundation", packageUnit: "Box", pieces: 7, quantity: 84, locationCode: "R2-A-2", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-26201", partNumber: "S1677390", description: "MSC FOUNDATION UNISEX MOVE X CORAL 509060-36319 G40 WHITE 2XL", department: "MSC Foundation", packageUnit: "Box", pieces: 8, quantity: 96, locationCode: "R2-A-2", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-26201", partNumber: "S1677380", description: "Mens t Shirt gildan white", department: "MSC Foundation", packageUnit: "Box", pieces: 16, quantity: 192, locationCode: "R2-A-2", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-26201", partNumber: "S1677375", description: "Mens t Shirt gildan white", department: "MSC Foundation", packageUnit: "Box", pieces: 15, quantity: 180, locationCode: "R2-A-2", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-18448", partNumber: "S1627230", description: "Borsa cordino carta kraft avana 110gr", department: "Shop", packageUnit: "Box", pieces: 6, quantity: 900, locationCode: "R10-A-15M", entryNumber: "9Q4-0006095-4", status: "in_stock" },
+  { warehouseReceipt: "WR-18448", partNumber: "S1627230", description: "Maniglia Carta ATT TA Avana Stampa 1 colore di fondo", department: "Shop", packageUnit: "Box", pieces: 18, quantity: 2700, locationCode: "R10-A-15", entryNumber: "9Q4-0006095-4", status: "in_stock" },
+  { warehouseReceipt: "WR-17463", partNumber: "S1171545", description: "WOODEN HANGER MOD.CLIP MSC FOUNDATION CM35.5", department: "MSC Foundation", packageUnit: "Box", pieces: 1, quantity: 100, locationCode: "R9-A-3", entryNumber: "9Q4-0006006-1", status: "in_stock" },
+  { warehouseReceipt: "WR-17463", partNumber: "S1145320", description: "WOODEN HANGER MOD.CLIP OCEAN CAY CM.38", department: "Ocean Cay", packageUnit: "Box", pieces: 4, quantity: 400, locationCode: "R9-A-3", entryNumber: "9Q4-0006006-1", status: "in_stock" },
+  { warehouseReceipt: "WR-17463", partNumber: "S1145315", description: "WOODEN HANGER MOD . TOP OCEAN CAY", department: "Ocean Cay", packageUnit: "Box", pieces: 4, quantity: 400, locationCode: "R9-A-3", entryNumber: "9Q4-0006006-1", status: "in_stock" },
+  { warehouseReceipt: "WR-15294", partNumber: "S1447250", description: "MSC ECO ADULT SANDALS CORK NAVY 45", department: "Shop", packageUnit: "Box", pieces: 2, quantity: 24, locationCode: "R6-A-23", entryNumber: "9Q4-0005691-1", status: "in_stock" },
+  { warehouseReceipt: "WR-15230", partNumber: "S1390895", description: "MSC DANTOY ECO BIO PLASTIC CRUISE NAVY", department: "Shop", packageUnit: "Box", pieces: 14, quantity: 84, locationCode: "R6-C-12", entryNumber: "9Q4-0005691-1", status: "in_stock" },
+  { warehouseReceipt: "WR-14402", partNumber: "S1466860", description: "MSC Foundation Greeting Card Coral", department: "MSC Foundation", packageUnit: "Box", pieces: 1, quantity: 100, locationCode: "R4-D-10", entryNumber: "9Q4-0005632-5", status: "in_stock" },
+  { warehouseReceipt: "WR-14402", partNumber: "S1466855", description: "MSC Foundation Greeting Card Paper Boat", department: "MSC Foundation", packageUnit: "Box", pieces: 2, quantity: 200, locationCode: "R4-D-10", entryNumber: "9Q4-0005632-5", status: "in_stock" },
+  { warehouseReceipt: "WR-13966", partNumber: "S1190310", description: "MSC-Key Ring Lighthouse Charm", department: "Shop", packageUnit: "Box", pieces: 2, quantity: 500, locationCode: "R6-C-5", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-13966", partNumber: "S1190245", description: "MSC-Ocean Cay Key Ring Multi Charm Nautical Sealife", department: "Ocean Cay", packageUnit: "Box", pieces: 2, quantity: 500, locationCode: "R6-C-5", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-13966", partNumber: "S1190250", description: "MSC-Ocean Cay Ring Multi Charm Nautical", department: "Ocean Cay", packageUnit: "Box", pieces: 4, quantity: 1000, locationCode: "R6-C-5", entryNumber: "", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 2, quantity: 12, locationCode: "R4-A-27", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 6, quantity: 36, locationCode: "R4-A-29", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 1, quantity: 6, locationCode: "R4-A-25", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 4, quantity: 24, locationCode: "R4-A-27", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 6, quantity: 36, locationCode: "R4-A-26", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 1, quantity: 6, locationCode: "R4-A-25", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 1, quantity: 6, locationCode: "R4-A-30", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12371", partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", department: "Hotel", packageUnit: "Box", pieces: 6, quantity: 36, locationCode: "R4-A-28", entryNumber: "9Q4-0005448-6", status: "in_stock" },
+  { warehouseReceipt: "WR-12233", partNumber: "S1585460", description: "MSC Foundation carioca mini soloring Roll 6 Pencils sea 85x10", department: "MSC Foundation", packageUnit: "Box", pieces: 59, quantity: 2832, locationCode: "R4-C-28", entryNumber: "9Q4-0005437-9", status: "in_stock" },
+  { warehouseReceipt: "WR-9723",  partNumber: "S1180225", description: "Plastic Pen MSC Flotter as per remarks and layout", department: "Shop", packageUnit: "Box", pieces: 2, quantity: 432, locationCode: "R1-A-13", entryNumber: "9Q4-0005114-4", status: "in_stock" },
+  { warehouseReceipt: "WR-9723",  partNumber: "S1180225", description: "Plastic Pen MSC Flotter as per remarks and layout", department: "Shop", packageUnit: "Box", pieces: 2, quantity: 432, locationCode: "R1-A-13", entryNumber: "9Q4-0005114-4", status: "in_stock" },
+  { warehouseReceipt: "WR-9723",  partNumber: "S1180225", description: "Plastic Pen MSC Flotter as per remarks and layout", department: "Shop", packageUnit: "Box", pieces: 28, quantity: 6048, locationCode: "R1-A-13", entryNumber: "9Q4-0005114-4", status: "in_stock" },
+];
+
+function renderInventory() {
+  const tbody = document.getElementById("inventory-tbody");
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  const q = (document.getElementById("inventory-search") || {}).value || "";
+  const ql = q.trim().toLowerCase();
+  const filtered = ql ? INVENTORY.filter(it => {
+    return [it.warehouseReceipt, it.partNumber, it.description, it.locationCode, it.entryNumber, it.department].join(" ").toLowerCase().includes(ql);
+  }) : INVENTORY;
+
+  const dash = () => el("span", { class: "muted-dash", text: "—" });
+  const numCell = (val) => {
+    const td = el("td", { class: "td-num" });
+    td.appendChild(el("span", { class: "inv-num", text: String(val) }));
+    return td;
+  };
+
+  filtered.forEach(item => {
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, [el("span", { class: "inv-wr", text: item.warehouseReceipt })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "inv-part", text: item.partNumber })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "inv-desc", title: item.description, text: item.description })]));
+    tr.appendChild(el("td", {}, [
+      item.department ? el("span", { class: "inv-dept", text: item.department }) : dash()
+    ]));
+    const pkgClass = item.packageUnit === "Pallet" ? "inv-pkg inv-pkg--pallet" : "inv-pkg inv-pkg--box";
+    tr.appendChild(el("td", {}, [el("span", { class: pkgClass, text: item.packageUnit })]));
+    tr.appendChild(numCell(item.pieces));
+    tr.appendChild(numCell(item.quantity.toLocaleString()));
+    tr.appendChild(el("td", {}, [el("span", { class: "inv-loc", text: item.locationCode })]));
+    tr.appendChild(el("td", {}, [
+      item.entryNumber ? el("span", { class: "inv-entry", text: item.entryNumber }) : dash()
+    ]));
+    tbody.appendChild(tr);
+  });
+
+  const titleCount = document.getElementById("inventory-title-count");
+  if (titleCount) {
+    titleCount.textContent = ql ? `${filtered.length} matching` : `${INVENTORY.length} items · ${new Set(INVENTORY.map(i => i.warehouseReceipt)).size} receipts`;
+  }
+  document.getElementById("inv-stat-total").textContent = filtered.length;
+  document.getElementById("inv-stat-wrs").textContent = new Set(filtered.map(i => i.warehouseReceipt)).size;
+  document.getElementById("inv-stat-pieces").textContent = filtered.reduce((s, i) => s + (i.pieces || 0), 0).toLocaleString();
+  document.getElementById("inv-stat-quantity").textContent = filtered.reduce((s, i) => s + (i.quantity || 0), 0).toLocaleString();
+  document.getElementById("inv-stat-locations").textContent = new Set(filtered.map(i => i.locationCode)).size;
+}
+
+function openInventoryForm() {
+  document.getElementById("inv-modal-overlay").classList.add("open");
+  document.getElementById("inv-modal").classList.add("open");
+  const today = new Date().toISOString().slice(0, 10);
+  const dateInput = document.querySelector('#inv-form [name="receivedDate"]');
+  if (dateInput && !dateInput.value) dateInput.value = today;
+}
+
+function closeInventoryForm() {
+  document.getElementById("inv-modal-overlay").classList.remove("open");
+  document.getElementById("inv-modal").classList.remove("open");
+}
+
+function setupInventory() {
+  const addBtn = document.getElementById("inventory-add-btn");
+  if (addBtn) addBtn.addEventListener("click", openInventoryForm);
+
+  const closeBtn = document.getElementById("inv-modal-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeInventoryForm);
+
+  const cancelBtn = document.getElementById("inv-form-cancel");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeInventoryForm);
+
+  const overlay = document.getElementById("inv-modal-overlay");
+  if (overlay) overlay.addEventListener("click", closeInventoryForm);
+
+  const form = document.getElementById("inv-form");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const obj = {};
+      fd.forEach((v, k) => { obj[k] = v; });
+      // Coerce numerics
+      obj.pieces = parseInt(obj.pieces, 10) || 0;
+      obj.quantity = parseInt(obj.quantity, 10) || 0;
+      if (obj.weightLb) obj.weightLb = parseFloat(obj.weightLb);
+      // Validate pallet weight rule (operations manual: ≤ 2000 lb)
+      if (obj.packageUnit === "Pallet" && obj.weightLb && obj.weightLb > 2000) {
+        alert("Pallet weight exceeds 2,000 lb — FT operational rule. Reduce or split into multiple pallets.");
+        return;
+      }
+      INVENTORY.unshift(obj);
+      form.reset();
+      closeInventoryForm();
+      renderInventory();
+    });
+  }
+
+  const search = document.getElementById("inventory-search");
+  if (search) search.addEventListener("input", renderInventory);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -4395,6 +4959,7 @@ renderList();
 setupLayoutToggle();
 setupImport();
 setupSearch();
+setupInventory();
 buildInboxList();
 buildInboxDetail(EMAILS[0]);
 switchView("dashboard");
