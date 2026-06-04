@@ -996,6 +996,214 @@ body.view-inventory .pagination { display: none; }
 .inbox-item__tag--ai { background: rgba(217,119,6,0.12); color: var(--accent-bright); border-color: var(--border-accent); }
 .inbox-item__tag--urgent { background: var(--crit-bg); color: var(--crit); border-color: rgba(239,68,68,0.3); }
 .inbox-item__tag--lang { color: var(--info); border-color: rgba(96,165,250,0.3); }
+.inbox-item__tag--auto { background: rgba(16,185,129,0.12); color: var(--ok); border-color: rgba(16,185,129,0.3); }
+.inbox-item__tag--approve { background: rgba(245,158,11,0.12); color: var(--warn); border-color: rgba(245,158,11,0.3); }
+
+/* ═══ MAILBOX SWITCHER ═══ */
+.mailbox-switcher {
+  position: relative;
+  display: inline-flex;
+}
+.mailbox-switcher__btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 120ms;
+}
+.mailbox-switcher__btn:hover { background: var(--bg-hover); border-color: var(--border-bright); }
+.mailbox-switcher__avatar {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: var(--bg-deep);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+}
+.mailbox-switcher__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 320px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  z-index: 50;
+  display: none;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.mailbox-switcher__menu.open { display: block; }
+.mailbox-switcher__item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 120ms;
+}
+.mailbox-switcher__item:last-child { border-bottom: none; }
+.mailbox-switcher__item:hover { background: var(--bg-hover); }
+.mailbox-switcher__item--active { background: var(--bg-glow); }
+.mailbox-switcher__info { flex: 1; min-width: 0; }
+.mailbox-switcher__name { font-size: 12px; font-weight: 600; color: var(--text-bright); }
+.mailbox-switcher__role { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.mailbox-switcher__count { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+
+/* ═══ MAILBOX CONFIG PANEL ═══ */
+.mailbox-config-overlay {
+  position: fixed; inset: 0;
+  background: rgba(6, 10, 20, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 90;
+  display: none;
+}
+.mailbox-config-overlay.open { display: block; }
+.mailbox-config-panel {
+  position: fixed;
+  top: 0; right: 0;
+  height: 100vh;
+  width: 560px; max-width: 90vw;
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border-bright);
+  overflow-y: auto;
+  z-index: 91;
+  transform: translateX(100%);
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: -16px 0 48px rgba(0,0,0,0.4);
+}
+.mailbox-config-panel.open { transform: translateX(0); }
+
+.mbc__header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: var(--bg-elevated);
+  z-index: 2;
+}
+.mbc__title {
+  font-family: var(--font-display);
+  font-size: 17px; font-weight: 500;
+  color: var(--text-bright);
+}
+.mbc__subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.mbc__close {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: all 120ms;
+}
+.mbc__close:hover { background: var(--bg-hover); color: var(--text); }
+
+.mbc__tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 22px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 70px;
+  background: var(--bg-elevated);
+  z-index: 2;
+}
+.mbc__tab {
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 120ms;
+  letter-spacing: 0.05em;
+}
+.mbc__tab:hover { color: var(--text); }
+.mbc__tab--active {
+  color: var(--accent-bright);
+  border-bottom-color: var(--accent);
+}
+
+.mbc__body { padding: 18px 22px 32px; }
+
+.mbc__section-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 14px 0 8px;
+}
+
+.mbc__table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.mbc__table th {
+  text-align: left;
+  padding: 7px 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+.mbc__table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+}
+.mbc__table tr:last-child td { border-bottom: none; }
+.mbc__contact-name { color: var(--text-bright); font-weight: 500; }
+.mbc__contact-email { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.mbc__freq, .mbc__urgency, .mbc__autosend {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 9px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.mbc__urg--high { background: var(--crit-bg); color: var(--crit); }
+.mbc__urg--medium { background: var(--warn-bg); color: var(--warn); }
+.mbc__urg--low { background: var(--info-bg); color: var(--info); }
+.mbc__autosend--yes { background: rgba(16,185,129,0.12); color: var(--ok); }
+.mbc__autosend--no { background: var(--bg-overlay); color: var(--text-dim); }
+
+.mbc__rule { padding: 12px; background: var(--bg-overlay); border-radius: 4px; margin-bottom: 8px; border-left: 3px solid var(--border-bright); }
+.mbc__rule--auto { border-left-color: var(--ok); }
+.mbc__rule--manual { border-left-color: var(--warn); }
+.mbc__rule-trigger { font-family: var(--font-mono); font-size: 11px; color: var(--text-bright); font-weight: 500; margin-bottom: 4px; }
+.mbc__rule-action { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+.mbc__sender-card {
+  display: flex; gap: 12px; align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-overlay);
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+.mbc__sender-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--info);
+  color: var(--bg-deep);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 11px;
+  flex-shrink: 0;
+}
+.mbc__sender-info { flex: 1; min-width: 0; }
+.mbc__sender-name { font-size: 12px; font-weight: 600; color: var(--text-bright); }
+.mbc__sender-meta { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
 
 .inbox-detail { overflow-y: auto; padding: 26px 30px; }
 .inbox-detail::-webkit-scrollbar { width: 6px; }
@@ -1810,12 +2018,19 @@ body.layout-list .pagination { display: none; }
           <div class="dashboard__crumb">Customer service · AI-drafted replies</div>
           <div class="dashboard__title">
             <h1>Inbox</h1>
-            <span class="dashboard__title-count">12 awaiting your review · 8 sent today · avg response <strong style="color:var(--ok)">6 min</strong> (was 4 hrs)</span>
+            <span class="dashboard__title-count" id="inbox-title-count">— awaiting</span>
           </div>
         </div>
         <div class="dashboard__actions">
-          <button class="btn btn--ghost">All inboxes ▾</button>
-          <button class="btn btn--ghost">Filter ▾</button>
+          <div class="mailbox-switcher" id="mailbox-switcher">
+            <button class="mailbox-switcher__btn" id="mailbox-switcher-btn">
+              <span class="mailbox-switcher__avatar" id="mailbox-switcher-avatar">—</span>
+              <span id="mailbox-switcher-label">— select mailbox —</span>
+              <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="mailbox-switcher__menu" id="mailbox-switcher-menu"></div>
+          </div>
+          <button class="btn btn--ghost" id="mailbox-config-btn">Settings ▸</button>
           <button class="btn">Send daily digest</button>
         </div>
       </div>
@@ -2035,6 +2250,24 @@ body.layout-list .pagination { display: none; }
       </div>
     </form>
   </div>
+
+  <!-- MAILBOX CONFIG PANEL -->
+  <div class="mailbox-config-overlay" id="mailbox-config-overlay"></div>
+  <aside class="mailbox-config-panel" id="mailbox-config-panel">
+    <div class="mbc__header">
+      <div>
+        <div class="mbc__title" id="mbc-title">— Mailbox configuration</div>
+        <div class="mbc__subtitle" id="mbc-subtitle">—</div>
+      </div>
+      <button class="mbc__close" id="mbc-close">Close ✕</button>
+    </div>
+    <div class="mbc__tabs">
+      <div class="mbc__tab mbc__tab--active" data-tab="contacts">Contacts</div>
+      <div class="mbc__tab" data-tab="keywords">Alert keywords</div>
+      <div class="mbc__tab" data-tab="rules">Action rules</div>
+    </div>
+    <div class="mbc__body" id="mbc-body"></div>
+  </aside>
 
   <!-- FOOTER -->
   <footer class="footer">
@@ -4529,9 +4762,192 @@ document.addEventListener("keydown", (e) => {
    EMAIL INBOX DATA  ·  Real-context emails per Andrés's criteria
    ═══════════════════════════════════════════════════════════════════ */
 
+/* Mailbox configuration — sourced from Andrés's master table (6/03) */
+const MAILBOXES = [
+  {
+    id: "a.palmisano",
+    email: "a.palmisano@fasttrackgroup.us",
+    name: "Andrea Palmisano",
+    role: "Operations Manager",
+    initials: "AP",
+    contacts: [
+      { name: "AMO vessels (SC/AM/SE/PO/SH)", company: "MSC vessel ops", email: "amo@mscseascape.com; amo@mscseashore.com; amo@mscpoesia.com", frequency: "High" },
+      { name: "Gennaro Russo", company: "MSC CTD Italy", email: "gennaro.russo@mscctd.it", frequency: "High" },
+      { name: "Elena Dentico", company: "MSC / Shop", email: "elena.dentico@msccruises.com", frequency: "High" },
+      { name: "Eugenie Chapuis", company: "MSC / Shop", email: "eugenie.chapuis@msccruises.com", frequency: "High" },
+      { name: "Loic Jolivet", company: "MSC / Shop", email: "loic.jolivet@msccruises.com", frequency: "High" },
+      { name: "Daniela Bonomo", company: "MSC", email: "daniela.bonomo@msccruises.com", frequency: "High" },
+      { name: "Rocio Rivero", company: "Venture Logistics", email: "rrivero@venlogis.com", frequency: "High" },
+      { name: "Michele Profumo", company: "Atlantic Gate", email: "michele.profumo@atlantic-gate.com", frequency: "High" },
+      { name: "Adrian Camacho", company: "Quality Containers", email: "adrian.camacho@qualityct.com", frequency: "High" },
+      { name: "Adam Goldstein", company: "MSC USA", email: "adam.goldstein@msccruisesusa.com", frequency: "Medium" },
+      { name: "Jorge Vega", company: "MSC USA", email: "jorge.vega@msccruisesusa.com", frequency: "Medium" },
+    ],
+    keywords: [
+      { phrase: "InfoShip / Movement / Reconcile / Crunchtime", context: "Emails from AMO/ICO and Shop", urgency: "High" },
+      { phrase: "Airwaybill / AWB / Pre Alert / Incoterms", context: "Pre-alerts; suppliers and MSC", urgency: "High" },
+      { phrase: "Containers / ISF / BOL / Arrival Notice / Clearance / 7512", context: "Pre-alerts", urgency: "High" },
+      { phrase: "Discrepancy / Status / Update / Request / Shop", context: "Emails from vessels or MSC ashore", urgency: "High" },
+      { phrase: "Booking", context: "Emails from MSC / pre-alerts", urgency: "High" },
+      { phrase: "Invoice / Packing list", context: "Suppliers and MSC", urgency: "High" },
+      { phrase: "PO number", context: "Suppliers and MSC", urgency: "High" },
+    ],
+    rules: [
+      { trigger: "Pre-alert airfreights", action: "Generic response + mark 'action needed' (SUPER high)", autoSend: true },
+      { trigger: "Pre-alert containers", action: "Generic response + FORWARD to broker for ISF filing + 'action needed'", autoSend: true },
+      { trigger: "Discrepancy / Status / Update / Request / Shop", action: "Generic response + mark 'action needed'", autoSend: true },
+      { trigger: "InfoShip", action: "Generic response + mark 'action needed'", autoSend: true },
+    ],
+  },
+  {
+    id: "y.barrio",
+    email: "y.barrio@fasttrackgroup.us",
+    name: "Yamisley Barrio",
+    role: "Warehouse Operations",
+    initials: "YB",
+    contacts: [
+      { name: "Shop Invoices", company: "MSC Planning / Shop", email: "shopinvoices@msccruisespl.com", frequency: "Weekly" },
+      { name: "ALMACO Marine Warranty", company: "ALMACO / Tech", email: "marine.warranty@almaco.cc", frequency: "Daily" },
+      { name: "Lorenzo Esposito", company: "MSC / Tech", email: "lorenzo.esposito@mscctd.it", frequency: "3x/week" },
+      { name: "Maurizio Cella", company: "Esse Service USA / Tech", email: "maurizio.cella@esse-service-usa.com", frequency: "3x/week" },
+      { name: "Elena Dentico", company: "MSC / Shop", email: "elena.dentico@msccruises.com", frequency: "Weekly" },
+      { name: "Philippe Jacquemin", company: "MSC / Hotel", email: "philippe.jacquemin@msccruisesusa.com", frequency: "Weekly" },
+    ],
+    keywords: [
+      { phrase: "INVOICES", context: "Requests/sends invoices for loadings (Shop/Tech/Hotel/Casino/Photo)", urgency: "High" },
+      { phrase: "DATE ON BOARD / CONFIRM", context: "Asking for ship date per vessel cargo", urgency: "High" },
+      { phrase: "CARGO RELEASE / DOCUMENTATION", context: "Cargo release document or other doc requests", urgency: "High" },
+      { phrase: "Can you kindly let me know if this offload has been loaded?", context: "Hotel/Shop asking about LM (she + Andrea CC'd)", urgency: "High" },
+    ],
+    rules: [
+      { trigger: "SHOP / all departments", action: "Wait for her approval before replying; mark as urgent", autoSend: false },
+    ],
+  },
+  {
+    id: "l.cruz",
+    email: "l.cruz@fasttrackgroup.us",
+    name: "Luis Cruz",
+    role: "Quotes & Operations",
+    initials: "LC",
+    contacts: [
+      { name: "Adam Goldstein", company: "MSC", email: "adam.goldstein@msccruisesusa.com", frequency: "Daily" },
+      { name: "Jorge Vega", company: "MSC", email: "jorge.vega@msccruisesusa.com", frequency: "Daily" },
+      { name: "Ana Sanchez", company: "MSC", email: "ana.sanchez@msccruisesusa.com", frequency: "Daily" },
+      { name: "Aramis Ledesma", company: "SBA Global", email: "ledesmaa@sbaglobal.com", frequency: "Daily" },
+      { name: "Rosalinda Sanchez", company: "SBA Global", email: "sanchezr@sbaglobal.com", frequency: "Daily" },
+      { name: "Isamara Montiel", company: "Scan Global", email: "imont@scangl.com", frequency: "Weekly" },
+      { name: "Julia Gonzalez", company: "Survitec", email: "julia.gonzalez@survitecgroup.com", frequency: "Weekly" },
+    ],
+    keywords: [
+      { phrase: "Offload", context: "Request, status, follow-up", urgency: "High" },
+      { phrase: "Quote", context: "Quotes for offloads, air or LTL", urgency: "High" },
+      { phrase: "Status", context: "Status request", urgency: "High" },
+      { phrase: "Shipment", context: "Air/container/ground or status", urgency: "High" },
+      { phrase: "Pickup / Pick up", context: "Cargo pickup request/follow-up", urgency: "High" },
+      { phrase: "Landing Manifest (LM)", context: "Offload documentation", urgency: "High" },
+      { phrase: "Warehouse Receipt (WR)", context: "Documentation for warehouse cargo", urgency: "High" },
+      { phrase: "Urgent", context: "Priority pickups/offloads/deliveries", urgency: "High" },
+      { phrase: "CTX", context: "Container / ocean shipments", urgency: "High" },
+      { phrase: "Container", context: "Ocean shipments", urgency: "Medium" },
+    ],
+    rules: [
+      { trigger: "(default)", action: "Mark urgent and wait for approval", autoSend: false },
+    ],
+  },
+  {
+    id: "e.vargas",
+    email: "e.vargas@fasttrackgroup.us",
+    name: "Eduardo Vargas",
+    role: "Supplier Relations & F&B",
+    initials: "EV",
+    contacts: [
+      { name: "Federica Lopez", company: "Brandsimex / Manager", email: "federica@brandsimex.us", frequency: "2-3x/week" },
+      { name: "Felipe Sanchez", company: "Marine Care / Coordinator", email: "felipe.sanchez.correa@marine.care", frequency: "2x/week" },
+      { name: "Marianela Borrego", company: "Meats by Linz / CS", email: "cruisecustomerservice@meatsbylinz.com", frequency: "2-3x/week" },
+      { name: "Carmen Gonzalez", company: "Sysco / Ops", email: "carmen.gonzalez@sysco.com", frequency: "—" },
+      { name: "Crystal Aguilera", company: "South Florida Produce", email: "crystal.aguilera@southfloridaproduce.com", frequency: "—" },
+      { name: "Ilaria Murphy", company: "MSC / Purchase Agent", email: "ilaria.murphy@msccruisesusa.com", frequency: "—" },
+      { name: "Karen Olivas", company: "MSC / Purchase Agent", email: "karen.olivas@msccruisesusa.com", frequency: "—" },
+    ],
+    keywords: [
+      { phrase: "Confirm / Please confirm / Delivery date", context: "Confirm delivery date to warehouse", urgency: "High" },
+      { phrase: "Urgent", context: "Supplier or MSC requesting urgent", urgency: "High" },
+      { phrase: "Following up", context: "Supplier/MSC 2nd or 3rd reminder", urgency: "High" },
+      { phrase: "POD", context: "Proof of delivery request", urgency: "Low" },
+      { phrase: "Provide", context: "Supplier needs information", urgency: "Low" },
+      { phrase: "Eduardo", context: "They need specific info from Eduardo", urgency: "Low" },
+      { phrase: "Seal / container", context: "Container seal or number", urgency: "Low" },
+    ],
+    rules: [
+      { trigger: "Supplier requests appointment or delivery date", action: "Mark important and wait for his approval", autoSend: false },
+      { trigger: "MSC sends PO LIST", action: "Mark important and reply: 'Hello Team, received. thanks'", autoSend: true },
+      { trigger: "Supplier following up", action: "Mark urgent and reply: 'working on it.'", autoSend: true },
+    ],
+  },
+  {
+    id: "z.rivas",
+    email: "z.rivas@fasttrackgroup.us",
+    name: "Zobeiluis Rivas",
+    role: "PO & Discrepancy Management",
+    initials: "ZR",
+    contacts: [
+      { name: "Karen Olivas", company: "MSC", email: "karen.olivas@msccruisesusa.com", frequency: "2-3x/week" },
+      { name: "Ilaria Murphy", company: "MSC", email: "ilaria.murphy@msccruisesusa.com", frequency: "2-3x/week" },
+      { name: "Brian Montes de Oca", company: "MSC", email: "brian.montesdeoca@msccruisesusa.com", frequency: "2-3x/week" },
+      { name: "Jorge Vega", company: "MSC", email: "jorge.vega@msccruisesusa.com", frequency: "1-2x/week" },
+      { name: "Adam Goldstein", company: "MSC", email: "adam.goldstein@msccruisesusa.com", frequency: "1-2x/week" },
+      { name: "Sandra Robbins", company: "Norton Lilly", email: "srobbins@nortonlilly.com", frequency: "1-2x/week" },
+      { name: "Ana Sanchez", company: "MSC", email: "ana.sanchez.consultant@msccruisesusa.com", frequency: "1x/week" },
+    ],
+    keywords: [
+      { phrase: "PO LIST", context: "PO list for each loading by vessel", urgency: "High" },
+      { phrase: "DISCREPANCY", context: "Discrepancies reported by ship/supplier", urgency: "High" },
+      { phrase: "PO / INVOICE", context: "Shipments without docs or docs in transit", urgency: "High" },
+      { phrase: "1302", context: "Offload docs for cargo coming off at next loading", urgency: "High" },
+      { phrase: "OFFLOADS", context: "Request to move/send offloads", urgency: "High" },
+      { phrase: "SEND TO", context: "Send shipment to specific vessel", urgency: "High" },
+      { phrase: "STATUS", context: "Status of receipt/delivery on board", urgency: "Medium" },
+      { phrase: "POD", context: "POD request", urgency: "Medium" },
+    ],
+    rules: [
+      { trigger: "DISCREPANCY", action: "Auto-reply 'we will review what happened' + mark urgent", autoSend: true },
+      { trigger: "STATUS", action: "Auto-reply 'we will review what happened' + mark urgent", autoSend: true },
+      { trigger: "PO / INVOICE", action: "Mark pending; print docs to process cargo receipt", autoSend: false },
+      { trigger: "1302", action: "Notify her the 1302 has arrived", autoSend: false },
+      { trigger: "SEND TO", action: "Notify her she must review and send the cargo", autoSend: false },
+      { trigger: "Emails from each vessel's ICO", action: "Mark as pending task to review", autoSend: false },
+    ],
+  },
+  {
+    id: "p.prada",
+    email: "p.prada@fasttrackgroup.us",
+    name: "Pedro Prada *",
+    role: "Customs Documentation",
+    initials: "PP",
+    contacts: [
+      { name: "KJ Granruth", company: "American Cruise Aid (7512)", email: "kgranruth@cruise-aid.com", frequency: "(observed)" },
+      { name: "DHL Express / Broker turnover", company: "DHL", email: "dhlusbtoteam@dhl.com", frequency: "(observed)" },
+      { name: "Maria Camps", company: "WFS (AWB pickups)", email: "maria.camps@wfs.aero", frequency: "(observed)" },
+      { name: "Vincenzo Parlato", company: "MSC CTD / Medical Procurement", email: "vincenzo.parlato@mscctd.it", frequency: "(observed)" },
+      { name: "Mauro Zanetti", company: "CMA", email: "mauro.zanetti@cmagoa.it", frequency: "(observed)" },
+    ],
+    keywords: [
+      { phrase: "7512", context: "Customs documentation (DOB of each vessel)", urgency: "High" },
+      { phrase: "Pre Alert (DHL/FedEx/DHL GF)", context: "Carrier pre-alerts", urgency: "High" },
+      { phrase: "AWB / Broker turnover", context: "Air arrival / authority to make entry", urgency: "High" },
+      { phrase: "Clearance / Customs Entry", context: "Customs clearance (ACE)", urgency: "High" },
+    ],
+    rules: [
+      { trigger: "Pre-alerts (DHL/FedEx/DHL GF)", action: "Flag as pending review and assign for follow-up", autoSend: false },
+      { trigger: "Requests for 7512 documentation", action: "Prepare response with corresponding 7512, pending approval", autoSend: false },
+    ],
+  },
+];
+
 const EMAILS = [
   {
     id: 0,
+    mailbox: "a.palmisano",
     from: "Marco Bianchi",
     fromOrg: "MSC Procurement & Logistic S.p.A.",
     subject: "FW: Ocean Cay – Material Ready for DI20241230",
@@ -4551,6 +4967,7 @@ const EMAILS = [
   },
   {
     id: 1,
+    mailbox: "y.barrio",
     from: "Mark Robles",
     fromOrg: "Fast Track · Miami Warehouse",
     subject: "request 8 de enero por mark de carga viene de mexico",
@@ -4571,6 +4988,7 @@ const EMAILS = [
   },
   {
     id: 2,
+    mailbox: "a.palmisano",
     from: "Giuseppe Conti",
     fromOrg: "MSC Italia · DIPARTIMENTI",
     subject: "URGENTE: Documenti necessari per Meraviglia ENGINE",
@@ -4591,6 +5009,7 @@ const EMAILS = [
   },
   {
     id: 3,
+    mailbox: "z.rivas",
     from: "Ana Pereira",
     fromOrg: "FREEPORT SHIP SERVICES · Bahamas",
     subject: "Customs hold: Cruise SC20250105 – 3 of 12 pallets missing manifest",
@@ -4610,6 +5029,7 @@ const EMAILS = [
   },
   {
     id: 4,
+    mailbox: "l.cruz",
     from: "Hyun Park",
     fromOrg: "Wallem Shipping · Korea",
     subject: "Invoice PO 25AM-00211 payment status?",
@@ -4629,6 +5049,7 @@ const EMAILS = [
   },
   {
     id: 5,
+    mailbox: "p.prada",
     from: "Officer J. Martinez",
     fromOrg: "U.S. Customs and Border Protection",
     subject: "Action required: missing customs declaration PO 25SE-00152",
@@ -4648,6 +5069,7 @@ const EMAILS = [
   },
   {
     id: 6,
+    mailbox: "a.palmisano",
     from: "Sophie Dubois",
     fromOrg: "Marine Équipement France · Le Havre",
     subject: "Confirmation expédition — Inverseur automatique bain douche",
@@ -4667,6 +5089,7 @@ const EMAILS = [
   },
   {
     id: 7,
+    mailbox: "p.prada",
     from: "Sharaf Shipping Dubai",
     fromOrg: "SHARAF SHIPPING AGENCY LLC",
     subject: "Re: Cruise ER20250122 — air freight received Dubai",
@@ -4684,21 +5107,409 @@ const EMAILS = [
     ],
     draftReply: "Hi Sharaf team,\n\nThank you for the update. All looks good. We'll close this PO on our side once you confirm vessel boarding on Jan 22.\n\nFast Track",
   },
+  /* === YAMISLEY mailbox === */
+  {
+    id: 8, mailbox: "y.barrio",
+    from: "Shop Invoices", fromOrg: "MSC Planning / Shop",
+    subject: "INVOICES needed — Seascape May loading",
+    preview: "Please send invoices for the Shop cargo loaded to Seascape last week...",
+    time: "7:15 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Hello,\n\nWe need the INVOICES for the Shop cargo loaded to MSC Seascape last week (sailing 05/22). Pending in our system for reconciliation.\n\nPlease forward as soon as possible.\n\nThanks,\nMSC Planning",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "INVOICES" }, " · High urgency"] },
+      { type: "ok",   parts: ["Vessel: ", { strong: "MSC Seascape" }, " · sailing 05/22"] },
+      { type: "info", parts: ["Department: ", { em: "Shop" }] },
+      { type: "info", parts: ["Action: Wait for Yamisley's approval (rule)"] },
+    ],
+    draftReply: "Hi MSC Planning team,\n\nAttached: Shop invoices for Seascape sailing 05/22. Let me know if anything is missing.\n\nBest,\nYamisley\nFast Track Warehouse",
+  },
+  {
+    id: 9, mailbox: "y.barrio",
+    from: "ALMACO Marine Warranty", fromOrg: "ALMACO / Tech",
+    subject: "Warranty parts received — please CONFIRM date on board",
+    preview: "Tech parts ready. Need DATE ON BOARD for Meraviglia ENGINE...",
+    time: "6:48 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Hi Yamisley,\n\nWarranty replacement parts received our warehouse yesterday. Need DATE ON BOARD CONFIRM for MSC Meraviglia, dept ENGINE, PO 25MR-00301.\n\nWhen will cargo leave for vessel?\n\nALMACO Marine Warranty",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "DATE ON BOARD / CONFIRM" }, " · High urgency"] },
+      { type: "ok",   parts: ["Vessel: ", { strong: "MSC Meraviglia" }, " · ENGINE"] },
+      { type: "ok",   parts: ["PO: ", { em: "25MR-00301" }] },
+      { type: "info", parts: ["Action: Wait for Yamisley's approval (rule)"] },
+    ],
+    draftReply: "Hi ALMACO team,\n\nConfirmed: cargo dispatched truck on 05/27, ETA vessel 05/29. Cargo Release will follow.\n\nYamisley\nFast Track Warehouse",
+  },
+  {
+    id: 10, mailbox: "y.barrio",
+    from: "Lorenzo Esposito", fromOrg: "MSC CTD / Tech",
+    subject: "CARGO RELEASE documentation per MSC Poesia",
+    preview: "Cerco il cargo release documentation per il carico Tech caricato Poesia...",
+    time: "Yesterday 4:12 PM", lang: "IT", urgent: true, aiReady: true,
+    body: "Ciao Yamisley,\n\nCerco il CARGO RELEASE DOCUMENTATION per il carico Tech caricato sulla MSC Poesia sabato. Il sistema non lo trova.\n\nPuoi inviarlo?\n\nGrazie,\nLorenzo Esposito\nMSC CTD",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "CARGO RELEASE / DOCUMENTATION" }, " · High"] },
+      { type: "ok",   parts: ["Language: ", { em: "Italian" }] },
+      { type: "ok",   parts: ["Vessel: ", { strong: "MSC Poesia" }, " · Tech dept"] },
+      { type: "info", parts: ["Action: Wait for Yamisley's approval (rule)"] },
+    ],
+    draftReply: "Ciao Lorenzo,\n\nCargo Release allegato. Numero: CR-2026-0584. Spedito sabato 05/24 al Poesia, dipartimento Tech.\n\nFammi sapere se serve altro.\n\nYamisley\nFast Track",
+  },
+  {
+    id: 11, mailbox: "y.barrio",
+    from: "Philippe Jacquemin", fromOrg: "MSC USA / Hotel",
+    subject: "Can you kindly let me know if this offload has been loaded?",
+    preview: "Offload LM-2026-1142 status — Bellisima return to supplier...",
+    time: "Yesterday 11:50 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Hi Yamisley (Andrea CC),\n\nCan you kindly let me know if this offload has been loaded? LM-2026-1142, Bellissima return-to-supplier (hotel napkins damaged).\n\nNeed status for finance.\n\nPhilippe Jacquemin\nMSC Hotel",
+    aiSummary: [
+      { type: "warn", parts: ["Trigger phrase detected: ", { strong: '"Can you kindly let me know if this offload has been loaded?"' }] },
+      { type: "ok",   parts: ["LM: ", { em: "LM-2026-1142" }, " (Bellissima return-to-supplier)"] },
+      { type: "info", parts: ["Andrea CC'd (per master table rule)"] },
+      { type: "info", parts: ["Action: Wait for Yamisley's approval"] },
+    ],
+    draftReply: "Hi Philippe,\n\nConfirmed loaded yesterday: LM-2026-1142, Bellissima return shipment. POD attached.\n\nFinance can close on their side.\n\nYamisley\nFast Track Warehouse",
+  },
+
+  /* === LUIS mailbox === */
+  {
+    id: 12, mailbox: "l.cruz",
+    from: "Adam Goldstein", fromOrg: "MSC USA · Logistics Director",
+    subject: "Quote needed — air freight Goa to Miami",
+    preview: "Need quote for air freight 2 pallets engine parts urgent...",
+    time: "8:30 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Luis,\n\nNeed a QUOTE for AIR FREIGHT Goa to Miami — 2 pallets engine parts urgent for World America loading next week.\n\nPlease respond today.\n\nAdam Goldstein\nMSC Logistics Director",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "Quote, Air freight, Urgent" }, " · High"] },
+      { type: "ok",   parts: ["From: ", { strong: "Adam Goldstein (Daily contact)" }] },
+      { type: "ok",   parts: ["Vessel: ", { strong: "MSC World America" }] },
+      { type: "info", parts: ["Action: Mark urgent + wait for approval"] },
+    ],
+    draftReply: "Hi Adam,\n\nQuote for Goa→Miami air freight, 2 pallets engine parts, urgent:\n\n• Air transit: 3-4 days door-to-door\n• Quote: TBD pending dimensions/weight\n• Cleared at MIA, then trucking to vessel\n\nNeed pallet dimensions to firm up. Pulling carrier rates now — full quote in 4 hours.\n\nLuis\nFast Track",
+  },
+  {
+    id: 13, mailbox: "l.cruz",
+    from: "Aramis Ledesma", fromOrg: "SBA Global",
+    subject: "Pickup request — Miami warehouse to Port Canaveral",
+    preview: "Need pickup quote 1 container 40ft, urgent for Seashore loading...",
+    time: "Yesterday 5:42 PM", lang: "EN", urgent: true, aiReady: true,
+    body: "Luis,\n\nPICKUP request — 1 container 40ft dry, Miami warehouse to Port Canaveral. URGENT — Seashore loads in 36 hrs.\n\nPlease confirm availability and rate.\n\nAramis Ledesma\nSBA Global",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "Pickup, Urgent, Container" }, " · High"] },
+      { type: "ok",   parts: ["Origin: Miami warehouse · Destination: Port Canaveral"] },
+      { type: "ok",   parts: ["Vessel: MSC Seashore (36 hr window)"] },
+      { type: "info", parts: ["Action: Mark urgent + wait for approval"] },
+    ],
+    draftReply: "Hi Aramis,\n\nAvailable. ADS-001479 rate: $500 round trip Miami→Port Canaveral. Truck #14 confirmed for tomorrow 6 AM ET dispatch.\n\nWill send dispatch confirmation by EOD.\n\nLuis\nFast Track",
+  },
+  {
+    id: 14, mailbox: "l.cruz",
+    from: "Julia Gonzalez", fromOrg: "Survitec",
+    subject: "LTL shipment status — life raft kit",
+    preview: "Following up on LTL shipment for safety equipment...",
+    time: "Yesterday 2:15 PM", lang: "EN", urgent: false, aiReady: true,
+    body: "Hi Luis,\n\nFollowing up on LTL shipment for life raft inspection kit — destination Miami warehouse. Status please?\n\nJulia Gonzalez\nSurvitec",
+    aiSummary: [
+      { type: "ok",   parts: ["Keywords: ", { em: "LTL, Status, Shipment" }] },
+      { type: "ok",   parts: ["From: Julia Gonzalez (Weekly contact)"] },
+      { type: "info", parts: ["Action: Wait for approval before reply (default rule)"] },
+    ],
+    draftReply: "Hi Julia,\n\nLTL shipment arrived Miami warehouse 05/26, 10:30 AM. WR-26302 issued. Ready for transit to Euribia next loading window.\n\nLuis\nFast Track",
+  },
+  {
+    id: 15, mailbox: "l.cruz",
+    from: "Isamara Montiel", fromOrg: "Scan Global",
+    subject: "CTX container drayage Seattle",
+    preview: "Container CMAU4582013 drayage Seattle to Pier 91...",
+    time: "2 days ago", lang: "EN", urgent: false, aiReady: true,
+    body: "Luis,\n\nCTX container CMAU4582013 drayage Seattle Port to Pier 91. POESIA loads next week. Standard ADS rate?\n\nIsamara Montiel\nScan Global",
+    aiSummary: [
+      { type: "ok",   parts: ["Keyword: ", { em: "CTX, Container" }] },
+      { type: "ok",   parts: ["Container: ", { strong: "CMAU4582013" }, " · POESIA"] },
+      { type: "info", parts: ["Action: Wait for approval (default rule)"] },
+    ],
+    draftReply: "Hi Isamara,\n\nConfirmed standard ADS rate for Seattle drayage. Pre-pull required (POESIA loads tight). Truck confirmed for Wednesday.\n\nLuis\nFast Track",
+  },
+
+  /* === EDUARDO mailbox === */
+  {
+    id: 16, mailbox: "e.vargas",
+    from: "Federica Lopez", fromOrg: "Brandsimex · Manager",
+    subject: "Please confirm delivery date — frozen meat order",
+    preview: "Necesito confirmar la fecha de entrega para el pedido de carne congelada...",
+    time: "9:10 AM", lang: "ES", urgent: true, aiReady: true,
+    body: "Hola Eduardo,\n\nNecesito que confirmes la fecha de entrega para el pedido de carne congelada (PO MSC-2026-4421). El cliente final está esperando.\n\n¿Puedes confirmar hoy?\n\nFederica Lopez\nBrandsimex",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "Confirm, Delivery date" }, " · High"] },
+      { type: "ok",   parts: ["Language: ", { em: "Spanish" }] },
+      { type: "ok",   parts: ["From: Federica Lopez (2-3x/week)"] },
+      { type: "info", parts: ["Action: Mark important + wait for approval (rule)"] },
+    ],
+    draftReply: "Hola Federica,\n\nConfirmo fecha de entrega: jueves 05/29, ventana 8-10 AM. Camión frigorífico reservado. POD se enviará al recibir.\n\nSaludos,\nEduardo\nFast Track",
+  },
+  {
+    id: 17, mailbox: "e.vargas",
+    from: "Marianela Borrego", fromOrg: "Meats by Linz · Customer Service",
+    subject: "Following up — please confirm delivery date Bellisima",
+    preview: "Second reminder — need confirmation for Bellisima loading...",
+    time: "Yesterday 3:30 PM", lang: "EN", urgent: true, aiReady: true,
+    body: "Eduardo,\n\nFollowing up — second time. Need delivery date CONFIRM for Bellisima loading (frozen beef PO 25BE-00211).\n\nFirst email sent Friday. Please respond today.\n\nMarianela\nMeats by Linz",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "Following up, Confirm, Delivery date" }, " · High"] },
+      { type: "warn", parts: ["2nd reminder — escalating tone"] },
+      { type: "info", parts: ["Auto-reply suggested: ", { em: "'working on it.'" }, " (rule)"] },
+    ],
+    draftReply: "Hi Marianela,\n\nworking on it.\n\nEduardo\nFast Track",
+  },
+  {
+    id: 18, mailbox: "e.vargas",
+    from: "Karen Olivas", fromOrg: "MSC USA · Purchase Agent",
+    subject: "PO LIST — week 23 loading",
+    preview: "Please find attached PO LIST for week 23 loading across vessels...",
+    time: "Yesterday 10:15 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Hi Eduardo,\n\nPlease find attached PO LIST for week 23 loading across vessels — Seascape, World America, Poesia.\n\nProcess on your side.\n\nKaren Olivas\nMSC Purchase Agent",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "PO LIST" }, " · High urgency"] },
+      { type: "ok",   parts: ["From: Karen Olivas (MSC Purchase Agent)"] },
+      { type: "ok",   parts: ["Auto-reply ready: ", { em: "'Hello Team, received. thanks'" }, " (rule)"] },
+    ],
+    draftReply: "Hello Team, received. thanks",
+  },
+  {
+    id: 19, mailbox: "e.vargas",
+    from: "Felipe Sanchez", fromOrg: "Marine Care · Coordinator",
+    subject: "Provide HTS codes for medical supplies shipment",
+    preview: "Necesito que proporciones los HTS codes para el envío médico...",
+    time: "2 days ago", lang: "ES", urgent: false, aiReady: true,
+    body: "Hola Eduardo,\n\nNecesito que provide HTS codes para el envío de suplementos médicos a Goa (PO 25MD-00088).\n\nFelipe Sanchez\nMarine Care",
+    aiSummary: [
+      { type: "ok",   parts: ["Keywords: ", { em: "Provide" }, " · Low"] },
+      { type: "ok",   parts: ["Language: ", { em: "Spanish" }] },
+      { type: "ok",   parts: ["From: Felipe Sanchez (2x/week)"] },
+      { type: "info", parts: ["Action: Wait for approval (low priority)"] },
+    ],
+    draftReply: "Hola Felipe,\n\nHTS codes para PO 25MD-00088:\n\n• 9018.39.0050 (medical instruments)\n• 3004.90.9215 (medical preparations)\n\nAdjunto FDA declaration. Avisame si necesitas algo más.\n\nEduardo\nFast Track",
+  },
+  {
+    id: 20, mailbox: "e.vargas",
+    from: "Crystal Aguilera", fromOrg: "South Florida Produce · Ops",
+    subject: "POD request — produce delivery 05/24",
+    preview: "Need POD for our produce delivery to your warehouse last Friday...",
+    time: "3 days ago", lang: "EN", urgent: false, aiReady: true,
+    body: "Hi Eduardo,\n\nNeed POD for our produce delivery to your warehouse on 05/24 (PO 25SH-00405, fresh vegetables for Seashore).\n\nCrystal Aguilera\nSouth Florida Produce",
+    aiSummary: [
+      { type: "ok",   parts: ["Keyword: ", { em: "POD" }, " · Low"] },
+      { type: "ok",   parts: ["From: Crystal Aguilera"] },
+      { type: "info", parts: ["Action: Wait for approval (low priority)"] },
+    ],
+    draftReply: "Hi Crystal,\n\nPOD attached for PO 25SH-00405. Received 05/24 at 7:45 AM, signed Yamisley Barrios.\n\nEduardo\nFast Track",
+  },
+
+  /* === ZOBEILUIS mailbox === */
+  {
+    id: 21, mailbox: "z.rivas",
+    from: "Brian Montes de Oca", fromOrg: "MSC USA · Purchase Agent",
+    subject: "DISCREPANCY — Seascape shop loading missing 4 pallets",
+    preview: "Vessel reports 4 pallets missing from Shop dept loading 05/22...",
+    time: "8:00 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Zobeiluis,\n\nDISCREPANCY reported — MSC Seascape vessel says 4 pallets missing from Shop dept loading on 05/22. POs 25SC-00251, 25SC-00252, 25SC-00253, 25SC-00254.\n\nPlease investigate.\n\nBrian Montes de Oca\nMSC Purchase Agent",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "DISCREPANCY" }, " · High urgency"] },
+      { type: "ok",   parts: ["Vessel: MSC Seascape · 4 pallets missing · Shop"] },
+      { type: "ok",   parts: ["POs: 25SC-00251, 252, 253, 254"] },
+      { type: "info", parts: ["Auto-reply ready: ", { em: "'we will review what happened'" }, " (rule)"] },
+    ],
+    draftReply: "Hi Brian,\n\nwe will review what happened\n\nZobeiluis\nFast Track",
+  },
+  {
+    id: 22, mailbox: "z.rivas",
+    from: "Karen Olivas", fromOrg: "MSC USA · Purchase Agent",
+    subject: "PO LIST — Poesia + World America week 24",
+    preview: "Attached PO LIST for next week loadings, Poesia and World America...",
+    time: "Yesterday 1:20 PM", lang: "EN", urgent: true, aiReady: true,
+    body: "Zobeiluis,\n\nAttached PO LIST for next week loadings — Poesia (sailing 06/05) and World America (sailing 06/07).\n\nProcess on receipt.\n\nKaren\nMSC Purchase Agent",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "PO LIST" }, " · High"] },
+      { type: "ok",   parts: ["Vessels: Poesia (06/05), World America (06/07)"] },
+      { type: "info", parts: ["Action: Mark pending; print docs to process cargo receipt (rule)"] },
+    ],
+    draftReply: "Hi Karen,\n\nPO LIST received and queued for processing. Docs printing now for cargo receipt workflow.\n\nZobeiluis\nFast Track",
+  },
+  {
+    id: 23, mailbox: "z.rivas",
+    from: "Sandra Robbins", fromOrg: "Norton Lilly",
+    subject: "1302 customs offload — Bellisima return cargo",
+    preview: "1302 ready for Bellisima return cargo coming off next loading...",
+    time: "Yesterday 4:55 PM", lang: "EN", urgent: true, aiReady: true,
+    body: "Zobeiluis,\n\n1302 ready for Bellisima return cargo coming off next loading. LM attached. CBP filing scheduled.\n\nSandra Robbins\nNorton Lilly",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "1302" }, " · High urgency"] },
+      { type: "ok",   parts: ["Vessel: Bellisima · return cargo"] },
+      { type: "info", parts: ["Action: Notify her the 1302 has arrived (rule)"] },
+    ],
+    draftReply: "Hi Sandra,\n\n1302 received and logged. CBP filing scheduled — will confirm once cleared.\n\nZobeiluis\nFast Track",
+  },
+  {
+    id: 24, mailbox: "z.rivas",
+    from: "Adrian Camacho", fromOrg: "Quality Containers",
+    subject: "STATUS — container delivery World America",
+    preview: "Status update on container CGMU7041928 delivery to World America...",
+    time: "2 days ago", lang: "EN", urgent: false, aiReady: true,
+    body: "Zobeiluis,\n\nSTATUS update needed on container CGMU7041928 — destined World America, was supposed to be on board 05/26. Vessel hasn't confirmed receipt.\n\nAdrian Camacho\nQuality Containers",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "STATUS" }, " · Medium"] },
+      { type: "ok",   parts: ["Container: CGMU7041928 · World America"] },
+      { type: "info", parts: ["Auto-reply ready: ", { em: "'we will review what happened'" }, " (rule)"] },
+    ],
+    draftReply: "Hi Adrian,\n\nwe will review what happened\n\nZobeiluis\nFast Track",
+  },
+
+  /* === PEDRO mailbox (additional) === */
+  {
+    id: 25, mailbox: "p.prada",
+    from: "KJ Granruth", fromOrg: "American Cruise Aid · Customs",
+    subject: "7512 needed — Meraviglia ENGINE parts",
+    preview: "Need 7512 in-transit documentation for Meraviglia ENGINE parts...",
+    time: "9:30 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Pedro,\n\nNeed 7512 in-transit documentation for Meraviglia ENGINE parts — DOB 05/30. PO 25MR-00322.\n\nPlease prepare.\n\nKJ Granruth\nAmerican Cruise Aid",
+    aiSummary: [
+      { type: "warn", parts: ["Keyword: ", { strong: "7512" }, " · High urgency"] },
+      { type: "ok",   parts: ["Vessel: Meraviglia · DOB 05/30 · ENGINE"] },
+      { type: "info", parts: ["Action: Prepare response with corresponding 7512, pending approval (rule)"] },
+    ],
+    draftReply: "Hi KJ,\n\n7512 prepared for Meraviglia PO 25MR-00322 ENGINE parts. Document attached, pending Pedro's final sign-off before transmission.\n\nFast Track Customs",
+  },
+  {
+    id: 26, mailbox: "p.prada",
+    from: "DHL Express Broker Turnover", fromOrg: "DHL",
+    subject: "Pre Alert (DHL GF) — AWB 020-87654321 inbound MIA",
+    preview: "Pre-alert for AWB 020-87654321 inbound Miami...",
+    time: "Yesterday 6:20 AM", lang: "EN", urgent: true, aiReady: true,
+    body: "Pedro,\n\nPre Alert for AWB 020-87654321 inbound Miami. Cruise dest: World America. Broker turnover request — authority to make entry.\n\nDHL Express",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "Pre Alert, AWB, Broker turnover" }, " · High"] },
+      { type: "ok",   parts: ["AWB: 020-87654321 · Destination: World America"] },
+      { type: "info", parts: ["Action: Flag pending review + assign for follow-up (rule)"] },
+    ],
+    draftReply: "Hi DHL team,\n\nAuthority to make entry confirmed. AWB 020-87654321 acknowledged. Will retrieve at WFS Miami; broker turnover acknowledged.\n\nPedro\nFast Track Customs",
+  },
+
+  /* === ANDREA mailbox (additional) === */
+  {
+    id: 27, mailbox: "a.palmisano",
+    from: "Daniela Bonomo", fromOrg: "MSC",
+    subject: "InfoShip movement reconciliation Seashore",
+    preview: "Movimento InfoShip da riconciliare per Seashore week 22...",
+    time: "11:25 AM", lang: "IT", urgent: true, aiReady: true,
+    body: "Ciao Andrea,\n\nMovimento InfoShip da riconciliare per MSC Seashore, week 22 caricamento. Discrepancy fra inventario fisico e sistema.\n\nGuarda con il tuo team.\n\nDaniela Bonomo\nMSC",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "InfoShip, Movement, Reconcile, Discrepancy" }, " · High"] },
+      { type: "ok",   parts: ["Language: ", { em: "Italian" }] },
+      { type: "ok",   parts: ["Vessel: MSC Seashore · week 22"] },
+      { type: "info", parts: ["Action: Generic response + mark 'action needed' (rule, auto-send ready)"] },
+    ],
+    draftReply: "Ciao Daniela,\n\nGrazie per la segnalazione. Verifico il movimento InfoShip Seashore week 22 con Andrea Palmisano e ti aggiorno entro fine giornata.\n\nAndrea\nFast Track Operations",
+  },
+  {
+    id: 28, mailbox: "a.palmisano",
+    from: "AMO MSC Seascape", fromOrg: "MSC Seascape · Vessel ops",
+    subject: "Pre-alert container CRSU8821055 arrival",
+    preview: "Container CRSU8821055 ETA Miami 06/01 — ISF filing needed...",
+    time: "Yesterday 3:08 PM", lang: "EN", urgent: true, aiReady: true,
+    body: "Andrea,\n\nPre-alert: container CRSU8821055 ETA Miami 06/01. Origin Genoa. ISF filing needed 48 hrs prior. BOL attached.\n\nAMO MSC Seascape",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "Pre Alert, Container, ISF, BOL" }, " · High"] },
+      { type: "ok",   parts: ["Container: CRSU8821055 · Genoa→Miami · ETA 06/01"] },
+      { type: "info", parts: ["Action: Generic response + FORWARD to broker for ISF filing (rule, auto-send ready)"] },
+    ],
+    draftReply: "Hi MSC Seascape vessel ops,\n\nPre-alert acknowledged. Container CRSU8821055 ISF filing initiated — forwarded to KJ Granruth at American Cruise Aid for the 7501 prep. Will confirm filing complete within 12 hrs.\n\nAndrea\nFast Track Operations",
+  },
+  {
+    id: 29, mailbox: "a.palmisano",
+    from: "Rocio Rivero", fromOrg: "Venture Logistics",
+    subject: "Airwaybill pre-alert — DXB to MIA medical urgent",
+    preview: "AWB pre-alert urgent medical pickup Dubai to Miami...",
+    time: "2 days ago", lang: "EN", urgent: true, aiReady: true,
+    body: "Andrea,\n\nAWB pre-alert for urgent medical supplies pickup, Dubai to Miami. AWB 176-44889922. Incoterms FOB Dubai. ETA Miami 05/30.\n\nRocio Rivero\nVenture Logistics",
+    aiSummary: [
+      { type: "warn", parts: ["Keywords: ", { strong: "Airwaybill, AWB, Pre Alert, Incoterms" }, " · High"] },
+      { type: "ok",   parts: ["AWB: 176-44889922 · Dubai→Miami · medical urgent"] },
+      { type: "info", parts: ["Action: Generic response + mark 'action needed' SUPER high (rule, auto-send ready)"] },
+    ],
+    draftReply: "Hi Rocio,\n\nAWB 176-44889922 pre-alert acknowledged. Medical urgent flagged as super-high priority. We'll handle Dubai pickup coordination + Miami clearance on arrival 05/30.\n\nAndrea\nFast Track Operations",
+  },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════
-   INBOX VIEW  ·  Render list + detail
+   INBOX VIEW  ·  Multi-mailbox switcher + render list + detail
    ═══════════════════════════════════════════════════════════════════ */
 
 let selectedEmailIdx = 0;
+let currentMailboxId = "a.palmisano";  // default starting mailbox (most comprehensive)
+
+// Auto-send templates from master table — match to flag emails as auto-draft ready
+const AUTO_REPLY_TEMPLATES = [
+  "Hello Team, received. thanks",
+  "working on it.",
+  "we will review what happened",
+];
+
+function getCurrentMailbox() {
+  return MAILBOXES.find(m => m.id === currentMailboxId) || MAILBOXES[0];
+}
+
+function getFilteredEmails() {
+  return EMAILS.map((e, origIdx) => ({ email: e, origIdx }))
+               .filter(x => x.email.mailbox === currentMailboxId);
+}
+
+function isAutoSendReady(email) {
+  const mb = MAILBOXES.find(m => m.id === email.mailbox);
+  if (!mb || !mb.rules) return false;
+  const hasAutoRule = mb.rules.some(r => r.autoSend);
+  if (!hasAutoRule) return false;
+  const firstLine = (email.draftReply || "").split("\n")[0].trim();
+  return AUTO_REPLY_TEMPLATES.some(t => firstLine.includes(t));
+}
+
+function findContact(email) {
+  const mb = MAILBOXES.find(m => m.id === email.mailbox);
+  if (!mb) return null;
+  // Match by from name OR by from email substring
+  const fromLower = (email.from || "").toLowerCase();
+  return mb.contacts.find(c => {
+    const nameLower = (c.name || "").toLowerCase();
+    return nameLower === fromLower
+        || nameLower.split(" ")[0] === fromLower.split(" ")[0];
+  });
+}
 
 function buildInboxList() {
   const list = document.getElementById("inbox-list");
   while (list.firstChild) list.removeChild(list.firstChild);
-  EMAILS.forEach((email, idx) => {
+  const filtered = getFilteredEmails();
+
+  // Update title count
+  const titleCount = document.getElementById("inbox-title-count");
+  if (titleCount) {
+    const urgent = filtered.filter(x => x.email.urgent).length;
+    const auto = filtered.filter(x => isAutoSendReady(x.email)).length;
+    titleCount.textContent = `${filtered.length} emails · ${urgent} urgent · ${auto} auto-draft ready`;
+  }
+
+  if (filtered.length === 0) {
+    list.appendChild(el("div", { class: "inbox-item", text: "No emails for this mailbox yet." }));
+    return;
+  }
+
+  // Reset selectedEmailIdx if out of filtered range
+  if (!filtered.some(x => x.origIdx === selectedEmailIdx)) {
+    selectedEmailIdx = filtered[0].origIdx;
+    buildInboxDetail(EMAILS[selectedEmailIdx]);
+  }
+
+  filtered.forEach(({ email, origIdx }) => {
     const item = el("div", {
-      class: "inbox-item" + (email.urgent ? " inbox-item--urgent" : "") + (idx === selectedEmailIdx ? " inbox-item--active" : ""),
-      "data-idx": String(idx),
+      class: "inbox-item" + (email.urgent ? " inbox-item--urgent" : "") + (origIdx === selectedEmailIdx ? " inbox-item--active" : ""),
+      "data-idx": String(origIdx),
     });
     const line1 = el("div", { class: "inbox-item__line1" }, [
       el("div", { class: "inbox-item__from", text: email.from }),
@@ -4711,15 +5522,188 @@ function buildInboxList() {
     const meta = el("div", { class: "inbox-item__meta" });
     meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--lang", text: email.lang }));
     if (email.urgent) meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--urgent", text: "Urgent" }));
-    if (email.aiReady) meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--ai", text: "AI ready" }));
+    if (isAutoSendReady(email)) {
+      meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--auto", text: "Auto-draft" }));
+    } else if (email.aiReady) {
+      meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--approve", text: "Awaiting approval" }));
+    }
     item.appendChild(meta);
 
     item.addEventListener("click", () => {
-      selectedEmailIdx = idx;
+      selectedEmailIdx = origIdx;
       buildInboxList();
-      buildInboxDetail(EMAILS[idx]);
+      buildInboxDetail(EMAILS[origIdx]);
     });
     list.appendChild(item);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAILBOX SWITCHER  ·  dropdown menu + active state
+   ═══════════════════════════════════════════════════════════════════ */
+
+function buildMailboxSwitcher() {
+  // Active button label
+  const mb = getCurrentMailbox();
+  document.getElementById("mailbox-switcher-label").textContent = mb.name;
+  document.getElementById("mailbox-switcher-avatar").textContent = mb.initials;
+
+  // Dropdown menu
+  const menu = document.getElementById("mailbox-switcher-menu");
+  while (menu.firstChild) menu.removeChild(menu.firstChild);
+
+  MAILBOXES.forEach(m => {
+    const count = EMAILS.filter(e => e.mailbox === m.id).length;
+    const item = el("div", {
+      class: "mailbox-switcher__item" + (m.id === currentMailboxId ? " mailbox-switcher__item--active" : ""),
+    });
+    item.appendChild(el("span", { class: "mailbox-switcher__avatar", text: m.initials }));
+    const info = el("div", { class: "mailbox-switcher__info" });
+    info.appendChild(el("div", { class: "mailbox-switcher__name", text: m.name }));
+    info.appendChild(el("div", { class: "mailbox-switcher__role", text: m.role + " · " + m.email }));
+    item.appendChild(info);
+    item.appendChild(el("span", { class: "mailbox-switcher__count", text: count + " emails" }));
+
+    item.addEventListener("click", () => {
+      currentMailboxId = m.id;
+      buildMailboxSwitcher();
+      buildInboxList();
+      const filtered = getFilteredEmails();
+      if (filtered.length > 0) {
+        selectedEmailIdx = filtered[0].origIdx;
+        buildInboxDetail(EMAILS[selectedEmailIdx]);
+      }
+      menu.classList.remove("open");
+    });
+    menu.appendChild(item);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MAILBOX CONFIG PANEL  ·  Contacts / Keywords / Rules tabs
+   ═══════════════════════════════════════════════════════════════════ */
+
+let mbcActiveTab = "contacts";
+
+function renderMailboxConfig() {
+  const mb = getCurrentMailbox();
+  document.getElementById("mbc-title").textContent = mb.name + " · Mailbox configuration";
+  document.getElementById("mbc-subtitle").textContent = mb.email + " · " + mb.role;
+
+  // Tab active state
+  document.querySelectorAll(".mbc__tab").forEach(t => {
+    t.classList.toggle("mbc__tab--active", t.dataset.tab === mbcActiveTab);
+  });
+
+  const body = document.getElementById("mbc-body");
+  while (body.firstChild) body.removeChild(body.firstChild);
+
+  if (mbcActiveTab === "contacts") {
+    body.appendChild(el("div", { class: "mbc__section-title", text: `${mb.contacts.length} key contacts` }));
+    const tbl = el("table", { class: "mbc__table" });
+    const thead = el("thead", {}, [el("tr", {}, [
+      el("th", { text: "Contact" }),
+      el("th", { text: "Company / role" }),
+      el("th", { text: "Frequency" }),
+    ])]);
+    tbl.appendChild(thead);
+    const tbody = el("tbody");
+    mb.contacts.forEach(c => {
+      const tr = el("tr");
+      const td1 = el("td");
+      td1.appendChild(el("div", { class: "mbc__contact-name", text: c.name }));
+      td1.appendChild(el("div", { class: "mbc__contact-email", text: c.email }));
+      tr.appendChild(td1);
+      tr.appendChild(el("td", { text: c.company }));
+      tr.appendChild(el("td", {}, [el("span", { class: "mbc__freq", text: c.frequency })]));
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    body.appendChild(tbl);
+  } else if (mbcActiveTab === "keywords") {
+    body.appendChild(el("div", { class: "mbc__section-title", text: `${mb.keywords.length} alert keywords` }));
+    const tbl = el("table", { class: "mbc__table" });
+    const thead = el("thead", {}, [el("tr", {}, [
+      el("th", { text: "Keyword / phrase" }),
+      el("th", { text: "Appears in" }),
+      el("th", { text: "Urgency" }),
+    ])]);
+    tbl.appendChild(thead);
+    const tbody = el("tbody");
+    mb.keywords.forEach(k => {
+      const tr = el("tr");
+      tr.appendChild(el("td", { text: k.phrase }));
+      tr.appendChild(el("td", { text: k.context }));
+      const urgClass = "mbc__urgency mbc__urg--" + k.urgency.toLowerCase();
+      tr.appendChild(el("td", {}, [el("span", { class: urgClass, text: k.urgency })]));
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    body.appendChild(tbl);
+  } else if (mbcActiveTab === "rules") {
+    body.appendChild(el("div", { class: "mbc__section-title", text: `${mb.rules.length} action rules` }));
+    if (mb.rules.length === 0) {
+      body.appendChild(el("div", { class: "mbc__rule mbc__rule--manual" }, [
+        el("div", { class: "mbc__rule-action", text: "No rules defined. Default: mark urgent + wait for approval." }),
+      ]));
+    } else {
+      mb.rules.forEach(r => {
+        const ruleEl = el("div", { class: "mbc__rule " + (r.autoSend ? "mbc__rule--auto" : "mbc__rule--manual") });
+        ruleEl.appendChild(el("div", { class: "mbc__rule-trigger", text: "TRIGGER: " + r.trigger }));
+        ruleEl.appendChild(el("div", { class: "mbc__rule-action", text: r.action }));
+        const autoTag = el("span", {
+          class: "mbc__autosend " + (r.autoSend ? "mbc__autosend--yes" : "mbc__autosend--no"),
+          text: r.autoSend ? "Auto-send (pending CEO approval)" : "Manual approval required",
+        });
+        const tagWrap = el("div", { style: "margin-top: 6px;" }, [autoTag]);
+        ruleEl.appendChild(tagWrap);
+        body.appendChild(ruleEl);
+      });
+      body.appendChild(el("div", { class: "mbc__section-title", text: "Note" }));
+      body.appendChild(el("div", { class: "mbc__rule-action", text: "Auto-send rules will NOT execute without CEO's explicit approval. Current Outlook connection is READ-ONLY." }));
+    }
+  }
+}
+
+function openMailboxConfig() {
+  document.getElementById("mailbox-config-overlay").classList.add("open");
+  document.getElementById("mailbox-config-panel").classList.add("open");
+  renderMailboxConfig();
+}
+
+function closeMailboxConfig() {
+  document.getElementById("mailbox-config-overlay").classList.remove("open");
+  document.getElementById("mailbox-config-panel").classList.remove("open");
+}
+
+function setupInbox() {
+  // Switcher button
+  const btn = document.getElementById("mailbox-switcher-btn");
+  const menu = document.getElementById("mailbox-switcher-menu");
+  if (btn && menu) {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.classList.toggle("open");
+    });
+    document.addEventListener("click", (e) => {
+      if (!btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove("open");
+      }
+    });
+  }
+  // Config panel
+  const cfgBtn = document.getElementById("mailbox-config-btn");
+  if (cfgBtn) cfgBtn.addEventListener("click", openMailboxConfig);
+  const cfgClose = document.getElementById("mbc-close");
+  if (cfgClose) cfgClose.addEventListener("click", closeMailboxConfig);
+  const cfgOverlay = document.getElementById("mailbox-config-overlay");
+  if (cfgOverlay) cfgOverlay.addEventListener("click", closeMailboxConfig);
+  // Tab switching
+  document.querySelectorAll(".mbc__tab").forEach(t => {
+    t.addEventListener("click", () => {
+      mbcActiveTab = t.dataset.tab;
+      renderMailboxConfig();
+    });
   });
 }
 
@@ -4730,6 +5714,19 @@ function buildInboxDetail(email) {
   root.appendChild(el("div", { class: "inbox-detail__from-label", text: "FROM" }));
   root.appendChild(el("div", { class: "inbox-detail__sender", text: email.from }));
   root.appendChild(el("div", { class: "inbox-detail__sender-org", text: email.fromOrg }));
+
+  // Entity resolution — look up sender in the mailbox's contact directory
+  const contact = findContact(email);
+  if (contact) {
+    const initials = contact.name.split(" ").map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+    const card = el("div", { class: "mbc__sender-card", style: "margin-top: 10px;" });
+    card.appendChild(el("span", { class: "mbc__sender-avatar", text: initials }));
+    const info = el("div", { class: "mbc__sender-info" });
+    info.appendChild(el("div", { class: "mbc__sender-name", text: "✓ Known contact · " + contact.company }));
+    info.appendChild(el("div", { class: "mbc__sender-meta", text: "Frequency: " + contact.frequency + " · " + contact.email }));
+    card.appendChild(info);
+    root.appendChild(card);
+  }
   root.appendChild(el("div", { class: "inbox-detail__subject", text: email.subject }));
 
   const metaRow = el("div", { class: "inbox-detail__meta-row" });
@@ -4960,8 +5957,10 @@ setupLayoutToggle();
 setupImport();
 setupSearch();
 setupInventory();
+setupInbox();
+buildMailboxSwitcher();
 buildInboxList();
-buildInboxDetail(EMAILS[0]);
+buildInboxDetail(EMAILS.find(e => e.mailbox === currentMailboxId) || EMAILS[0]);
 switchView("dashboard");
 setLayout("cards");
 tickClock();
