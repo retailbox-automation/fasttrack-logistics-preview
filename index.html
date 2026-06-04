@@ -1066,11 +1066,168 @@ body.view-loading_lists .pagination { display: none; }
 
 @media print {
   body * { visibility: hidden; }
-  .ll-preview-doc, .ll-preview-doc * { visibility: visible; }
-  .ll-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
-  .ll-preview-doc { box-shadow: none; margin: 0; max-width: none; }
-  .ll-preview-toolbar { display: none !important; }
+  .ll-preview-doc, .ll-preview-doc *,
+  .dr-preview-doc, .dr-preview-doc * { visibility: visible; }
+  .ll-preview-overlay,
+  .dr-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
+  .ll-preview-doc,
+  .dr-preview-doc { box-shadow: none; margin: 0; max-width: none; }
+  .ll-preview-toolbar,
+  .dr-preview-toolbar { display: none !important; }
 }
+
+/* ═══ DISCREPANCY REPORTS view ═══ */
+.discrepancies-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-discrepancies .discrepancies-view { display: block; }
+body.view-discrepancies .dashboard,
+body.view-discrepancies .inbox-view,
+body.view-discrepancies .inventory-view,
+body.view-discrepancies .loading-lists-view,
+body.view-discrepancies .pagination { display: none; }
+
+.dr-table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.dr-table thead { background: rgba(19, 26, 42, 0.6); }
+.dr-table th { text-align: left; padding: 10px 14px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.dr-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.dr-table tbody tr { transition: background 120ms; cursor: pointer; }
+.dr-table tbody tr:hover { background: var(--bg-hover); }
+.dr-table tbody tr:last-child td { border-bottom: none; }
+.dr-id { font-family: var(--font-mono); font-size: 11px; color: #F87171; font-weight: 500; }
+.dr-llref { font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); }
+.dr-severity { display: inline-block; padding: 2px 8px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+.dr-severity--minor   { background: rgba(148,163,184,0.12); color: var(--text-dim);     border: 1px solid rgba(148,163,184,0.25); }
+.dr-severity--major   { background: rgba(217,119,6,0.12);  color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.dr-severity--critical{ background: rgba(239,68,68,0.12);  color: var(--crit);          border: 1px solid rgba(239,68,68,0.3); }
+.dr-status { display: inline-block; padding: 3px 10px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+.dr-status--open         { background: rgba(239,68,68,0.12); color: var(--crit);  border: 1px solid rgba(239,68,68,0.3); }
+.dr-status--investigating{ background: rgba(217,119,6,0.12); color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.dr-status--resolved     { background: rgba(16,185,129,0.12); color: var(--ok);    border: 1px solid rgba(16,185,129,0.25); }
+.dr-status--credit_issued{ background: rgba(96,165,250,0.12); color: var(--info);  border: 1px solid rgba(96,165,250,0.25); }
+.dr-status--rejected     { background: rgba(148,163,184,0.12); color: var(--text-dim); border: 1px solid rgba(148,163,184,0.25); }
+.dr-impact { font-family: var(--font-mono); font-feature-settings: "tnum"; color: var(--crit); font-weight: 500; }
+.dr-impact--zero { color: var(--text-dim); }
+
+/* ═══ DR builder modal ═══ */
+.dr-builder-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; }
+.dr-builder-overlay.open { display: block; }
+.dr-builder { position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: 1100px; max-width: 96vw; height: 92vh; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+.dr-builder.open { display: flex; }
+.dr-builder__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.dr-builder__title { font-family: var(--font-display); font-size: 16px; color: var(--text-bright); font-weight: 500; }
+.dr-builder__close { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+.dr-builder__close:hover { color: var(--text-bright); border-color: var(--border-bright); }
+
+.dr-builder__body { display: grid; grid-template-columns: 1fr 380px; flex: 1; overflow: hidden; }
+.dr-builder__left { overflow-y: auto; padding: 18px 22px; border-right: 1px solid var(--border); }
+.dr-builder__right { overflow-y: auto; padding: 18px 22px; background: rgba(10,15,28,0.3); }
+
+.dr-builder__section-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+.dr-source-pick { padding: 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 14px; }
+.dr-source-pick select { width: 100%; padding: 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 12px; }
+.dr-source-pick select:focus { outline: none; border-color: var(--accent); }
+
+.dr-lines { display: flex; flex-direction: column; gap: 10px; }
+.dr-line { padding: 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; }
+.dr-line.flagged { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.04); }
+.dr-line__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+.dr-line__item { flex: 1; }
+.dr-line__wr-part { font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); font-weight: 500; margin-bottom: 2px; }
+.dr-line__desc { font-size: 12px; color: var(--text); line-height: 1.4; }
+.dr-line__expected { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); text-align: right; white-space: nowrap; }
+.dr-line__expected strong { color: var(--text-bright); }
+
+.dr-line__form { display: grid; grid-template-columns: 1fr 130px 130px; gap: 8px; margin-top: 8px; }
+.dr-line__form select,
+.dr-line__form input { padding: 7px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; }
+.dr-line__form input:focus,
+.dr-line__form select:focus { outline: none; border-color: var(--accent); }
+.dr-line__notes { width: 100%; padding: 7px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-body); font-size: 11px; margin-top: 6px; }
+
+.dr-line__variance { font-family: var(--font-mono); font-size: 11px; font-weight: 500; text-align: center; padding: 7px 6px; border-radius: 4px; }
+.dr-line__variance--neg { background: rgba(239,68,68,0.12); color: var(--crit); }
+.dr-line__variance--pos { background: rgba(217,119,6,0.12); color: var(--accent-bright); }
+.dr-line__variance--zero { background: var(--bg-overlay); color: var(--text-dim); }
+
+.dr-meta-form { display: flex; flex-direction: column; gap: 12px; }
+.dr-meta-field { display: flex; flex-direction: column; gap: 4px; }
+.dr-meta-field label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+.dr-meta-field input,
+.dr-meta-field select,
+.dr-meta-field textarea { padding: 8px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; resize: vertical; }
+.dr-meta-field textarea { font-family: var(--font-body); min-height: 60px; }
+.dr-meta-field input:focus,
+.dr-meta-field select:focus,
+.dr-meta-field textarea:focus { outline: none; border-color: var(--accent); }
+
+.dr-summary { margin-top: 16px; padding: 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; }
+.dr-summary__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+.dr-summary__row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
+.dr-summary__row strong { color: var(--text-bright); font-family: var(--font-mono); font-feature-settings: "tnum"; }
+.dr-summary__row strong.warn { color: var(--crit); }
+
+.dr-builder__footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.dr-builder__footer-hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.dr-builder__footer-actions { display: flex; gap: 10px; }
+
+/* ═══ DR preview document (formal report format) ═══ */
+.dr-preview-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.85); backdrop-filter: blur(6px); z-index: 110; display: none; overflow-y: auto; padding: 24px; }
+.dr-preview-overlay.open { display: block; }
+.dr-preview-doc { max-width: 920px; margin: 0 auto; background: #FBFAF6; color: #1A1F2E; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); font-family: "Inter", -apple-system, sans-serif; position: relative; }
+.dr-preview-toolbar { display: flex; justify-content: space-between; align-items: center; max-width: 920px; margin: 0 auto 16px; padding: 0 4px; }
+.dr-preview-toolbar__left { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,250,246,0.7); }
+.dr-preview-toolbar__actions { display: flex; gap: 8px; }
+.dr-preview-toolbar__btn { background: rgba(251,250,246,0.1); border: 1px solid rgba(251,250,246,0.2); color: #FBFAF6; padding: 6px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.dr-preview-toolbar__btn:hover { background: rgba(251,250,246,0.16); border-color: rgba(251,250,246,0.4); }
+.dr-preview-toolbar__btn--primary { background: #DC2626; border-color: #DC2626; color: #FBFAF6; }
+.dr-preview-toolbar__btn--primary:hover { background: #EF4444; }
+
+.dr-doc__header { padding: 32px 40px 18px; border-bottom: 2px solid #DC2626; display: flex; justify-content: space-between; align-items: flex-start; }
+.dr-doc__brand { display: flex; flex-direction: column; gap: 2px; }
+.dr-doc__logo { font-family: "Fraunces", serif; font-size: 22px; font-weight: 600; color: #1A1F2E; letter-spacing: -0.01em; }
+.dr-doc__brand-sub { font-size: 10px; color: #555; letter-spacing: 0.04em; line-height: 1.5; }
+.dr-doc__title-block { text-align: right; }
+.dr-doc__title { font-family: "Fraunces", serif; font-size: 18px; font-weight: 500; color: #DC2626; margin-bottom: 4px; }
+.dr-doc__id { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #DC2626; font-weight: 600; }
+.dr-doc__date { font-family: "JetBrains Mono", monospace; font-size: 10px; color: #555; margin-top: 4px; }
+
+.dr-doc__meta { padding: 20px 40px; background: #FEF2F2; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; border-bottom: 1px solid #FECACA; }
+.dr-doc__meta-field { display: flex; flex-direction: column; gap: 2px; }
+.dr-doc__meta-label { font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: #777; }
+.dr-doc__meta-value { font-size: 12px; color: #1A1F2E; font-weight: 500; }
+.dr-doc__meta-value--mono { font-family: "JetBrains Mono", monospace; }
+
+.dr-doc__summary-strip { padding: 12px 40px; background: #F4F1EA; border-bottom: 1px solid #E5DFCF; display: flex; gap: 24px; font-family: "JetBrains Mono", monospace; font-size: 11px; }
+.dr-doc__summary-cell { display: flex; flex-direction: column; gap: 2px; }
+.dr-doc__summary-label { font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; color: #777; }
+.dr-doc__summary-value { font-size: 14px; font-weight: 600; color: #1A1F2E; }
+.dr-doc__summary-value--crit { color: #DC2626; }
+
+.dr-doc__lines-section { padding: 20px 40px; }
+.dr-doc__lines-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 10px; }
+.dr-doc__lines-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.dr-doc__lines-table thead { background: #1A1F2E; color: #FBFAF6; }
+.dr-doc__lines-table th { padding: 8px 10px; text-align: left; font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+.dr-doc__lines-table th.num { text-align: right; }
+.dr-doc__lines-table td { padding: 10px; border-bottom: 1px solid #E0DBD0; vertical-align: top; }
+.dr-doc__lines-table td.num { text-align: right; font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum"; }
+.dr-doc__lines-table td.mono { font-family: "JetBrains Mono", monospace; font-size: 10px; }
+.dr-doc__lines-table tbody tr:nth-child(even) { background: #F8F6F0; }
+.dr-doc__lines-table .reason-pill { display: inline-block; padding: 2px 8px; border-radius: 8px; font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.04em; background: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; text-transform: uppercase; }
+.dr-doc__lines-table .reason-pill--over { background: #FEF3C7; color: #92400E; border-color: #FDE68A; }
+.dr-doc__lines-table tfoot td { background: #FEE2E2; font-weight: 600; padding: 10px; border-top: 2px solid #DC2626; font-family: "JetBrains Mono", monospace; color: #DC2626; }
+.dr-doc__lines-table tfoot td.num { font-size: 12px; }
+
+.dr-doc__notes-section { padding: 18px 40px; border-top: 1px solid #D5CFC2; background: #FFFBEB; }
+.dr-doc__notes-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 6px; }
+.dr-doc__notes-body { font-size: 11px; color: #1A1F2E; line-height: 1.5; }
+
+.dr-doc__signatures { padding: 28px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; border-top: 1px solid #D5CFC2; }
+.dr-doc__sig { border-top: 1px solid #1A1F2E; padding-top: 8px; }
+.dr-doc__sig-label { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #555; margin-bottom: 2px; }
+.dr-doc__sig-name { font-size: 11px; color: #1A1F2E; }
+
+.dr-doc__footer { padding: 14px 40px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
 
 .inbox-stats {
   display: grid;
@@ -2311,6 +2468,49 @@ body.layout-list .pagination { display: none; }
         <tbody id="ll-tbody"></tbody>
       </table>
     </section>
+
+    <!-- DISCREPANCY REPORTS VIEW -->
+    <section class="discrepancies-view" id="discrepancies-view">
+      <div class="ll-header">
+        <div>
+          <div class="ll-crumb">Variance · MSC Gangway Receiving · Ops Manual §6</div>
+          <div class="ll-title">
+            <h1>Discrepancy Reports</h1>
+            <span class="ll-title-count" id="dr-title-count">— reports</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <input id="dr-search" placeholder="Search report#, LL#, vessel, reason…" style="padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; width: 260px;">
+          <button class="btn btn--accent" id="dr-new-btn">+ File Discrepancy</button>
+        </div>
+      </div>
+
+      <div class="ll-stats">
+        <div class="ll-stat"><div class="ll-stat__label">Total reports</div><div class="ll-stat__value" id="dr-stat-total">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Open</div><div class="ll-stat__value" id="dr-stat-open" style="color:var(--crit);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Investigating</div><div class="ll-stat__value" id="dr-stat-investigating" style="color:var(--accent-bright);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Resolved (mo.)</div><div class="ll-stat__value" id="dr-stat-resolved" style="color:var(--ok);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Open financial impact</div><div class="ll-stat__value" id="dr-stat-impact" style="color:var(--crit);">—</div></div>
+      </div>
+
+      <table class="dr-table">
+        <thead>
+          <tr>
+            <th>Report #</th>
+            <th>Source LL</th>
+            <th>Vessel</th>
+            <th>Reported</th>
+            <th>Reported by</th>
+            <th>Severity</th>
+            <th>Status</th>
+            <th style="text-align:right">Lines</th>
+            <th style="text-align:right">Variance</th>
+            <th style="text-align:right">Impact (USD)</th>
+          </tr>
+        </thead>
+        <tbody id="dr-tbody"></tbody>
+      </table>
+    </section>
   </main>
 
   <!-- LOADING LIST BUILDER MODAL -->
@@ -2420,6 +2620,88 @@ body.layout-list .pagination { display: none; }
       </div>
     </div>
     <div class="ll-preview-doc" id="ll-preview-doc"></div>
+  </div>
+
+  <!-- DISCREPANCY REPORT BUILDER MODAL -->
+  <div class="dr-builder-overlay" id="dr-builder-overlay"></div>
+  <div class="dr-builder" id="dr-builder">
+    <div class="dr-builder__header">
+      <div class="dr-builder__title">File Discrepancy Report · MSC variance form</div>
+      <button class="dr-builder__close" id="dr-builder-close">Close ✕</button>
+    </div>
+    <div class="dr-builder__body">
+      <div class="dr-builder__left">
+        <div class="dr-builder__section-title">Step 1 · Source Loading List</div>
+        <div class="dr-source-pick">
+          <select id="dr-source-ll">
+            <option value="">— select source Loading List —</option>
+          </select>
+        </div>
+        <div class="dr-builder__section-title">Step 2 · Flag per-line variances</div>
+        <div class="dr-lines" id="dr-lines"></div>
+      </div>
+      <div class="dr-builder__right">
+        <div class="dr-builder__section-title">Step 3 · Report metadata</div>
+        <form class="dr-meta-form" id="dr-meta-form" onsubmit="return false;">
+          <div class="dr-meta-field">
+            <label>Reported by (MSC officer)<span class="required">*</span></label>
+            <input name="reportedBy" required placeholder="Carlos Goldstein (MSC Gangway)">
+          </div>
+          <div class="dr-meta-field">
+            <label>FT respondent</label>
+            <input name="ftRespondent" value="Andrea Palmisano">
+          </div>
+          <div class="dr-meta-field">
+            <label>Severity</label>
+            <select name="severity">
+              <option value="auto">Auto (calculated)</option>
+              <option value="minor">Minor</option>
+              <option value="major">Major</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <div class="dr-meta-field">
+            <label>Initial status</label>
+            <select name="status">
+              <option value="open">Open</option>
+              <option value="investigating">Investigating</option>
+            </select>
+          </div>
+          <div class="dr-meta-field">
+            <label>Notes for MSC</label>
+            <textarea name="notes" placeholder="e.g. MSC requests credit for damaged units. Photos attached separately."></textarea>
+          </div>
+        </form>
+
+        <div class="dr-summary">
+          <div class="dr-summary__title">Variance summary</div>
+          <div class="dr-summary__row"><span>Flagged lines</span><strong id="dr-sum-lines">0</strong></div>
+          <div class="dr-summary__row"><span>Total qty variance</span><strong id="dr-sum-variance">0</strong></div>
+          <div class="dr-summary__row"><span>Est. financial impact</span><strong id="dr-sum-impact" class="warn">$0</strong></div>
+          <div class="dr-summary__row"><span>Auto-severity</span><strong id="dr-sum-severity">—</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="dr-builder__footer">
+      <div class="dr-builder__footer-hint">Per ops manual §6: discrepancies reported within 24h of vessel receiving. Links back to Loading List for audit trail.</div>
+      <div class="dr-builder__footer-actions">
+        <button class="btn btn--ghost" id="dr-builder-cancel">Cancel</button>
+        <button class="btn btn--accent" id="dr-builder-generate">Generate Report →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCREPANCY REPORT PREVIEW DOCUMENT -->
+  <div class="dr-preview-overlay" id="dr-preview-overlay">
+    <div class="dr-preview-toolbar">
+      <div class="dr-preview-toolbar__left" id="dr-preview-toolbar-label">Discrepancy Report preview</div>
+      <div class="dr-preview-toolbar__actions">
+        <button class="dr-preview-toolbar__btn" id="dr-preview-close">Close ✕</button>
+        <button class="dr-preview-toolbar__btn" id="dr-preview-print">Print / PDF</button>
+        <button class="dr-preview-toolbar__btn dr-preview-toolbar__btn--primary" id="dr-preview-resolve">Mark resolved</button>
+      </div>
+    </div>
+    <div class="dr-preview-doc" id="dr-preview-doc"></div>
   </div>
 
   <!-- INVENTORY ENTRY MODAL -->
@@ -2671,7 +2953,8 @@ const SIDEBAR_DATA = {
   views: [
     { label: "All Shipments",        count: "5,102", active: true, view: "dashboard" },
     { label: "Inventory · Warehouse", count: "29", view: "inventory" },
-    { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists", highlight: true },
+    { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists" },
+    { label: "Discrepancy Reports",  count: "3", view: "discrepancies", highlight: true },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
@@ -6079,10 +6362,11 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies");
   document.body.classList.add("view-" + view);
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
+  if (view === "discrepancies") renderDiscrepancyReports();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -6688,6 +6972,601 @@ function setupLoadingLists() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   DISCREPANCY REPORTS  ·  Module 2 (partial) per ops manual §6
+   Variance documents from MSC gangway receiving — closes loop on
+   the LL dispatch → vessel arrival → variance → resolution chain.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const REASON_CODES = {
+  qty_short:   { label: "Qty short",          variant: ""    },
+  qty_over:    { label: "Qty over",           variant: "over" },
+  damaged:     { label: "Damaged",            variant: ""    },
+  missing:     { label: "Missing",            variant: ""    },
+  wrong_dept:  { label: "Wrong department",   variant: ""    },
+  wrong_vendor:{ label: "Wrong vendor",       variant: ""    },
+  no_docs:     { label: "No customs docs",    variant: ""    },
+  expired:     { label: "Expired",            variant: ""    },
+  wrong_specs: { label: "Specs mismatch",     variant: ""    },
+};
+
+const DR_STATUS_LABELS = {
+  open: "Open",
+  investigating: "Investigating",
+  resolved: "Resolved",
+  credit_issued: "Credit issued",
+  rejected: "Rejected",
+};
+
+// Rough per-unit cost estimate for financial impact (Phase 2: from Magaya invoice line)
+function estimateUnitCost(item) {
+  if (!item) return 0;
+  if (item.department === "MSC Foundation") return 8.50;
+  if (item.department === "Shop") return 4.20;
+  if (item.department === "Ocean Cay") return 6.80;
+  if (item.department === "Hotel") return 26.00;
+  return 5.00;
+}
+
+const DISCREPANCY_REPORTS = [
+  {
+    id: "DR-2026-0010",
+    loadingListId: "LL-2026-0048",
+    reportedAt: "2026-05-31",
+    reportedAtFull: "2026-05-31 14:22",
+    reportedBy: "Carlos Goldstein (MSC Gangway)",
+    ftRespondent: "Andrea Palmisano",
+    status: "resolved",
+    severity: "minor",
+    notes: "2 boxes damaged at offload — water damage on outer carton. Inner units OK but MSC requested credit per policy. Photos attached.",
+    resolutionNotes: "Credit of $42 issued via FT-INV-46225 adjustment. Closed 2026-06-02.",
+    lines: [
+      { itemIdx: 5, reasonCode: "damaged", expected: 6, received: 6, variance: 0, damagedQty: 2, notes: "2 outer cartons water-damaged, qty in spec but credit requested" },
+    ],
+  },
+  {
+    id: "DR-2026-0011",
+    loadingListId: "LL-2026-0049",
+    reportedAt: "2026-06-03",
+    reportedAtFull: "2026-06-03 09:48",
+    reportedBy: "Maria Vega (MSC Procurement)",
+    ftRespondent: "Andrea Palmisano",
+    status: "investigating",
+    severity: "major",
+    notes: "1 box not found on truck per gangway count. Could be staged at warehouse — FT investigating before issuing credit.",
+    resolutionNotes: "",
+    lines: [
+      { itemIdx: 1, reasonCode: "missing", expected: 7, received: 6, variance: -1, damagedQty: 0, notes: "1 box not received per MSC count. Andrea checking R2-A-2 location." },
+      { itemIdx: 12, reasonCode: "wrong_dept", expected: 14, received: 14, variance: 0, damagedQty: 0, notes: "Items received in 'Shop' coded as 'Ocean Cay' per MSC. Doc fix only, no financial." },
+    ],
+  },
+  {
+    id: "DR-2026-0012",
+    loadingListId: "LL-2026-0050",
+    reportedAt: "2026-06-04",
+    reportedAtFull: "2026-06-04 10:14",
+    reportedBy: "Ana Sanchez (MSC Inventory Check)",
+    ftRespondent: "Andrea Palmisano",
+    status: "open",
+    severity: "critical",
+    notes: "Customs entry referenced on LL but customs document not attached at gangway receiving. MSC requires before formal acceptance.",
+    resolutionNotes: "",
+    lines: [
+      { itemIdx: 8, reasonCode: "no_docs", expected: 1, received: 1, variance: 0, damagedQty: 0, notes: "Customs entry 9Q4-0006006-1 referenced but doc not attached." },
+      { itemIdx: 9, reasonCode: "no_docs", expected: 4, received: 4, variance: 0, damagedQty: 0, notes: "Same WR — customs doc missing across all items." },
+      { itemIdx: 10, reasonCode: "no_docs", expected: 4, received: 4, variance: 0, damagedQty: 0, notes: "Same WR — customs doc missing across all items." },
+    ],
+  },
+];
+
+function computeDRImpact(dr) {
+  let financial = 0;
+  let qtyVariance = 0;
+  dr.lines.forEach(line => {
+    const item = INVENTORY[line.itemIdx];
+    if (!item) return;
+    const unitCost = estimateUnitCost(item);
+    const qtyShort = Math.abs(Math.min(0, line.variance));
+    const damaged = line.damagedQty || 0;
+    financial += (qtyShort + damaged) * unitCost * (item.quantity / (item.pieces || 1));
+    qtyVariance += line.variance;
+  });
+  return { financial, qtyVariance };
+}
+
+function computeAutoSeverity(financialImpact, lineCount, hasCritical) {
+  if (hasCritical) return "critical";
+  if (financialImpact > 500 || lineCount > 5) return "major";
+  if (financialImpact < 50 && lineCount <= 2) return "minor";
+  return "major";
+}
+
+function renderDiscrepancyReports() {
+  const tbody = document.getElementById("dr-tbody");
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  const q = ((document.getElementById("dr-search") || {}).value || "").trim().toLowerCase();
+  const filtered = q ? DISCREPANCY_REPORTS.filter(dr => {
+    const ll = LOADING_LISTS.find(l => l.id === dr.loadingListId);
+    const reasons = dr.lines.map(l => (REASON_CODES[l.reasonCode] || {}).label || "").join(" ");
+    return [dr.id, dr.loadingListId, (ll && ll.vessel) || "", dr.reportedBy, reasons].join(" ").toLowerCase().includes(q);
+  }) : DISCREPANCY_REPORTS;
+
+  filtered.forEach(dr => {
+    const ll = LOADING_LISTS.find(l => l.id === dr.loadingListId);
+    const impact = computeDRImpact(dr);
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, [el("span", { class: "dr-id", text: dr.id })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "dr-llref", text: dr.loadingListId })]));
+    tr.appendChild(el("td", { text: (ll && ll.vessel) || "—" }));
+    tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:11px;color:var(--text-bright);", text: dr.reportedAt })]));
+    tr.appendChild(el("td", { text: dr.reportedBy }));
+    tr.appendChild(el("td", {}, [el("span", { class: "dr-severity dr-severity--" + dr.severity, text: dr.severity })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "dr-status dr-status--" + dr.status, text: DR_STATUS_LABELS[dr.status] })]));
+    const tdLines = el("td", { class: "td-num" });
+    tdLines.appendChild(el("span", { class: "inv-num", text: String(dr.lines.length) }));
+    tr.appendChild(tdLines);
+    const tdVar = el("td", { class: "td-num" });
+    tdVar.appendChild(el("span", { class: "inv-num", style: impact.qtyVariance < 0 ? "color:var(--crit);" : "", text: (impact.qtyVariance > 0 ? "+" : "") + impact.qtyVariance }));
+    tr.appendChild(tdVar);
+    const tdImpact = el("td", { class: "td-num" });
+    tdImpact.appendChild(el("span", { class: "dr-impact" + (impact.financial === 0 ? " dr-impact--zero" : ""), text: "$" + impact.financial.toFixed(2) }));
+    tr.appendChild(tdImpact);
+    tr.addEventListener("click", () => openDRPreview(DISCREPANCY_REPORTS.indexOf(dr)));
+    tbody.appendChild(tr);
+  });
+
+  const openCount = DISCREPANCY_REPORTS.filter(d => d.status === "open").length;
+  const invCount = DISCREPANCY_REPORTS.filter(d => d.status === "investigating").length;
+  const resolvedCount = DISCREPANCY_REPORTS.filter(d => d.status === "resolved" || d.status === "credit_issued").length;
+  const openImpact = DISCREPANCY_REPORTS
+    .filter(d => d.status === "open" || d.status === "investigating")
+    .reduce((s, d) => s + computeDRImpact(d).financial, 0);
+
+  document.getElementById("dr-title-count").textContent = q
+    ? filtered.length + " matching"
+    : DISCREPANCY_REPORTS.length + " reports · " + openCount + " open";
+  document.getElementById("dr-stat-total").textContent = DISCREPANCY_REPORTS.length;
+  document.getElementById("dr-stat-open").textContent = openCount;
+  document.getElementById("dr-stat-investigating").textContent = invCount;
+  document.getElementById("dr-stat-resolved").textContent = resolvedCount;
+  document.getElementById("dr-stat-impact").textContent = "$" + openImpact.toFixed(0);
+}
+
+/* ─── DR Builder ─── */
+
+let DR_BUILDER_FLAGS = {}; // itemIdx → { reasonCode, received, damagedQty, notes }
+let DR_BUILDER_SOURCE_LL = null;
+
+function openDRBuilder() {
+  DR_BUILDER_FLAGS = {};
+  DR_BUILDER_SOURCE_LL = null;
+  document.getElementById("dr-builder-overlay").classList.add("open");
+  document.getElementById("dr-builder").classList.add("open");
+  const select = document.getElementById("dr-source-ll");
+  // Populate LL dropdown
+  while (select.firstChild) select.removeChild(select.firstChild);
+  select.appendChild(el("option", { value: "", text: "— select source Loading List —" }));
+  LOADING_LISTS.forEach((ll, i) => {
+    if (ll.status === "draft") return; // can only discrepancy a dispatched LL
+    const opt = el("option", { value: String(i), text: ll.id + " · " + ll.vessel + " · " + ll.port + " · " + STATUS_LABELS_LL[ll.status] });
+    select.appendChild(opt);
+  });
+  document.getElementById("dr-meta-form").reset();
+  document.getElementById("dr-meta-form").querySelector('[name="ftRespondent"]').value = "Andrea Palmisano";
+  document.getElementById("dr-lines").innerHTML = "";
+  document.getElementById("dr-lines").appendChild(el("div", { style: "padding: 24px; text-align: center; color: var(--text-dim); font-family: var(--font-mono); font-size: 11px;", text: "Select a Loading List above to load its line items" }));
+  updateDRSummary();
+}
+
+function closeDRBuilder() {
+  document.getElementById("dr-builder-overlay").classList.remove("open");
+  document.getElementById("dr-builder").classList.remove("open");
+}
+
+function renderDRLines() {
+  const container = document.getElementById("dr-lines");
+  while (container.firstChild) container.removeChild(container.firstChild);
+  if (!DR_BUILDER_SOURCE_LL) return;
+
+  const ll = LOADING_LISTS[DR_BUILDER_SOURCE_LL];
+  ll.itemIdxs.forEach(itemIdx => {
+    const item = INVENTORY[itemIdx];
+    if (!item) return;
+    const flag = DR_BUILDER_FLAGS[itemIdx];
+    const row = el("div", { class: "dr-line" + (flag ? " flagged" : "") });
+
+    const head = el("div", { class: "dr-line__head" });
+    const itemBlock = el("div", { class: "dr-line__item" }, [
+      el("div", { class: "dr-line__wr-part", text: item.warehouseReceipt + " · " + item.partNumber + " · " + item.department }),
+      el("div", { class: "dr-line__desc", text: item.description }),
+    ]);
+    head.appendChild(itemBlock);
+    const expectedBlock = el("div", { class: "dr-line__expected" }, [
+      el("div", { text: "Expected" }),
+      el("div", {}, [el("strong", { text: item.pieces + " × " + item.packageUnit + " (qty " + item.quantity.toLocaleString() + ")" })]),
+    ]);
+    head.appendChild(expectedBlock);
+    row.appendChild(head);
+
+    const form = el("div", { class: "dr-line__form" });
+    const reasonSel = el("select");
+    reasonSel.appendChild(el("option", { value: "", text: "— no variance (skip) —" }));
+    Object.entries(REASON_CODES).forEach(([code, def]) => {
+      const opt = el("option", { value: code, text: def.label });
+      if (flag && flag.reasonCode === code) opt.selected = true;
+      reasonSel.appendChild(opt);
+    });
+    const receivedInp = el("input", { type: "number", placeholder: "Received pcs", min: "0" });
+    receivedInp.value = flag ? String(flag.received) : String(item.pieces);
+    const damagedInp = el("input", { type: "number", placeholder: "Damaged", min: "0" });
+    damagedInp.value = flag ? String(flag.damagedQty || 0) : "0";
+
+    const notesInp = el("input", { class: "dr-line__notes", placeholder: "Notes (optional, free text)" });
+    notesInp.value = flag ? (flag.notes || "") : "";
+
+    const sync = () => {
+      const code = reasonSel.value;
+      if (!code) {
+        delete DR_BUILDER_FLAGS[itemIdx];
+        row.classList.remove("flagged");
+      } else {
+        const received = parseInt(receivedInp.value, 10) || 0;
+        const damagedQty = parseInt(damagedInp.value, 10) || 0;
+        DR_BUILDER_FLAGS[itemIdx] = {
+          reasonCode: code,
+          received,
+          variance: received - item.pieces,
+          damagedQty,
+          notes: notesInp.value,
+        };
+        row.classList.add("flagged");
+        // Update variance chip
+        const vChip = row.querySelector(".dr-line__variance");
+        const v = received - item.pieces;
+        if (vChip) {
+          vChip.textContent = (v > 0 ? "+" : "") + v + " pcs";
+          vChip.className = "dr-line__variance " + (v < 0 ? "dr-line__variance--neg" : v > 0 ? "dr-line__variance--pos" : "dr-line__variance--zero");
+        }
+      }
+      updateDRSummary();
+    };
+    reasonSel.addEventListener("change", sync);
+    receivedInp.addEventListener("input", sync);
+    damagedInp.addEventListener("input", sync);
+    notesInp.addEventListener("input", sync);
+
+    form.appendChild(reasonSel);
+    form.appendChild(receivedInp);
+    form.appendChild(damagedInp);
+    row.appendChild(form);
+
+    // Variance chip below form
+    const varChipWrap = el("div", { style: "display:flex; align-items:center; gap:10px; margin-top:8px;" });
+    varChipWrap.appendChild(el("span", { style: "font-family:var(--font-mono); font-size:10px; color: var(--text-dim);", text: "VARIANCE" }));
+    const initialV = flag ? flag.variance : 0;
+    const vChip = el("span", { class: "dr-line__variance " + (initialV < 0 ? "dr-line__variance--neg" : initialV > 0 ? "dr-line__variance--pos" : "dr-line__variance--zero"), text: (initialV > 0 ? "+" : "") + initialV + " pcs" });
+    varChipWrap.appendChild(vChip);
+    row.appendChild(varChipWrap);
+
+    row.appendChild(notesInp);
+
+    container.appendChild(row);
+  });
+}
+
+function updateDRSummary() {
+  const flagged = Object.entries(DR_BUILDER_FLAGS);
+  const variance = flagged.reduce((s, [_, f]) => s + (f.variance || 0), 0);
+  // Estimate financial
+  let financial = 0;
+  let hasCritical = false;
+  flagged.forEach(([idx, f]) => {
+    const item = INVENTORY[parseInt(idx, 10)];
+    if (!item) return;
+    const unit = estimateUnitCost(item);
+    const qtyShort = Math.abs(Math.min(0, f.variance));
+    const damaged = f.damagedQty || 0;
+    financial += (qtyShort + damaged) * unit * (item.quantity / (item.pieces || 1));
+    if (f.reasonCode === "no_docs" || f.reasonCode === "expired") hasCritical = true;
+  });
+  const autoSev = flagged.length === 0 ? "—" : computeAutoSeverity(financial, flagged.length, hasCritical);
+
+  document.getElementById("dr-sum-lines").textContent = flagged.length;
+  document.getElementById("dr-sum-variance").textContent = (variance > 0 ? "+" : "") + variance + " pcs";
+  document.getElementById("dr-sum-impact").textContent = "$" + financial.toFixed(2);
+  document.getElementById("dr-sum-severity").textContent = autoSev;
+}
+
+function generateDiscrepancyReport() {
+  if (DR_BUILDER_SOURCE_LL === null) {
+    alert("Select a source Loading List first.");
+    return;
+  }
+  const flags = Object.entries(DR_BUILDER_FLAGS);
+  if (flags.length === 0) {
+    alert("Flag at least one line item with a variance reason.");
+    return;
+  }
+  const form = document.getElementById("dr-meta-form");
+  const fd = new FormData(form);
+  const meta = {};
+  fd.forEach((v, k) => { meta[k] = String(v).trim(); });
+  if (!meta.reportedBy) {
+    alert("Reported by (MSC officer) is required.");
+    return;
+  }
+
+  const ll = LOADING_LISTS[DR_BUILDER_SOURCE_LL];
+  const lines = flags.map(([idx, f]) => {
+    const item = INVENTORY[parseInt(idx, 10)];
+    return {
+      itemIdx: parseInt(idx, 10),
+      reasonCode: f.reasonCode,
+      expected: item.pieces,
+      received: f.received,
+      variance: f.variance,
+      damagedQty: f.damagedQty,
+      notes: f.notes || "",
+    };
+  });
+
+  const impact = lines.reduce((acc, line) => {
+    const item = INVENTORY[line.itemIdx];
+    const unit = estimateUnitCost(item);
+    const qtyShort = Math.abs(Math.min(0, line.variance));
+    const damaged = line.damagedQty || 0;
+    return acc + (qtyShort + damaged) * unit * (item.quantity / (item.pieces || 1));
+  }, 0);
+
+  const hasCritical = lines.some(l => l.reasonCode === "no_docs" || l.reasonCode === "expired");
+  const severity = meta.severity === "auto" || !meta.severity
+    ? computeAutoSeverity(impact, lines.length, hasCritical)
+    : meta.severity;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayFull = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const nextNum = String(Math.max(...DISCREPANCY_REPORTS.map(d => parseInt(d.id.split("-").pop(), 10) || 0)) + 1).padStart(4, "0");
+
+  const newDR = {
+    id: "DR-2026-" + nextNum,
+    loadingListId: ll.id,
+    reportedAt: today,
+    reportedAtFull: todayFull,
+    reportedBy: meta.reportedBy,
+    ftRespondent: meta.ftRespondent || "Andrea Palmisano",
+    status: meta.status || "open",
+    severity: severity,
+    notes: meta.notes || "",
+    resolutionNotes: "",
+    lines: lines,
+  };
+  DISCREPANCY_REPORTS.unshift(newDR);
+  closeDRBuilder();
+  renderDiscrepancyReports();
+  openDRPreview(0);
+}
+
+/* ─── DR Preview document ─── */
+
+function openDRPreview(drIndex) {
+  const dr = DISCREPANCY_REPORTS[drIndex];
+  if (!dr) return;
+  const overlay = document.getElementById("dr-preview-overlay");
+  const doc = document.getElementById("dr-preview-doc");
+  while (doc.firstChild) doc.removeChild(doc.firstChild);
+  doc.appendChild(buildDRPreviewDoc(dr));
+  document.getElementById("dr-preview-toolbar-label").textContent =
+    dr.id + " · " + dr.severity.toUpperCase() + " · " + DR_STATUS_LABELS[dr.status].toUpperCase();
+  overlay.classList.add("open");
+  overlay.dataset.idx = String(drIndex);
+}
+
+function closeDRPreview() {
+  document.getElementById("dr-preview-overlay").classList.remove("open");
+}
+
+function buildDRPreviewDoc(dr) {
+  const ll = LOADING_LISTS.find(l => l.id === dr.loadingListId);
+  const impact = computeDRImpact(dr);
+  const root = el("div");
+
+  // Header
+  const header = el("div", { class: "dr-doc__header" });
+  const brand = el("div", { class: "dr-doc__brand" }, [
+    el("div", { class: "dr-doc__logo", text: "FAST TRACK WORLDWIDE LOGISTIC" }),
+    el("div", { class: "dr-doc__brand-sub", text: "1674 NW 215th Street · Miami Gardens, FL 33056" }),
+    el("div", { class: "dr-doc__brand-sub", text: "FIRMS LCS5 · Bonded Warehouse · CBP-Certified" }),
+    el("div", { class: "dr-doc__brand-sub", text: "+1 (941) 216-5279 · ops@fasttrackgroup.us" }),
+  ]);
+  const titleBlock = el("div", { class: "dr-doc__title-block" }, [
+    el("div", { class: "dr-doc__title", text: "DISCREPANCY REPORT" }),
+    el("div", { class: "dr-doc__id", text: dr.id }),
+    el("div", { class: "dr-doc__date", text: "Filed " + dr.reportedAtFull }),
+    el("div", { class: "dr-doc__date", text: "Severity: " + dr.severity.toUpperCase() + " · " + DR_STATUS_LABELS[dr.status].toUpperCase() }),
+  ]);
+  header.appendChild(brand);
+  header.appendChild(titleBlock);
+  root.appendChild(header);
+
+  // Meta
+  const meta = el("div", { class: "dr-doc__meta" });
+  const metaField = (label, value, mono) => {
+    const f = el("div", { class: "dr-doc__meta-field" });
+    f.appendChild(el("div", { class: "dr-doc__meta-label", text: label }));
+    f.appendChild(el("div", { class: "dr-doc__meta-value" + (mono ? " dr-doc__meta-value--mono" : ""), text: value || "—" }));
+    return f;
+  };
+  meta.appendChild(metaField("SOURCE LOADING LIST", dr.loadingListId, true));
+  meta.appendChild(metaField("VESSEL", (ll && ll.vessel) || "—"));
+  meta.appendChild(metaField("CRUISE", (ll && ll.cruise) || "—", true));
+  meta.appendChild(metaField("PORT", (ll && ll.port) || "—"));
+  meta.appendChild(metaField("TRUCK #", (ll && ll.truck) || "—", true));
+  meta.appendChild(metaField("REPORTED BY", dr.reportedBy));
+  meta.appendChild(metaField("FT RESPONDENT", dr.ftRespondent));
+  meta.appendChild(metaField("FILED ON", dr.reportedAt, true));
+  root.appendChild(meta);
+
+  // Summary strip
+  const strip = el("div", { class: "dr-doc__summary-strip" });
+  const sumCell = (label, value, crit) => {
+    const c = el("div", { class: "dr-doc__summary-cell" });
+    c.appendChild(el("div", { class: "dr-doc__summary-label", text: label }));
+    c.appendChild(el("div", { class: "dr-doc__summary-value" + (crit ? " dr-doc__summary-value--crit" : ""), text: value }));
+    return c;
+  };
+  strip.appendChild(sumCell("Lines flagged", String(dr.lines.length)));
+  strip.appendChild(sumCell("Qty variance", (impact.qtyVariance > 0 ? "+" : "") + impact.qtyVariance + " pcs", impact.qtyVariance < 0));
+  strip.appendChild(sumCell("Financial impact", "$" + impact.financial.toFixed(2), impact.financial > 0));
+  strip.appendChild(sumCell("Severity", dr.severity.toUpperCase(), dr.severity === "critical"));
+  strip.appendChild(sumCell("Status", DR_STATUS_LABELS[dr.status]));
+  root.appendChild(strip);
+
+  // Lines table
+  const linesSec = el("div", { class: "dr-doc__lines-section" });
+  linesSec.appendChild(el("div", { class: "dr-doc__lines-title", text: "VARIANCE DETAIL — per line item" }));
+  const tbl = el("table", { class: "dr-doc__lines-table" });
+  const thead = el("thead");
+  const trh = el("tr");
+  ["#", "Warehouse #", "Part #", "Description", "Reason", "Expected", "Received", "Variance", "Damaged", "Impact (USD)"].forEach((h, i) => {
+    const th = el("th", { text: h });
+    if (i >= 5) th.className = "num";
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  tbl.appendChild(thead);
+
+  const tbody = el("tbody");
+  dr.lines.forEach((line, i) => {
+    const item = INVENTORY[line.itemIdx];
+    if (!item) return;
+    const unit = estimateUnitCost(item);
+    const qtyShort = Math.abs(Math.min(0, line.variance));
+    const damaged = line.damagedQty || 0;
+    const lineImpact = (qtyShort + damaged) * unit * (item.quantity / (item.pieces || 1));
+    const reason = REASON_CODES[line.reasonCode] || { label: line.reasonCode, variant: "" };
+
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "num mono", text: String(i + 1) }));
+    tr.appendChild(el("td", { class: "mono", text: item.warehouseReceipt }));
+    tr.appendChild(el("td", { class: "mono", text: item.partNumber }));
+    tr.appendChild(el("td", {}, [
+      el("div", { text: item.description }),
+      line.notes ? el("div", { style: "font-size:9px; color:#666; margin-top:4px; font-style:italic;", text: line.notes }) : null,
+    ]));
+    tr.appendChild(el("td", {}, [el("span", { class: "reason-pill" + (reason.variant ? " reason-pill--" + reason.variant : ""), text: reason.label })]));
+    tr.appendChild(el("td", { class: "num", text: String(line.expected) }));
+    tr.appendChild(el("td", { class: "num", text: String(line.received) }));
+    tr.appendChild(el("td", { class: "num", text: (line.variance > 0 ? "+" : "") + line.variance }));
+    tr.appendChild(el("td", { class: "num", text: String(damaged) }));
+    tr.appendChild(el("td", { class: "num", text: "$" + lineImpact.toFixed(2) }));
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+
+  const tfoot = el("tfoot");
+  const trf = el("tr");
+  const tdLabel = el("td", { text: "TOTALS" });
+  tdLabel.setAttribute("colspan", "9");
+  trf.appendChild(tdLabel);
+  trf.appendChild(el("td", { class: "num", text: "$" + impact.financial.toFixed(2) }));
+  tfoot.appendChild(trf);
+  tbl.appendChild(tfoot);
+
+  linesSec.appendChild(tbl);
+  root.appendChild(linesSec);
+
+  // Notes section
+  if (dr.notes || dr.resolutionNotes) {
+    const notesSec = el("div", { class: "dr-doc__notes-section" });
+    if (dr.notes) {
+      notesSec.appendChild(el("div", { class: "dr-doc__notes-title", text: "REPORTER NOTES" }));
+      notesSec.appendChild(el("div", { class: "dr-doc__notes-body", text: dr.notes }));
+    }
+    if (dr.resolutionNotes) {
+      notesSec.appendChild(el("div", { class: "dr-doc__notes-title", style: "margin-top:14px;", text: "RESOLUTION" }));
+      notesSec.appendChild(el("div", { class: "dr-doc__notes-body", text: dr.resolutionNotes }));
+    }
+    root.appendChild(notesSec);
+  }
+
+  // Signatures
+  const sigs = el("div", { class: "dr-doc__signatures" });
+  const sig = (label, name) => {
+    const s = el("div", { class: "dr-doc__sig" });
+    s.appendChild(el("div", { class: "dr-doc__sig-label", text: label }));
+    s.appendChild(el("div", { class: "dr-doc__sig-name", text: name }));
+    return s;
+  };
+  sigs.appendChild(sig("MSC REPORTING OFFICER", dr.reportedBy));
+  sigs.appendChild(sig("FT RESPONDENT", dr.ftRespondent + " — " + DR_STATUS_LABELS[dr.status]));
+  root.appendChild(sigs);
+
+  // Footer
+  root.appendChild(el("div", { class: "dr-doc__footer", text:
+    "MSC PROCUREMENT & LOGISTIC S.p.A. — formal variance notification per FT operations manual §6. " +
+    "Discrepancies linked to source Loading List " + dr.loadingListId + " for audit trail. " +
+    "Resolution required within 5 business days. Credits/replacements tracked via FT billing module. " +
+    "19 CFR 163.4 retention 5 years."
+  }));
+
+  return root;
+}
+
+function setupDiscrepancyReports() {
+  const newBtn = document.getElementById("dr-new-btn");
+  if (newBtn) newBtn.addEventListener("click", openDRBuilder);
+
+  const closeBtn = document.getElementById("dr-builder-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeDRBuilder);
+
+  const cancelBtn = document.getElementById("dr-builder-cancel");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeDRBuilder);
+
+  const overlay = document.getElementById("dr-builder-overlay");
+  if (overlay) overlay.addEventListener("click", closeDRBuilder);
+
+  const genBtn = document.getElementById("dr-builder-generate");
+  if (genBtn) genBtn.addEventListener("click", generateDiscrepancyReport);
+
+  const sourceSelect = document.getElementById("dr-source-ll");
+  if (sourceSelect) sourceSelect.addEventListener("change", (e) => {
+    DR_BUILDER_FLAGS = {};
+    DR_BUILDER_SOURCE_LL = e.target.value ? parseInt(e.target.value, 10) : null;
+    renderDRLines();
+    updateDRSummary();
+  });
+
+  const drSearch = document.getElementById("dr-search");
+  if (drSearch) drSearch.addEventListener("input", renderDiscrepancyReports);
+
+  const previewClose = document.getElementById("dr-preview-close");
+  if (previewClose) previewClose.addEventListener("click", closeDRPreview);
+
+  const previewPrint = document.getElementById("dr-preview-print");
+  if (previewPrint) previewPrint.addEventListener("click", () => window.print());
+
+  const previewResolve = document.getElementById("dr-preview-resolve");
+  if (previewResolve) previewResolve.addEventListener("click", () => {
+    const ovl = document.getElementById("dr-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (!isNaN(idx) && DISCREPANCY_REPORTS[idx]) {
+      const dr = DISCREPANCY_REPORTS[idx];
+      if (dr.status === "resolved" || dr.status === "credit_issued" || dr.status === "rejected") {
+        alert("Already closed (" + DR_STATUS_LABELS[dr.status] + ").");
+        return;
+      }
+      const impact = computeDRImpact(dr);
+      dr.status = impact.financial > 0 ? "credit_issued" : "resolved";
+      dr.resolutionNotes = "Closed via prototype · " + new Date().toISOString().slice(0, 10) + ". Auto-routed to billing for credit reconciliation.";
+      renderDiscrepancyReports();
+      alert("Report " + dr.id + " marked " + DR_STATUS_LABELS[dr.status] + ".\n\n(Phase 2: auto-creates credit memo in Magaya invoicing.)");
+      closeDRPreview();
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    SEARCH  ·  Live filter cards
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -6724,6 +7603,7 @@ setupImport();
 setupSearch();
 setupInventory();
 setupLoadingLists();
+setupDiscrepancyReports();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
@@ -6752,6 +7632,12 @@ setInterval(tickClock, 1000);
       switchView("loading_lists");
       const llIdx = parseInt(h.replace("ll-", ""), 10);
       if (!isNaN(llIdx) && LOADING_LISTS[llIdx]) openLLPreview(llIdx);
+    } else if (h === "discrepancies" || h === "dr") {
+      switchView("discrepancies");
+    } else if (h.startsWith("dr-")) {
+      switchView("discrepancies");
+      const drIdx = parseInt(h.replace("dr-", ""), 10);
+      if (!isNaN(drIdx) && DISCREPANCY_REPORTS[drIdx]) openDRPreview(drIdx);
     } else if (h.startsWith("email-")) {
       switchView("inbox");
       const idx = parseInt(h.replace("email-", ""), 10);
