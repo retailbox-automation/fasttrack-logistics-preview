@@ -882,7 +882,8 @@ body.view-inventory .pagination { display: none; }
   text-transform: uppercase;
   color: var(--text-dim);
 }
-.inv-form__label .required { color: var(--accent-bright); margin-left: 3px; }
+.inv-form__label .required,
+.ll-meta-field label .required { color: var(--accent-bright); margin-left: 3px; }
 .inv-form__input,
 .inv-form__select {
   padding: 9px 12px;
@@ -921,6 +922,155 @@ body.view-inventory .pagination { display: none; }
   color: var(--text-dim);
 }
 .inv-form__actions { display: flex; gap: 10px; }
+
+/* ═══ LOADING LISTS view ═══ */
+.loading-lists-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-loading_lists .loading-lists-view { display: block; }
+body.view-loading_lists .dashboard,
+body.view-loading_lists .inbox-view,
+body.view-loading_lists .inventory-view,
+body.view-loading_lists .pagination { display: none; }
+
+.ll-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.ll-crumb { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+.ll-title { display: flex; align-items: baseline; gap: 14px; }
+.ll-title h1 { font-family: var(--font-display); font-weight: 500; font-size: 24px; letter-spacing: -0.01em; color: var(--text-bright); margin: 0; }
+.ll-title-count { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+
+.ll-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+.ll-stat { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+.ll-stat__label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.ll-stat__value { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--text-bright); letter-spacing: -0.02em; font-feature-settings: "tnum"; }
+
+.ll-table { width: 100%; border-collapse: collapse; font-size: 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.ll-table thead { background: rgba(19, 26, 42, 0.6); }
+.ll-table th { text-align: left; padding: 10px 14px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.ll-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.ll-table tbody tr { transition: background 120ms; cursor: pointer; }
+.ll-table tbody tr:hover { background: var(--bg-hover); }
+.ll-table tbody tr:last-child td { border-bottom: none; }
+.ll-id { font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); font-weight: 500; }
+.ll-truck { font-family: var(--font-mono); font-size: 11px; color: var(--text-bright); }
+.ll-vessel { color: var(--text-bright); font-weight: 500; }
+.ll-port-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.04em; background: rgba(96,165,250,0.12); color: var(--info); }
+.ll-status { display: inline-block; padding: 3px 10px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+.ll-status--draft     { background: rgba(148,163,184,0.12); color: var(--text-dim);    border: 1px solid rgba(148,163,184,0.25); }
+.ll-status--dispatched{ background: rgba(217,119,6,0.12);  color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.ll-status--loaded    { background: rgba(96,165,250,0.12); color: var(--info);         border: 1px solid rgba(96,165,250,0.25); }
+.ll-status--received  { background: rgba(16,185,129,0.12); color: var(--ok);           border: 1px solid rgba(16,185,129,0.25); }
+
+/* ═══ LOADING LIST builder modal ═══ */
+.ll-builder-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; }
+.ll-builder-overlay.open { display: block; }
+.ll-builder { position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: 1100px; max-width: 96vw; height: 92vh; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+.ll-builder.open { display: flex; }
+.ll-builder__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.ll-builder__title { font-family: var(--font-display); font-size: 16px; color: var(--text-bright); font-weight: 500; }
+.ll-builder__close { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+.ll-builder__close:hover { color: var(--text-bright); border-color: var(--border-bright); }
+
+.ll-builder__body { display: grid; grid-template-columns: 1fr 380px; flex: 1; overflow: hidden; }
+.ll-builder__left { overflow-y: auto; padding: 18px 22px; border-right: 1px solid var(--border); }
+.ll-builder__right { overflow-y: auto; padding: 18px 22px; background: rgba(10,15,28,0.3); }
+
+.ll-builder__section-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+.ll-pick-list { display: flex; flex-direction: column; gap: 6px; }
+.ll-pick-row { display: grid; grid-template-columns: 26px 90px 110px 1fr 110px 70px 80px 90px; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-deep); align-items: center; cursor: pointer; transition: border-color 120ms, background 120ms; font-size: 11px; }
+.ll-pick-row:hover { border-color: var(--border-bright); }
+.ll-pick-row.selected { border-color: var(--accent); background: var(--bg-glow); }
+.ll-pick-row input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
+.ll-pick-row__wr { font-family: var(--font-mono); color: var(--accent-bright); font-weight: 500; }
+.ll-pick-row__part { font-family: var(--font-mono); color: var(--text-bright); }
+.ll-pick-row__desc { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ll-pick-row__dept { font-family: var(--font-mono); font-size: 10px; color: #C4B5FD; }
+.ll-pick-row__num { font-family: var(--font-mono); text-align: right; font-feature-settings: "tnum"; color: var(--text-bright); }
+.ll-pick-row__loc { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.ll-pick-row__pkg { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; color: var(--info); }
+
+.ll-pick-head { display: grid; grid-template-columns: 26px 90px 110px 1fr 110px 70px 80px 90px; gap: 8px; padding: 4px 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.ll-pick-search { width: 100%; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; margin-bottom: 12px; }
+.ll-pick-search:focus { outline: none; border-color: var(--accent); }
+
+.ll-meta-form { display: flex; flex-direction: column; gap: 12px; }
+.ll-meta-field { display: flex; flex-direction: column; gap: 4px; }
+.ll-meta-field label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+.ll-meta-field input,
+.ll-meta-field select { padding: 8px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; }
+.ll-meta-field input:focus,
+.ll-meta-field select:focus { outline: none; border-color: var(--accent); }
+
+.ll-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.ll-selected-summary { margin-top: 16px; padding: 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; }
+.ll-selected-summary__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+.ll-selected-summary__row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
+.ll-selected-summary__row strong { color: var(--text-bright); font-family: var(--font-mono); font-feature-settings: "tnum"; }
+.ll-selected-summary__warn { color: var(--warn); font-family: var(--font-mono); font-size: 10px; margin-top: 8px; padding: 6px 10px; background: rgba(217,119,6,0.08); border-left: 2px solid var(--accent); }
+
+.ll-builder__footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.ll-builder__footer-hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.ll-builder__footer-actions { display: flex; gap: 10px; }
+
+/* ═══ LOADING LIST preview document (MSC format) ═══ */
+.ll-preview-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.85); backdrop-filter: blur(6px); z-index: 110; display: none; overflow-y: auto; padding: 24px; }
+.ll-preview-overlay.open { display: block; }
+.ll-preview-doc { max-width: 920px; margin: 0 auto; background: #FBFAF6; color: #1A1F2E; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); font-family: "Inter", -apple-system, sans-serif; position: relative; }
+.ll-preview-toolbar { display: flex; justify-content: space-between; align-items: center; max-width: 920px; margin: 0 auto 16px; padding: 0 4px; }
+.ll-preview-toolbar__left { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,250,246,0.7); }
+.ll-preview-toolbar__actions { display: flex; gap: 8px; }
+.ll-preview-toolbar__btn { background: rgba(251,250,246,0.1); border: 1px solid rgba(251,250,246,0.2); color: #FBFAF6; padding: 6px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.ll-preview-toolbar__btn:hover { background: rgba(251,250,246,0.16); border-color: rgba(251,250,246,0.4); }
+.ll-preview-toolbar__btn--primary { background: var(--accent); border-color: var(--accent); color: #FBFAF6; }
+.ll-preview-toolbar__btn--primary:hover { background: var(--accent-bright); }
+
+.ll-doc__header { padding: 32px 40px 18px; border-bottom: 2px solid #1A1F2E; display: flex; justify-content: space-between; align-items: flex-start; }
+.ll-doc__brand { display: flex; flex-direction: column; gap: 2px; }
+.ll-doc__logo { font-family: "Fraunces", serif; font-size: 22px; font-weight: 600; color: #1A1F2E; letter-spacing: -0.01em; }
+.ll-doc__brand-sub { font-size: 10px; color: #555; letter-spacing: 0.04em; line-height: 1.5; }
+.ll-doc__title-block { text-align: right; }
+.ll-doc__title { font-family: "Fraunces", serif; font-size: 18px; font-weight: 500; color: #1A1F2E; margin-bottom: 4px; }
+.ll-doc__id { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #D97706; font-weight: 600; }
+.ll-doc__date { font-family: "JetBrains Mono", monospace; font-size: 10px; color: #555; margin-top: 4px; }
+
+.ll-doc__meta { padding: 20px 40px; background: #F4F1EA; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; border-bottom: 1px solid #D5CFC2; }
+.ll-doc__meta-field { display: flex; flex-direction: column; gap: 2px; }
+.ll-doc__meta-label { font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: #777; }
+.ll-doc__meta-value { font-size: 12px; color: #1A1F2E; font-weight: 500; }
+.ll-doc__meta-value--mono { font-family: "JetBrains Mono", monospace; }
+
+.ll-doc__items-section { padding: 20px 40px; }
+.ll-doc__items-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 10px; }
+.ll-doc__items-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.ll-doc__items-table thead { background: #1A1F2E; color: #FBFAF6; }
+.ll-doc__items-table th { padding: 8px 10px; text-align: left; font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+.ll-doc__items-table th.num { text-align: right; }
+.ll-doc__items-table td { padding: 8px 10px; border-bottom: 1px solid #E0DBD0; vertical-align: top; }
+.ll-doc__items-table td.num { text-align: right; font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum"; }
+.ll-doc__items-table td.mono { font-family: "JetBrains Mono", monospace; font-size: 10px; }
+.ll-doc__items-table tbody tr:nth-child(even) { background: #F8F6F0; }
+.ll-doc__items-table tfoot td { background: #E5DFCF; font-weight: 600; padding: 10px; border-top: 2px solid #1A1F2E; font-family: "JetBrains Mono", monospace; }
+.ll-doc__items-table tfoot td.num { font-size: 12px; }
+
+.ll-doc__validation { padding: 14px 40px; background: #FFF7E6; border-top: 1px solid #E5DFCF; border-bottom: 1px solid #E5DFCF; display: flex; gap: 14px; flex-wrap: wrap; }
+.ll-doc__check { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #1A1F2E; font-family: "JetBrains Mono", monospace; }
+.ll-doc__check--ok::before { content: "✓"; color: #10B981; font-weight: 700; }
+.ll-doc__check--warn::before { content: "!"; color: #D97706; font-weight: 700; }
+
+.ll-doc__signatures { padding: 28px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; border-top: 1px solid #D5CFC2; }
+.ll-doc__sig { border-top: 1px solid #1A1F2E; padding-top: 8px; }
+.ll-doc__sig-label { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #555; margin-bottom: 2px; }
+.ll-doc__sig-name { font-size: 11px; color: #1A1F2E; }
+
+.ll-doc__footer { padding: 14px 40px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
+
+@media print {
+  body * { visibility: hidden; }
+  .ll-preview-doc, .ll-preview-doc * { visibility: visible; }
+  .ll-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
+  .ll-preview-doc { box-shadow: none; margin: 0; max-width: none; }
+  .ll-preview-toolbar { display: none !important; }
+}
 
 .inbox-stats {
   display: grid;
@@ -2118,7 +2268,159 @@ body.layout-list .pagination { display: none; }
         <tbody id="inventory-tbody"></tbody>
       </table>
     </section>
+
+    <!-- LOADING LISTS VIEW -->
+    <section class="loading-lists-view" id="loading-lists-view">
+      <div class="ll-header">
+        <div>
+          <div class="ll-crumb">Dispatch · MSC Cruises · Format §4.4</div>
+          <div class="ll-title">
+            <h1>Loading Lists</h1>
+            <span class="ll-title-count" id="ll-title-count">— lists</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <input id="ll-search" placeholder="Search list#, truck, vessel, port…" style="padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; width: 260px;">
+          <button class="btn btn--accent" id="ll-new-btn">+ Build Loading List</button>
+        </div>
+      </div>
+
+      <div class="ll-stats">
+        <div class="ll-stat"><div class="ll-stat__label">Total lists</div><div class="ll-stat__value" id="ll-stat-total">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Drafts</div><div class="ll-stat__value" id="ll-stat-drafts">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Dispatched</div><div class="ll-stat__value" id="ll-stat-dispatched">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Items en route</div><div class="ll-stat__value" id="ll-stat-items">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Total weight (lb)</div><div class="ll-stat__value" id="ll-stat-weight">—</div></div>
+      </div>
+
+      <table class="ll-table">
+        <thead>
+          <tr>
+            <th>List #</th>
+            <th>Vessel</th>
+            <th>Truck</th>
+            <th>Driver</th>
+            <th>Port</th>
+            <th>Departure</th>
+            <th>Status</th>
+            <th style="text-align:right">Items</th>
+            <th style="text-align:right">Pallets/Boxes</th>
+            <th style="text-align:right">Weight (lb)</th>
+          </tr>
+        </thead>
+        <tbody id="ll-tbody"></tbody>
+      </table>
+    </section>
   </main>
+
+  <!-- LOADING LIST BUILDER MODAL -->
+  <div class="ll-builder-overlay" id="ll-builder-overlay"></div>
+  <div class="ll-builder" id="ll-builder">
+    <div class="ll-builder__header">
+      <div class="ll-builder__title">Build Loading List · MSC format</div>
+      <button class="ll-builder__close" id="ll-builder-close">Close ✕</button>
+    </div>
+    <div class="ll-builder__body">
+      <div class="ll-builder__left">
+        <div class="ll-builder__section-title">Step 1 · Pick inventory items</div>
+        <input class="ll-pick-search" id="ll-pick-search" placeholder="Filter inventory by WR, part, description, department…">
+        <div class="ll-pick-head">
+          <span></span><span>WR</span><span>Part</span><span>Description</span><span>Dept</span><span style="text-align:right">Pcs</span><span style="text-align:right">Qty</span><span>Location</span>
+        </div>
+        <div class="ll-pick-list" id="ll-pick-list"></div>
+      </div>
+      <div class="ll-builder__right">
+        <div class="ll-builder__section-title">Step 2 · Truck + vessel info</div>
+        <form class="ll-meta-form" id="ll-meta-form" onsubmit="return false;">
+          <div class="ll-meta-field">
+            <label>Target Vessel<span class="required">*</span></label>
+            <select name="vessel" required>
+              <option value="">— select vessel —</option>
+              <option>MSC Seashore</option>
+              <option>MSC Meraviglia</option>
+              <option>MSC Seascape</option>
+              <option>MSC Seaside</option>
+              <option>MSC World America</option>
+              <option>MSC Ocean Cay</option>
+              <option>MSC Poesia</option>
+              <option>MSC Virtuosa</option>
+              <option>MSC Divina</option>
+            </select>
+          </div>
+          <div class="ll-meta-grid">
+            <div class="ll-meta-field">
+              <label>Truck # (GWX)<span class="required">*</span></label>
+              <input name="truck" required placeholder="GWX-5012">
+            </div>
+            <div class="ll-meta-field">
+              <label>Seal #<span class="required">*</span></label>
+              <input name="seal" required placeholder="FT-228841">
+            </div>
+          </div>
+          <div class="ll-meta-field">
+            <label>Driver<span class="required">*</span></label>
+            <input name="driver" required placeholder="Carlos Vega">
+          </div>
+          <div class="ll-meta-grid">
+            <div class="ll-meta-field">
+              <label>Port<span class="required">*</span></label>
+              <select name="port" required>
+                <option value="">— select port —</option>
+                <option>Miami (MIA)</option>
+                <option>Port Canaveral (PCV)</option>
+                <option>Ocean Cay (Bahamas)</option>
+                <option>Philipsburg (St Maarten)</option>
+                <option>Cozumel (Mexico)</option>
+                <option>Nassau (Bahamas)</option>
+              </select>
+            </div>
+            <div class="ll-meta-field">
+              <label>Departure date<span class="required">*</span></label>
+              <input name="departure" type="date" required>
+            </div>
+          </div>
+          <div class="ll-meta-field">
+            <label>Trip / Cruise ID</label>
+            <input name="cruise" placeholder="SE20260615MIAOC">
+          </div>
+          <div class="ll-meta-field">
+            <label>Created by</label>
+            <input name="createdBy" value="Andrea Palmisano" placeholder="Operator name">
+          </div>
+        </form>
+
+        <div class="ll-selected-summary">
+          <div class="ll-selected-summary__title">Selected so far</div>
+          <div class="ll-selected-summary__row"><span>Items</span><strong id="ll-sum-items">0</strong></div>
+          <div class="ll-selected-summary__row"><span>Pallets</span><strong id="ll-sum-pallets">0</strong></div>
+          <div class="ll-selected-summary__row"><span>Boxes</span><strong id="ll-sum-boxes">0</strong></div>
+          <div class="ll-selected-summary__row"><span>Total qty</span><strong id="ll-sum-qty">0</strong></div>
+          <div class="ll-selected-summary__row"><span>Est. weight</span><strong id="ll-sum-weight">0 lb</strong></div>
+          <div class="ll-selected-summary__warn" id="ll-sum-warn" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ll-builder__footer">
+      <div class="ll-builder__footer-hint">Per ops manual §4.4: send Loading List + Cargo Release for sign-off at the ship. Pallets ≤ 2,000 lb each.</div>
+      <div class="ll-builder__footer-actions">
+        <button class="btn btn--ghost" id="ll-builder-cancel">Cancel</button>
+        <button class="btn btn--accent" id="ll-builder-generate">Generate Loading List →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING LIST PREVIEW DOCUMENT (MSC format) -->
+  <div class="ll-preview-overlay" id="ll-preview-overlay">
+    <div class="ll-preview-toolbar">
+      <div class="ll-preview-toolbar__left" id="ll-preview-toolbar-label">Loading List preview · MSC format</div>
+      <div class="ll-preview-toolbar__actions">
+        <button class="ll-preview-toolbar__btn" id="ll-preview-close">Close ✕</button>
+        <button class="ll-preview-toolbar__btn" id="ll-preview-print">Print / PDF</button>
+        <button class="ll-preview-toolbar__btn ll-preview-toolbar__btn--primary" id="ll-preview-send">Send to MSC</button>
+      </div>
+    </div>
+    <div class="ll-preview-doc" id="ll-preview-doc"></div>
+  </div>
 
   <!-- INVENTORY ENTRY MODAL -->
   <div class="inv-modal-overlay" id="inv-modal-overlay"></div>
@@ -2368,7 +2670,8 @@ body.layout-list .pagination { display: none; }
 const SIDEBAR_DATA = {
   views: [
     { label: "All Shipments",        count: "5,102", active: true, view: "dashboard" },
-    { label: "Inventory · Warehouse", count: "29", view: "inventory", highlight: true },
+    { label: "Inventory · Warehouse", count: "29", view: "inventory" },
+    { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists", highlight: true },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
@@ -5776,9 +6079,10 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists");
   document.body.classList.add("view-" + view);
   if (view === "inventory") renderInventory();
+  if (view === "loading_lists") renderLoadingLists();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -5922,6 +6226,468 @@ function setupInventory() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   LOADING LISTS  ·  Module 3 per ops manual §4.4
+   Per-truck MSC dispatch manifests built from inventory items.
+   ═══════════════════════════════════════════════════════════════════ */
+
+// Item rows reference inventory by index — preserves single source of truth
+const LOADING_LISTS = [
+  {
+    id: "LL-2026-0048",
+    vessel: "MSC Seashore",
+    truck: "GWX-4940",
+    seal: "FT-228810",
+    driver: "Carlos Vega",
+    port: "Miami (MIA)",
+    departure: "2026-05-30",
+    cruise: "SS20260530MIAOC",
+    createdBy: "Andrea Palmisano",
+    createdAt: "2026-05-29T15:42",
+    status: "loaded",
+    itemIdxs: [5, 6, 7, 11, 18, 19, 20],
+    poNumber: "4597196559-OCY00018",
+    invoiceNumber: "FT-INV-46221",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    customsDocs: "9Q4-0006095-4 · CBP cleared",
+    notes: "Standard run, MSC Goldstein sign-off at gangway",
+  },
+  {
+    id: "LL-2026-0049",
+    vessel: "MSC Seascape",
+    truck: "GWX-5012",
+    seal: "FT-228841",
+    driver: "Mario Sanchez",
+    port: "Ocean Cay (Bahamas)",
+    departure: "2026-06-02",
+    cruise: "SE20260602MIAOC",
+    createdBy: "Andrea Palmisano",
+    createdAt: "2026-06-01T10:14",
+    status: "dispatched",
+    itemIdxs: [0, 1, 2, 3, 4, 12, 13],
+    poNumber: "4597196559-OCY00021",
+    invoiceNumber: "FT-INV-46247",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    customsDocs: "9Q4-0006155-2 · Bond active",
+    notes: "MSC Foundation merch run · sign-off Vega",
+  },
+  {
+    id: "LL-2026-0050",
+    vessel: "MSC Meraviglia",
+    truck: "GWX-5101",
+    seal: "",
+    driver: "",
+    port: "Port Canaveral (PCV)",
+    departure: "2026-06-08",
+    cruise: "MV20260608MIAPCV",
+    createdBy: "Andrea Palmisano",
+    createdAt: "2026-06-04T09:22",
+    status: "draft",
+    itemIdxs: [8, 9, 10, 14, 15, 16],
+    poNumber: "4597196559-OCY00024",
+    invoiceNumber: "",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    customsDocs: "9Q4-0006006-1 · entry filed",
+    notes: "Draft — pending seal + driver assignment before Friday cutoff",
+  },
+];
+
+const STATUS_LABELS_LL = {
+  draft: "Draft",
+  dispatched: "Dispatched",
+  loaded: "Loaded",
+  received: "Received",
+};
+
+// Estimate item weight if not specified — heuristic for demo, real system pulls from Magaya
+function estimateItemWeight(item) {
+  if (item.weightLb) return item.weightLb;
+  // Per-piece rough avg by package type (Phase 2 will use real Magaya weight)
+  if (item.packageUnit === "Pallet") return (item.pieces || 1) * 280;
+  return (item.pieces || 1) * 14; // Boxes
+}
+
+function aggregateLL(ll) {
+  const items = ll.itemIdxs.map(i => INVENTORY[i]).filter(Boolean);
+  const pallets = items.filter(i => i.packageUnit === "Pallet").reduce((s, i) => s + (i.pieces || 0), 0);
+  const boxes   = items.filter(i => i.packageUnit === "Box").reduce((s, i) => s + (i.pieces || 0), 0);
+  const totalQty = items.reduce((s, i) => s + (i.quantity || 0), 0);
+  const weight = items.reduce((s, i) => s + estimateItemWeight(i), 0);
+  return { items, pallets, boxes, totalQty, weight };
+}
+
+function renderLoadingLists() {
+  const tbody = document.getElementById("ll-tbody");
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  const q = ((document.getElementById("ll-search") || {}).value || "").trim().toLowerCase();
+  const filtered = q ? LOADING_LISTS.filter(ll => {
+    return [ll.id, ll.truck, ll.vessel, ll.port, ll.driver, ll.cruise].join(" ").toLowerCase().includes(q);
+  }) : LOADING_LISTS;
+
+  filtered.forEach((ll, idx) => {
+    const agg = aggregateLL(ll);
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, [el("span", { class: "ll-id", text: ll.id })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "ll-vessel", text: ll.vessel })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "ll-truck", text: ll.truck })]));
+    tr.appendChild(el("td", { text: ll.driver || "—" }));
+    tr.appendChild(el("td", {}, [el("span", { class: "ll-port-tag", text: ll.port })]));
+    tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:11px;color:var(--text-bright);", text: ll.departure })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "ll-status ll-status--" + ll.status, text: STATUS_LABELS_LL[ll.status] })]));
+    const tdItems = el("td", { class: "td-num" });
+    tdItems.appendChild(el("span", { class: "inv-num", text: String(agg.items.length) }));
+    tr.appendChild(tdItems);
+    const tdPB = el("td", { class: "td-num" });
+    tdPB.appendChild(el("span", { class: "inv-num", text: `${agg.pallets}P · ${agg.boxes}B` }));
+    tr.appendChild(tdPB);
+    const tdW = el("td", { class: "td-num" });
+    tdW.appendChild(el("span", { class: "inv-num", text: Math.round(agg.weight).toLocaleString() }));
+    tr.appendChild(tdW);
+    tr.addEventListener("click", () => openLLPreview(LOADING_LISTS.indexOf(ll)));
+    tbody.appendChild(tr);
+  });
+
+  const totalAgg = LOADING_LISTS.reduce((acc, ll) => {
+    const a = aggregateLL(ll);
+    return { items: acc.items + a.items.length, weight: acc.weight + a.weight };
+  }, { items: 0, weight: 0 });
+
+  document.getElementById("ll-title-count").textContent = q ? `${filtered.length} matching` : `${LOADING_LISTS.length} lists · ${totalAgg.items} items`;
+  document.getElementById("ll-stat-total").textContent = LOADING_LISTS.length;
+  document.getElementById("ll-stat-drafts").textContent = LOADING_LISTS.filter(l => l.status === "draft").length;
+  document.getElementById("ll-stat-dispatched").textContent = LOADING_LISTS.filter(l => l.status === "dispatched" || l.status === "loaded").length;
+  document.getElementById("ll-stat-items").textContent = totalAgg.items;
+  document.getElementById("ll-stat-weight").textContent = Math.round(totalAgg.weight).toLocaleString();
+}
+
+/* ─── Builder ─── */
+
+let LL_BUILDER_SELECTED = new Set();
+
+function openLLBuilder() {
+  LL_BUILDER_SELECTED = new Set();
+  document.getElementById("ll-builder-overlay").classList.add("open");
+  document.getElementById("ll-builder").classList.add("open");
+  const form = document.getElementById("ll-meta-form");
+  if (form) form.reset();
+  const dep = form.querySelector('[name="departure"]');
+  if (dep && !dep.value) {
+    const d = new Date(); d.setDate(d.getDate() + 3);
+    dep.value = d.toISOString().slice(0, 10);
+  }
+  form.querySelector('[name="createdBy"]').value = "Andrea Palmisano";
+  renderPickList();
+  updateBuilderSummary();
+}
+
+function closeLLBuilder() {
+  document.getElementById("ll-builder-overlay").classList.remove("open");
+  document.getElementById("ll-builder").classList.remove("open");
+}
+
+function renderPickList() {
+  const list = document.getElementById("ll-pick-list");
+  if (!list) return;
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  const q = ((document.getElementById("ll-pick-search") || {}).value || "").trim().toLowerCase();
+  const filtered = INVENTORY.map((item, idx) => ({ item, idx })).filter(({ item }) => {
+    if (!q) return true;
+    return [item.warehouseReceipt, item.partNumber, item.description, item.department, item.locationCode].join(" ").toLowerCase().includes(q);
+  });
+
+  filtered.forEach(({ item, idx }) => {
+    const row = el("div", { class: "ll-pick-row" + (LL_BUILDER_SELECTED.has(idx) ? " selected" : "") });
+    const cb = el("input", { type: "checkbox" });
+    cb.checked = LL_BUILDER_SELECTED.has(idx);
+    cb.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (cb.checked) LL_BUILDER_SELECTED.add(idx); else LL_BUILDER_SELECTED.delete(idx);
+      row.classList.toggle("selected", cb.checked);
+      updateBuilderSummary();
+    });
+    row.addEventListener("click", () => {
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event("click"));
+    });
+    row.appendChild(cb);
+    row.appendChild(el("span", { class: "ll-pick-row__wr", text: item.warehouseReceipt }));
+    row.appendChild(el("span", { class: "ll-pick-row__part", text: item.partNumber }));
+    row.appendChild(el("span", { class: "ll-pick-row__desc", title: item.description, text: item.description }));
+    row.appendChild(el("span", { class: "ll-pick-row__dept", text: item.department || "—" }));
+    row.appendChild(el("span", { class: "ll-pick-row__pkg", text: item.packageUnit }));
+    row.appendChild(el("span", { class: "ll-pick-row__num", text: String(item.pieces) }));
+    row.appendChild(el("span", { class: "ll-pick-row__num", text: (item.quantity || 0).toLocaleString() }));
+    row.appendChild(el("span", { class: "ll-pick-row__loc", text: item.locationCode }));
+    list.appendChild(row);
+  });
+}
+
+function updateBuilderSummary() {
+  const selected = [...LL_BUILDER_SELECTED].map(i => INVENTORY[i]).filter(Boolean);
+  const pallets = selected.filter(i => i.packageUnit === "Pallet").reduce((s, i) => s + (i.pieces || 0), 0);
+  const boxes   = selected.filter(i => i.packageUnit === "Box").reduce((s, i) => s + (i.pieces || 0), 0);
+  const totalQty = selected.reduce((s, i) => s + (i.quantity || 0), 0);
+  const weight = selected.reduce((s, i) => s + estimateItemWeight(i), 0);
+  document.getElementById("ll-sum-items").textContent = selected.length;
+  document.getElementById("ll-sum-pallets").textContent = pallets;
+  document.getElementById("ll-sum-boxes").textContent = boxes;
+  document.getElementById("ll-sum-qty").textContent = totalQty.toLocaleString();
+  document.getElementById("ll-sum-weight").textContent = Math.round(weight).toLocaleString() + " lb";
+
+  // Validation
+  const warn = document.getElementById("ll-sum-warn");
+  const warnings = [];
+  if (selected.length === 0) warnings.push("Pick at least one inventory item.");
+  // Check pallet weight rule
+  selected.forEach(i => {
+    if (i.packageUnit === "Pallet" && estimateItemWeight(i) / (i.pieces || 1) > 2000) {
+      warnings.push(`${i.warehouseReceipt}/${i.partNumber}: pallet > 2,000 lb (ops manual rule).`);
+    }
+  });
+  if (warnings.length) {
+    warn.style.display = "block";
+    warn.textContent = warnings.join(" · ");
+  } else {
+    warn.style.display = "none";
+  }
+}
+
+function generateLoadingList() {
+  const form = document.getElementById("ll-meta-form");
+  const fd = new FormData(form);
+  const meta = {};
+  fd.forEach((v, k) => { meta[k] = String(v).trim(); });
+
+  // Validate
+  const missing = ["vessel", "truck", "seal", "driver", "port", "departure"].filter(k => !meta[k]);
+  if (missing.length) {
+    alert("Missing required fields: " + missing.join(", "));
+    return;
+  }
+  if (LL_BUILDER_SELECTED.size === 0) {
+    alert("Pick at least one inventory item.");
+    return;
+  }
+
+  // Build next ID
+  const nextNum = String(Math.max(...LOADING_LISTS.map(l => parseInt(l.id.split("-").pop(), 10) || 0)) + 1).padStart(4, "0");
+  const newLL = {
+    id: "LL-2026-" + nextNum,
+    vessel: meta.vessel,
+    truck: meta.truck,
+    seal: meta.seal,
+    driver: meta.driver,
+    port: meta.port,
+    departure: meta.departure,
+    cruise: meta.cruise || "",
+    createdBy: meta.createdBy || "Andrea Palmisano",
+    createdAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+    status: "draft",
+    itemIdxs: [...LL_BUILDER_SELECTED],
+    poNumber: "",
+    invoiceNumber: "",
+    vendor: "FAST TRACK WORLDWIDE LOGISTIC",
+    customsDocs: "Pending entry assignment",
+    notes: "Generated via prototype builder",
+  };
+  LOADING_LISTS.unshift(newLL);
+  closeLLBuilder();
+  renderLoadingLists();
+  // Open preview right away — user sees the document immediately
+  openLLPreview(0);
+}
+
+/* ─── Preview (MSC format document) ─── */
+
+function openLLPreview(llIndex) {
+  const ll = LOADING_LISTS[llIndex];
+  if (!ll) return;
+  const overlay = document.getElementById("ll-preview-overlay");
+  const doc = document.getElementById("ll-preview-doc");
+  while (doc.firstChild) doc.removeChild(doc.firstChild);
+  doc.appendChild(buildLLPreviewDoc(ll));
+  document.getElementById("ll-preview-toolbar-label").textContent =
+    ll.id + " · " + ll.vessel + " · " + STATUS_LABELS_LL[ll.status].toUpperCase();
+  overlay.classList.add("open");
+  // Stash current for send-to-msc action
+  overlay.dataset.idx = String(llIndex);
+}
+
+function closeLLPreview() {
+  document.getElementById("ll-preview-overlay").classList.remove("open");
+}
+
+function buildLLPreviewDoc(ll) {
+  const agg = aggregateLL(ll);
+  const root = el("div");
+
+  // Header
+  const header = el("div", { class: "ll-doc__header" });
+  const brand = el("div", { class: "ll-doc__brand" }, [
+    el("div", { class: "ll-doc__logo", text: "FAST TRACK WORLDWIDE LOGISTIC" }),
+    el("div", { class: "ll-doc__brand-sub", text: "1674 NW 215th Street · Miami Gardens, FL 33056" }),
+    el("div", { class: "ll-doc__brand-sub", text: "FIRMS LCS5 · Bonded Warehouse · CBP-Certified" }),
+    el("div", { class: "ll-doc__brand-sub", text: "+1 (941) 216-5279 · ops@fasttrackgroup.us" }),
+  ]);
+  const titleBlock = el("div", { class: "ll-doc__title-block" }, [
+    el("div", { class: "ll-doc__title", text: "LOADING LIST" }),
+    el("div", { class: "ll-doc__id", text: ll.id }),
+    el("div", { class: "ll-doc__date", text: "Generated " + ll.createdAt }),
+    el("div", { class: "ll-doc__date", text: "Status: " + STATUS_LABELS_LL[ll.status].toUpperCase() }),
+  ]);
+  header.appendChild(brand);
+  header.appendChild(titleBlock);
+  root.appendChild(header);
+
+  // Meta
+  const meta = el("div", { class: "ll-doc__meta" });
+  const metaField = (label, value, mono) => {
+    const f = el("div", { class: "ll-doc__meta-field" });
+    f.appendChild(el("div", { class: "ll-doc__meta-label", text: label }));
+    f.appendChild(el("div", { class: "ll-doc__meta-value" + (mono ? " ll-doc__meta-value--mono" : ""), text: value || "—" }));
+    return f;
+  };
+  meta.appendChild(metaField("VESSEL", ll.vessel));
+  meta.appendChild(metaField("CRUISE / TRIP", ll.cruise, true));
+  meta.appendChild(metaField("PORT OF LOAD", ll.port));
+  meta.appendChild(metaField("DEPARTURE", ll.departure, true));
+  meta.appendChild(metaField("TRUCK #", ll.truck, true));
+  meta.appendChild(metaField("SEAL #", ll.seal, true));
+  meta.appendChild(metaField("DRIVER", ll.driver));
+  meta.appendChild(metaField("PREPARED BY", ll.createdBy));
+  root.appendChild(meta);
+
+  // Items
+  const itemsSec = el("div", { class: "ll-doc__items-section" });
+  itemsSec.appendChild(el("div", { class: "ll-doc__items-title", text: "MANIFEST — items aboard truck" }));
+  const tbl = el("table", { class: "ll-doc__items-table" });
+  const thead = el("thead");
+  const trh = el("tr");
+  ["#", "Warehouse #", "PON", "Department", "Invoice #", "Vendor", "Customs / Description", "Vessel", "Pallets", "Boxes", "Weight (lb)"].forEach((h, i) => {
+    const th = el("th", { text: h });
+    if (i >= 8) th.className = "num";
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  tbl.appendChild(thead);
+
+  const tbody = el("tbody");
+  agg.items.forEach((it, i) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "num mono", text: String(i + 1) }));
+    tr.appendChild(el("td", { class: "mono", text: it.warehouseReceipt }));
+    tr.appendChild(el("td", { class: "mono", text: ll.poNumber || "—" }));
+    tr.appendChild(el("td", { text: it.department || "—" }));
+    tr.appendChild(el("td", { class: "mono", text: ll.invoiceNumber || "—" }));
+    tr.appendChild(el("td", { text: ll.vendor }));
+    tr.appendChild(el("td", {}, [
+      el("div", { style: "font-size:9px;font-family:'JetBrains Mono',monospace;color:#666;", text: it.entryNumber || ll.customsDocs }),
+      el("div", { text: it.description }),
+    ]));
+    tr.appendChild(el("td", { text: ll.vessel }));
+    tr.appendChild(el("td", { class: "num", text: it.packageUnit === "Pallet" ? String(it.pieces) : "0" }));
+    tr.appendChild(el("td", { class: "num", text: it.packageUnit === "Box" ? String(it.pieces) : "0" }));
+    tr.appendChild(el("td", { class: "num", text: Math.round(estimateItemWeight(it)).toLocaleString() }));
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+
+  const tfoot = el("tfoot");
+  const trf = el("tr");
+  const tdLabel = el("td", { text: "TOTALS" });
+  tdLabel.setAttribute("colspan", "8");
+  trf.appendChild(tdLabel);
+  trf.appendChild(el("td", { class: "num", text: String(agg.pallets) }));
+  trf.appendChild(el("td", { class: "num", text: String(agg.boxes) }));
+  trf.appendChild(el("td", { class: "num", text: Math.round(agg.weight).toLocaleString() }));
+  tfoot.appendChild(trf);
+  tbl.appendChild(tfoot);
+
+  itemsSec.appendChild(tbl);
+  root.appendChild(itemsSec);
+
+  // Validation badges
+  const val = el("div", { class: "ll-doc__validation" });
+  const checks = [
+    { ok: agg.items.length > 0, text: `${agg.items.length} items manifested` },
+    { ok: ll.seal && ll.driver, text: ll.seal && ll.driver ? "Seal + driver assigned" : "Seal/driver missing" },
+    { ok: !!ll.customsDocs, text: "Customs entry referenced" },
+    { ok: agg.items.every(i => !(i.packageUnit === "Pallet" && estimateItemWeight(i) / (i.pieces || 1) > 2000)), text: "All pallets ≤ 2,000 lb" },
+    { ok: !!ll.cruise, text: ll.cruise ? "Cruise ID linked" : "Cruise ID pending" },
+  ];
+  checks.forEach(c => {
+    val.appendChild(el("div", { class: "ll-doc__check " + (c.ok ? "ll-doc__check--ok" : "ll-doc__check--warn"), text: c.text }));
+  });
+  root.appendChild(val);
+
+  // Signatures
+  const sigs = el("div", { class: "ll-doc__signatures" });
+  const sig = (label, name) => {
+    const s = el("div", { class: "ll-doc__sig" });
+    s.appendChild(el("div", { class: "ll-doc__sig-label", text: label }));
+    s.appendChild(el("div", { class: "ll-doc__sig-name", text: name }));
+    return s;
+  };
+  sigs.appendChild(sig("FT DISPATCHER", ll.createdBy));
+  sigs.appendChild(sig("MSC GANGWAY RECEIVING", "_______________________  (signature on board)"));
+  root.appendChild(sigs);
+
+  // Footer
+  root.appendChild(el("div", { class: "ll-doc__footer", text:
+    "MSC PROCUREMENT & LOGISTIC S.p.A. — confidential dispatch document. " +
+    "All cargo subject to CBP customs clearance + MSC receiving validation at vessel gangway. " +
+    "Discrepancies must be reported within 24h per FT operations manual §6. " +
+    "FIRMS code LCS5 · 19 CFR 163.4 retention 5 years." }));
+
+  return root;
+}
+
+function setupLoadingLists() {
+  const newBtn = document.getElementById("ll-new-btn");
+  if (newBtn) newBtn.addEventListener("click", openLLBuilder);
+
+  const closeBtn = document.getElementById("ll-builder-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeLLBuilder);
+
+  const cancelBtn = document.getElementById("ll-builder-cancel");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeLLBuilder);
+
+  const overlay = document.getElementById("ll-builder-overlay");
+  if (overlay) overlay.addEventListener("click", closeLLBuilder);
+
+  const genBtn = document.getElementById("ll-builder-generate");
+  if (genBtn) genBtn.addEventListener("click", generateLoadingList);
+
+  const pickSearch = document.getElementById("ll-pick-search");
+  if (pickSearch) pickSearch.addEventListener("input", renderPickList);
+
+  const llSearch = document.getElementById("ll-search");
+  if (llSearch) llSearch.addEventListener("input", renderLoadingLists);
+
+  const previewClose = document.getElementById("ll-preview-close");
+  if (previewClose) previewClose.addEventListener("click", closeLLPreview);
+
+  const previewPrint = document.getElementById("ll-preview-print");
+  if (previewPrint) previewPrint.addEventListener("click", () => window.print());
+
+  const previewSend = document.getElementById("ll-preview-send");
+  if (previewSend) previewSend.addEventListener("click", () => {
+    const ovl = document.getElementById("ll-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (!isNaN(idx) && LOADING_LISTS[idx]) {
+      if (LOADING_LISTS[idx].status === "draft") {
+        LOADING_LISTS[idx].status = "dispatched";
+      }
+      renderLoadingLists();
+      alert("Loading List " + LOADING_LISTS[idx].id + " sent to MSC.\n\n(Phase 2: routes to MSC's CrunchTime + INFOSHIP automatically.)");
+      closeLLPreview();
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    SEARCH  ·  Live filter cards
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -5957,6 +6723,7 @@ setupLayoutToggle();
 setupImport();
 setupSearch();
 setupInventory();
+setupLoadingLists();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
@@ -5979,6 +6746,12 @@ setInterval(tickClock, 1000);
       if (btn) btn.click();
     } else if (h === "inbox") {
       switchView("inbox");
+    } else if (h === "loading" || h === "loading-lists" || h === "ll") {
+      switchView("loading_lists");
+    } else if (h.startsWith("ll-")) {
+      switchView("loading_lists");
+      const llIdx = parseInt(h.replace("ll-", ""), 10);
+      if (!isNaN(llIdx) && LOADING_LISTS[llIdx]) openLLPreview(llIdx);
     } else if (h.startsWith("email-")) {
       switchView("inbox");
       const idx = parseInt(h.replace("email-", ""), 10);
