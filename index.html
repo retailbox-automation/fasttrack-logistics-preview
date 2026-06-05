@@ -1229,6 +1229,104 @@ body.view-discrepancies .pagination { display: none; }
 
 .dr-doc__footer { padding: 14px 40px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
 
+/* ═══ CRUNCHTIME view ═══ */
+.crunchtime-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-crunchtime .crunchtime-view { display: block; }
+body.view-crunchtime .dashboard,
+body.view-crunchtime .inbox-view,
+body.view-crunchtime .inventory-view,
+body.view-crunchtime .loading-lists-view,
+body.view-crunchtime .discrepancies-view,
+body.view-crunchtime .pagination { display: none; }
+
+.ct-banner { background: linear-gradient(135deg, rgba(96,165,250,0.08) 0%, rgba(217,119,6,0.06) 100%); border: 1px solid rgba(96,165,250,0.2); border-left: 3px solid var(--info); border-radius: 6px; padding: 14px 18px; margin-bottom: 18px; display: flex; gap: 14px; align-items: center; }
+.ct-banner__icon { width: 32px; height: 32px; border-radius: 50%; background: var(--info); color: var(--bg-deep); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.ct-banner__text { flex: 1; font-size: 12px; color: var(--text); line-height: 1.5; }
+.ct-banner__text strong { color: var(--text-bright); }
+.ct-banner__pill { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 12px; background: rgba(217,119,6,0.12); color: var(--accent-bright); border: 1px solid var(--border-accent); white-space: nowrap; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.ct-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.ct-requests-panel { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.ct-panel-header { padding: 12px 16px; background: rgba(19,26,42,0.6); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.ct-panel-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+.ct-panel-counts { display: flex; gap: 10px; font-family: var(--font-mono); font-size: 10px; }
+.ct-panel-counts span { color: var(--text-dim); }
+.ct-panel-counts strong { color: var(--text-bright); font-weight: 500; }
+
+.ct-request-row { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 120ms; }
+.ct-request-row:hover { background: var(--bg-hover); }
+.ct-request-row.active { background: var(--bg-glow); border-left: 2px solid var(--accent); padding-left: 14px; }
+.ct-request-row:last-child { border-bottom: none; }
+.ct-req-line1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.ct-req-id { font-family: var(--font-mono); font-size: 11px; color: var(--info); font-weight: 500; }
+.ct-req-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.ct-req-subject { font-size: 12px; color: var(--text-bright); margin-bottom: 4px; line-height: 1.4; }
+.ct-req-line3 { display: flex; gap: 8px; align-items: center; font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+.ct-req-line3 .ct-tag { padding: 1px 7px; border-radius: 8px; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--border); }
+.ct-tag--dept { background: rgba(139,92,246,0.12); color: #C4B5FD; border-color: rgba(139,92,246,0.25); }
+.ct-tag--vessel { color: var(--text-bright); border-color: var(--border-bright); }
+.ct-tag--urgent { background: rgba(239,68,68,0.12); color: var(--crit); border-color: rgba(239,68,68,0.3); }
+.ct-tag--need { color: var(--accent-bright); border-color: var(--border-accent); }
+
+.ct-status-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+.ct-status--pending     { background: rgba(239,68,68,0.12); color: var(--crit);          border: 1px solid rgba(239,68,68,0.3); }
+.ct-status--in_progress { background: rgba(217,119,6,0.12); color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.ct-status--picked      { background: rgba(96,165,250,0.12); color: var(--info);          border: 1px solid rgba(96,165,250,0.25); }
+.ct-status--sent        { background: rgba(16,185,129,0.12); color: var(--ok);            border: 1px solid rgba(16,185,129,0.25); }
+
+.ct-detail-panel { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; max-height: calc(100vh - 280px); min-height: 480px; }
+.ct-detail-empty { padding: 80px 24px; text-align: center; color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; }
+.ct-detail-body { overflow-y: auto; flex: 1; }
+
+.ct-detail-header { padding: 14px 18px; border-bottom: 1px solid var(--border); background: rgba(19,26,42,0.4); }
+.ct-detail-id-line { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.ct-detail-id { font-family: var(--font-mono); font-size: 12px; color: var(--info); font-weight: 500; }
+.ct-detail-subject { font-family: var(--font-display); font-size: 16px; color: var(--text-bright); margin-bottom: 8px; line-height: 1.35; }
+.ct-detail-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 10px; font-size: 11px; }
+.ct-detail-meta-row { display: flex; gap: 6px; }
+.ct-detail-meta-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); min-width: 70px; }
+.ct-detail-meta-value { color: var(--text); }
+
+.ct-items-section { padding: 14px 18px; }
+.ct-items-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+.ct-item { display: grid; grid-template-columns: 110px 1fr 80px 80px 90px; gap: 10px; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 5px; margin-bottom: 6px; font-size: 11px; align-items: center; }
+.ct-item.fulfilled { border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.04); }
+.ct-item.unmatched { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.04); }
+.ct-item__part { font-family: var(--font-mono); color: var(--text-bright); font-size: 11px; font-weight: 500; }
+.ct-item__desc { color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+.ct-item__match { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-top: 2px; }
+.ct-item__match-ok { color: var(--ok); }
+.ct-item__match-warn { color: var(--crit); }
+.ct-item__num { font-family: var(--font-mono); text-align: right; color: var(--text-bright); font-feature-settings: "tnum"; }
+.ct-item__confirm-input { padding: 6px 8px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; text-align: right; width: 100%; }
+.ct-item__confirm-input:focus { outline: none; border-color: var(--accent); }
+.ct-item__match-link { font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); text-decoration: none; }
+
+.ct-detail-actions { padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+.ct-detail-actions__hint { flex: 1; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+
+.ct-audit-panel { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; margin-top: 16px; }
+.ct-audit-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.ct-audit-title__live { font-family: var(--font-mono); font-size: 9px; padding: 2px 8px; border-radius: 10px; background: rgba(96,165,250,0.12); color: var(--info); border: 1px solid rgba(96,165,250,0.25); letter-spacing: 0.1em; }
+.ct-audit-list { display: flex; flex-direction: column; gap: 6px; }
+.ct-audit-entry { padding: 8px 10px; background: var(--bg-deep); border-left: 2px solid var(--info); border-radius: 0 4px 4px 0; font-size: 11px; }
+.ct-audit-entry__time { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-bottom: 2px; }
+.ct-audit-entry__action { color: var(--text); }
+.ct-audit-entry__user { font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); }
+
+.ct-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+.ct-stat { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
+.ct-stat__label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.ct-stat__value { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--text-bright); letter-spacing: -0.02em; font-feature-settings: "tnum"; }
+
+/* footer chip live indicator upgrade */
+.footer__chip-dot--live { background: var(--info); box-shadow: 0 0 0 0 rgba(96,165,250,0.5); animation: pulseGlow 2s infinite; }
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 0 0   rgba(96,165,250,0.5); }
+  70%  { box-shadow: 0 0 0 6px rgba(96,165,250, 0); }
+  100% { box-shadow: 0 0 0 0   rgba(96,165,250, 0); }
+}
+
 .inbox-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2511,6 +2609,67 @@ body.layout-list .pagination { display: none; }
         <tbody id="dr-tbody"></tbody>
       </table>
     </section>
+
+    <!-- CRUNCHTIME VIEW -->
+    <section class="crunchtime-view" id="crunchtime-view">
+      <div class="ll-header">
+        <div>
+          <div class="ll-crumb">Integration · msc.net-chef.com · WH Fast Track · Mock layer</div>
+          <div class="ll-title">
+            <h1>CrunchTime · MSC Requests</h1>
+            <span class="ll-title-count" id="ct-title-count">— requests</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <span class="ct-banner__pill" id="ct-mode-pill">MOCK MODE</span>
+        </div>
+      </div>
+
+      <div class="ct-banner">
+        <div class="ct-banner__icon">CT</div>
+        <div class="ct-banner__text">
+          <strong>Mock connection active.</strong> UI built to mirror MSC's CrunchTime workflow (receive inventory requests → pick from FT warehouse → push response back via audit log).
+          When MSC IT provisions the <strong>FT_API</strong> user + tokens (Test + Production), this view swaps mock layer for live API in ~3-5 days — no UI rework needed.
+        </div>
+      </div>
+
+      <div class="ct-stats-grid">
+        <div class="ct-stat"><div class="ct-stat__label">Pending requests</div><div class="ct-stat__value" id="ct-stat-pending" style="color:var(--crit);">—</div></div>
+        <div class="ct-stat"><div class="ct-stat__label">In progress</div><div class="ct-stat__value" id="ct-stat-progress" style="color:var(--accent-bright);">—</div></div>
+        <div class="ct-stat"><div class="ct-stat__label">Picked (ready)</div><div class="ct-stat__value" id="ct-stat-picked" style="color:var(--info);">—</div></div>
+        <div class="ct-stat"><div class="ct-stat__label">Sent (this week)</div><div class="ct-stat__value" id="ct-stat-sent" style="color:var(--ok);">—</div></div>
+      </div>
+
+      <div class="ct-grid">
+        <div class="ct-requests-panel">
+          <div class="ct-panel-header">
+            <div class="ct-panel-title">Inbound from MSC Procurement</div>
+            <div class="ct-panel-counts">
+              <span>Polling:</span><strong>15 min</strong>
+              <span>·</span>
+              <span>Last sync:</span><strong>2 min ago</strong>
+            </div>
+          </div>
+          <div id="ct-requests-list"></div>
+        </div>
+
+        <div>
+          <div class="ct-detail-panel" id="ct-detail-panel">
+            <div class="ct-detail-empty" id="ct-detail-empty">Select an MSC request from the left to view items + build pick list</div>
+            <div class="ct-detail-body" id="ct-detail-body" style="display:none;"></div>
+            <div class="ct-detail-actions" id="ct-detail-actions" style="display:none;"></div>
+          </div>
+
+          <div class="ct-audit-panel">
+            <div class="ct-audit-title">
+              <span>Audit trail · pushed back to CrunchTime</span>
+              <span class="ct-audit-title__live">FT_API · ready</span>
+            </div>
+            <div class="ct-audit-list" id="ct-audit-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- LOADING LIST BUILDER MODAL -->
@@ -2860,9 +3019,9 @@ body.layout-list .pagination { display: none; }
         <span class="footer__chip-dot footer__chip-dot--pulse"></span>
         Magaya · 37864 · synced 2026-05-25
       </div>
-      <div class="footer__chip footer__chip--pending">
-        <span class="footer__chip-dot footer__chip-dot--pending"></span>
-        CrunchTime · scoping
+      <div class="footer__chip">
+        <span class="footer__chip-dot footer__chip-dot--live"></span>
+        CrunchTime · FT_API mock · 4 pending
       </div>
       <div class="footer__chip footer__chip--pending">
         <span class="footer__chip-dot footer__chip-dot--pending"></span>
@@ -2954,7 +3113,8 @@ const SIDEBAR_DATA = {
     { label: "All Shipments",        count: "5,102", active: true, view: "dashboard" },
     { label: "Inventory · Warehouse", count: "29", view: "inventory" },
     { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists" },
-    { label: "Discrepancy Reports",  count: "3", view: "discrepancies", highlight: true },
+    { label: "Discrepancy Reports",  count: "3", view: "discrepancies" },
+    { label: "CrunchTime · Requests", count: "4", view: "crunchtime", highlight: true },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
@@ -6362,11 +6522,12 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime");
   document.body.classList.add("view-" + view);
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
   if (view === "discrepancies") renderDiscrepancyReports();
+  if (view === "crunchtime") renderCrunchTime();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -7567,6 +7728,359 @@ function setupDiscrepancyReports() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   CRUNCHTIME · Mock integration layer
+   Mirrors MSC's CrunchTime workflow Andrea showed on 6/02:
+     MSC Procurement → inventory request → FT picks → response back
+   Real API auth: 4 headers (authenticationtoken/userid/password/sitename)
+   Blocked on: MSC IT admin creating FT_API user + Test/Prod tokens.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const CT_REQUESTS = [
+  {
+    id: "MSC-REQ-46821",
+    receivedAt: "2026-06-05 09:14",
+    type: "Vendor Order Receive",
+    requestedBy: "Maria Vega",
+    requestedByRole: "MSC Procurement Specialist · Genoa",
+    department: "MSC Foundation",
+    vessel: "MSC Seascape",
+    needBy: "2026-06-08",
+    status: "pending",
+    priority: "urgent",
+    notes: "Voyagers Club merchandise restock for guest event 6/10. Coordinate with Yansiley at receiving.",
+    items: [
+      { partNumber: "S1677385", description: "Mens t Shirt gildan white", qtyRequested: 50, qtyConfirmed: null },
+      { partNumber: "S1677370", description: "MSC FOUNDATION UNISEX MOVE X CORAL G40 WHITE S", qtyRequested: 36, qtyConfirmed: null },
+      { partNumber: "S1677390", description: "MSC FOUNDATION UNISEX MOVE X CORAL G40 WHITE 2XL", qtyRequested: 24, qtyConfirmed: null },
+    ],
+  },
+  {
+    id: "MSC-REQ-46822",
+    receivedAt: "2026-06-05 11:32",
+    type: "Location Transfer Receive",
+    requestedBy: "Ana Sanchez",
+    requestedByRole: "MSC Inventory Check · Miami",
+    department: "Shop",
+    vessel: "MSC Meraviglia",
+    needBy: "2026-06-09",
+    status: "pending",
+    priority: "normal",
+    notes: "Standard restock from FT warehouse to vessel onboard shop. Confirm Pallet count on pick.",
+    items: [
+      { partNumber: "S1627230", description: "Borsa cordino carta kraft avana 110gr", qtyRequested: 600, qtyConfirmed: null },
+      { partNumber: "S1190310", description: "MSC-Key Ring Lighthouse Charm", qtyRequested: 250, qtyConfirmed: null },
+      { partNumber: "S1180225", description: "Plastic Pen MSC Flotter as per remarks and layout", qtyRequested: 200, qtyConfirmed: null },
+    ],
+  },
+  {
+    id: "MSC-REQ-46815",
+    receivedAt: "2026-06-04 16:08",
+    type: "Vendor Order Receive",
+    requestedBy: "Carlos Goldstein",
+    requestedByRole: "MSC Gangway Receiving · Port Canaveral",
+    department: "Hotel",
+    vessel: "MSC Meraviglia",
+    needBy: "2026-06-08",
+    status: "in_progress",
+    priority: "normal",
+    notes: "Andrea started pick. WR-12371 confirmed in pool, awaiting qty validation.",
+    items: [
+      { partNumber: "P0023461", description: "Foldable Luggage Wheels Blue 282C Logo Cap 20kg 60LT", qtyRequested: 120, qtyConfirmed: null },
+    ],
+  },
+  {
+    id: "MSC-REQ-46810",
+    receivedAt: "2026-06-04 14:22",
+    type: "Vendor Order Receive",
+    requestedBy: "Maria Vega",
+    requestedByRole: "MSC Procurement Specialist · Genoa",
+    department: "Ocean Cay",
+    vessel: "MSC Ocean Cay",
+    needBy: "2026-06-08",
+    status: "pending",
+    priority: "normal",
+    notes: "Ocean Cay private destination restock — wooden hangers + greeting cards.",
+    items: [
+      { partNumber: "S1145320", description: "WOODEN HANGER MOD.CLIP OCEAN CAY CM.38", qtyRequested: 200, qtyConfirmed: null },
+      { partNumber: "S1145315", description: "WOODEN HANGER MOD . TOP OCEAN CAY", qtyRequested: 200, qtyConfirmed: null },
+      { partNumber: "S1190245", description: "MSC-Ocean Cay Key Ring Multi Charm Nautical Sealife", qtyRequested: 300, qtyConfirmed: null },
+    ],
+  },
+  {
+    id: "MSC-REQ-46801",
+    receivedAt: "2026-06-03 10:48",
+    type: "Vendor Order Receive",
+    requestedBy: "Ana Sanchez",
+    requestedByRole: "MSC Inventory Check · Miami",
+    department: "MSC Foundation",
+    vessel: "MSC Seashore",
+    needBy: "2026-06-05",
+    status: "picked",
+    priority: "urgent",
+    notes: "Picked. Awaiting Loading List generation + truck dispatch.",
+    items: [
+      { partNumber: "S1466860", description: "MSC Foundation Greeting Card Coral", qtyRequested: 100, qtyConfirmed: 100 },
+      { partNumber: "S1466855", description: "MSC Foundation Greeting Card Paper Boat", qtyRequested: 200, qtyConfirmed: 200 },
+    ],
+  },
+  {
+    id: "MSC-REQ-46795",
+    receivedAt: "2026-05-30 09:14",
+    type: "Vendor Order Receive",
+    requestedBy: "Maria Vega",
+    requestedByRole: "MSC Procurement Specialist · Genoa",
+    department: "Shop",
+    vessel: "MSC Seashore",
+    needBy: "2026-05-30",
+    status: "sent",
+    priority: "normal",
+    notes: "Dispatched on LL-2026-0048 · GWX-4940. MSC confirmed receipt at gangway.",
+    items: [
+      { partNumber: "S1627230", description: "Maniglia Carta ATT TA Avana Stampa 1 colore di fondo", qtyRequested: 2700, qtyConfirmed: 2700 },
+    ],
+  },
+];
+
+const CT_AUDIT_TRAIL = [
+  { time: "2026-06-05 12:08", action: "Polled CrunchTime — 2 new requests detected (MSC-REQ-46821, MSC-REQ-46822)", user: "FT_API · poll" },
+  { time: "2026-06-05 11:14", action: "Status push: MSC-REQ-46815 → in_progress (Andrea started pick)", user: "FT_API · push" },
+  { time: "2026-06-04 14:22", action: "Polled CrunchTime — 1 new request (MSC-REQ-46810)", user: "FT_API · poll" },
+  { time: "2026-06-03 16:42", action: "Pick confirmed: MSC-REQ-46801 → status picked, 2 items at 100% fulfillment", user: "FT_API · push" },
+  { time: "2026-06-03 10:48", action: "Polled CrunchTime — 1 new request (MSC-REQ-46801)", user: "FT_API · poll" },
+  { time: "2026-05-30 11:48", action: "Dispatch confirmed: MSC-REQ-46795 → status sent, linked to LL-2026-0048", user: "FT_API · push" },
+];
+
+let CT_SELECTED_ID = null;
+
+function findInventoryMatch(partNumber) {
+  // Aggregate INVENTORY by partNumber for available qty
+  const matches = INVENTORY.filter(i => i.partNumber === partNumber);
+  if (matches.length === 0) return null;
+  const totalQty = matches.reduce((s, i) => s + (i.quantity || 0), 0);
+  const totalPieces = matches.reduce((s, i) => s + (i.pieces || 0), 0);
+  const wrs = [...new Set(matches.map(i => i.warehouseReceipt))];
+  const locs = [...new Set(matches.map(i => i.locationCode))];
+  return { totalQty, totalPieces, wrs, locs, sampleItem: matches[0] };
+}
+
+function renderCrunchTime() {
+  renderCTRequestsList();
+  renderCTStats();
+  renderCTAudit();
+  if (CT_SELECTED_ID) {
+    const req = CT_REQUESTS.find(r => r.id === CT_SELECTED_ID);
+    if (req) renderCTDetail(req);
+  }
+}
+
+function renderCTRequestsList() {
+  const list = document.getElementById("ct-requests-list");
+  if (!list) return;
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  CT_REQUESTS.forEach(req => {
+    const row = el("div", { class: "ct-request-row" + (req.id === CT_SELECTED_ID ? " active" : "") });
+
+    const line1 = el("div", { class: "ct-req-line1" }, [
+      el("span", { class: "ct-req-id", text: req.id }),
+      el("span", { class: "ct-status-pill ct-status--" + req.status, text: req.status.replace("_", " ") }),
+    ]);
+    row.appendChild(line1);
+
+    row.appendChild(el("div", { class: "ct-req-subject", text: req.type + " — " + req.items.length + " item(s) for " + req.vessel }));
+
+    const line3 = el("div", { class: "ct-req-line3" });
+    line3.appendChild(el("span", { class: "ct-tag ct-tag--dept", text: req.department }));
+    line3.appendChild(el("span", { class: "ct-tag ct-tag--vessel", text: req.vessel.replace("MSC ", "") }));
+    line3.appendChild(el("span", { class: "ct-tag ct-tag--need", text: "Need: " + req.needBy }));
+    if (req.priority === "urgent") line3.appendChild(el("span", { class: "ct-tag ct-tag--urgent", text: "Urgent" }));
+    line3.appendChild(el("span", { style: "margin-left:auto; color:var(--text-dim);", text: req.receivedAt }));
+    row.appendChild(line3);
+
+    row.addEventListener("click", () => {
+      CT_SELECTED_ID = req.id;
+      renderCTRequestsList();
+      renderCTDetail(req);
+    });
+
+    list.appendChild(row);
+  });
+
+  document.getElementById("ct-title-count").textContent = CT_REQUESTS.length + " requests · " +
+    CT_REQUESTS.filter(r => r.status === "pending").length + " pending";
+}
+
+function renderCTStats() {
+  document.getElementById("ct-stat-pending").textContent = CT_REQUESTS.filter(r => r.status === "pending").length;
+  document.getElementById("ct-stat-progress").textContent = CT_REQUESTS.filter(r => r.status === "in_progress").length;
+  document.getElementById("ct-stat-picked").textContent = CT_REQUESTS.filter(r => r.status === "picked").length;
+  document.getElementById("ct-stat-sent").textContent = CT_REQUESTS.filter(r => r.status === "sent").length;
+}
+
+function renderCTDetail(req) {
+  const empty = document.getElementById("ct-detail-empty");
+  const body = document.getElementById("ct-detail-body");
+  const actions = document.getElementById("ct-detail-actions");
+  empty.style.display = "none";
+  body.style.display = "block";
+  actions.style.display = "flex";
+
+  while (body.firstChild) body.removeChild(body.firstChild);
+  while (actions.firstChild) actions.removeChild(actions.firstChild);
+
+  // Header
+  const hdr = el("div", { class: "ct-detail-header" });
+  const idLine = el("div", { class: "ct-detail-id-line" }, [
+    el("span", { class: "ct-detail-id", text: req.id }),
+    el("span", { class: "ct-status-pill ct-status--" + req.status, text: req.status.replace("_", " ") }),
+  ]);
+  hdr.appendChild(idLine);
+  hdr.appendChild(el("div", { class: "ct-detail-subject", text: req.type + " — " + req.items.length + " item(s)" }));
+
+  const metaGrid = el("div", { class: "ct-detail-meta-grid" });
+  const metaRow = (label, value) => el("div", { class: "ct-detail-meta-row" }, [
+    el("span", { class: "ct-detail-meta-label", text: label }),
+    el("span", { class: "ct-detail-meta-value", text: value }),
+  ]);
+  metaGrid.appendChild(metaRow("Vessel", req.vessel));
+  metaGrid.appendChild(metaRow("Department", req.department));
+  metaGrid.appendChild(metaRow("Need by", req.needBy));
+  metaGrid.appendChild(metaRow("Received", req.receivedAt));
+  metaGrid.appendChild(metaRow("Requested by", req.requestedBy));
+  metaGrid.appendChild(metaRow("Role", req.requestedByRole));
+  hdr.appendChild(metaGrid);
+  body.appendChild(hdr);
+
+  // Items
+  const itemsSec = el("div", { class: "ct-items-section" });
+  itemsSec.appendChild(el("div", { class: "ct-items-title", text: "Requested items · auto-matched against FT inventory" }));
+
+  let allMatched = true;
+  let allConfirmed = req.status === "picked" || req.status === "sent";
+
+  req.items.forEach((item, i) => {
+    const match = findInventoryMatch(item.partNumber);
+    const isMatched = !!match && match.totalQty >= item.qtyRequested;
+    if (!isMatched) allMatched = false;
+
+    const row = el("div", { class: "ct-item" + (item.qtyConfirmed ? " fulfilled" : !match ? " unmatched" : "") });
+
+    const partBlock = el("div");
+    partBlock.appendChild(el("div", { class: "ct-item__part", text: item.partNumber }));
+    if (match) {
+      partBlock.appendChild(el("div", { class: "ct-item__match" + (isMatched ? " ct-item__match-ok" : " ct-item__match-warn"),
+        text: "✓ " + match.wrs.join(", ") + " · " + match.locs.join(", ") }));
+    } else {
+      partBlock.appendChild(el("div", { class: "ct-item__match ct-item__match-warn", text: "✗ Not in FT inventory" }));
+    }
+    row.appendChild(partBlock);
+
+    row.appendChild(el("div", { class: "ct-item__desc", title: item.description, text: item.description }));
+    row.appendChild(el("div", { class: "ct-item__num", text: item.qtyRequested.toLocaleString() }));
+    row.appendChild(el("div", { class: "ct-item__num", text: match ? match.totalQty.toLocaleString() : "0" }));
+
+    // Confirm input — only editable if pending/in_progress
+    if (req.status === "pending" || req.status === "in_progress") {
+      const inp = el("input", { class: "ct-item__confirm-input", type: "number", min: "0", max: String(match ? match.totalQty : 0) });
+      inp.value = item.qtyConfirmed !== null ? String(item.qtyConfirmed) : (match ? String(Math.min(match.totalQty, item.qtyRequested)) : "0");
+      inp.addEventListener("input", () => {
+        item.qtyConfirmed = parseInt(inp.value, 10) || 0;
+        row.classList.toggle("fulfilled", item.qtyConfirmed > 0);
+      });
+      row.appendChild(inp);
+    } else {
+      row.appendChild(el("div", { class: "ct-item__num", style: "color:var(--ok);", text: String(item.qtyConfirmed || 0) }));
+    }
+
+    itemsSec.appendChild(row);
+  });
+
+  // Header row above items (sticky-ish header showing column meaning)
+  const headerHelp = el("div", { style: "display:grid; grid-template-columns: 110px 1fr 80px 80px 90px; gap:10px; padding: 4px 12px 8px; font-family:var(--font-mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color: var(--text-dim);" });
+  ["Part #", "Description", "MSC asks", "FT has", req.status === "pending" || req.status === "in_progress" ? "Confirm" : "Picked"].forEach(t => {
+    headerHelp.appendChild(el("span", { text: t, style: t.includes("asks") || t.includes("has") || t === "Confirm" || t === "Picked" ? "text-align:right;" : "" }));
+  });
+  itemsSec.insertBefore(headerHelp, itemsSec.children[1]);
+
+  body.appendChild(itemsSec);
+
+  // Notes
+  if (req.notes) {
+    const notesSec = el("div", { style: "padding: 12px 18px; background: rgba(217,119,6,0.04); border-top: 1px solid var(--border); font-size: 11px; color: var(--text); line-height: 1.5;" });
+    notesSec.appendChild(el("div", { style: "font-family:var(--font-mono); font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:4px;", text: "MSC Notes" }));
+    notesSec.appendChild(el("div", { text: req.notes }));
+    body.appendChild(notesSec);
+  }
+
+  // Actions
+  actions.appendChild(el("div", { class: "ct-detail-actions__hint",
+    text: req.status === "pending" ? "Reviewing — confirm qtys to start pick"
+        : req.status === "in_progress" ? "Andrea picking — confirm + push back to CrunchTime"
+        : req.status === "picked" ? "Picked. Generate Loading List for dispatch."
+        : "Dispatched · MSC confirmed receipt" }));
+
+  if (req.status === "pending") {
+    const startBtn = el("button", { class: "btn btn--accent" });
+    startBtn.textContent = "Start pick →";
+    startBtn.addEventListener("click", () => {
+      req.status = "in_progress";
+      addCTAudit("Status push: " + req.id + " → in_progress (pick initiated by Andrea)", "push");
+      renderCrunchTime();
+    });
+    actions.appendChild(startBtn);
+  } else if (req.status === "in_progress") {
+    const confirmBtn = el("button", { class: "btn btn--accent" });
+    confirmBtn.textContent = "Confirm pick · push to CrunchTime";
+    confirmBtn.addEventListener("click", () => {
+      const allConfirmed = req.items.every(i => i.qtyConfirmed !== null && i.qtyConfirmed > 0);
+      if (!allConfirmed) {
+        if (!confirm("Some items have 0 confirmed qty. Partial pick? Click OK to continue, Cancel to revise.")) return;
+      }
+      req.status = "picked";
+      addCTAudit("Pick confirmed: " + req.id + " → status picked, " + req.items.length + " items at " +
+        Math.round(req.items.reduce((s, i) => s + ((i.qtyConfirmed || 0) / i.qtyRequested), 0) / req.items.length * 100) + "% avg fulfillment", "push");
+      renderCrunchTime();
+    });
+    actions.appendChild(confirmBtn);
+  } else if (req.status === "picked") {
+    const llBtn = el("button", { class: "btn btn--accent" });
+    llBtn.textContent = "Generate Loading List →";
+    llBtn.addEventListener("click", () => {
+      req.status = "sent";
+      addCTAudit("Dispatch confirmed: " + req.id + " → status sent, Loading List generated", "push");
+      renderCrunchTime();
+      alert("Mock: would route to Loading List builder pre-populated with picked items.\n\nIn live integration: auto-creates LL + posts dispatch confirmation to CrunchTime.");
+    });
+    actions.appendChild(llBtn);
+  }
+}
+
+function addCTAudit(action, kind) {
+  const now = new Date().toISOString().slice(0, 16).replace("T", " ");
+  CT_AUDIT_TRAIL.unshift({ time: now, action, user: "FT_API · " + (kind || "push") });
+  if (CT_AUDIT_TRAIL.length > 12) CT_AUDIT_TRAIL.pop();
+  renderCTAudit();
+}
+
+function renderCTAudit() {
+  const list = document.getElementById("ct-audit-list");
+  if (!list) return;
+  while (list.firstChild) list.removeChild(list.firstChild);
+  CT_AUDIT_TRAIL.slice(0, 8).forEach(entry => {
+    const e = el("div", { class: "ct-audit-entry" });
+    e.appendChild(el("div", { class: "ct-audit-entry__time", text: entry.time + " · " }, [
+      el("span", { class: "ct-audit-entry__user", text: entry.user }),
+    ]));
+    e.appendChild(el("div", { class: "ct-audit-entry__action", text: entry.action }));
+    list.appendChild(e);
+  });
+}
+
+function setupCrunchTime() {
+  // No setup beyond what render handles — interactions are click-driven on rows
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    SEARCH  ·  Live filter cards
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -7604,6 +8118,7 @@ setupSearch();
 setupInventory();
 setupLoadingLists();
 setupDiscrepancyReports();
+setupCrunchTime();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
@@ -7638,6 +8153,8 @@ setInterval(tickClock, 1000);
       switchView("discrepancies");
       const drIdx = parseInt(h.replace("dr-", ""), 10);
       if (!isNaN(drIdx) && DISCREPANCY_REPORTS[drIdx]) openDRPreview(drIdx);
+    } else if (h === "crunchtime" || h === "ct") {
+      switchView("crunchtime");
     } else if (h.startsWith("email-")) {
       switchView("inbox");
       const idx = parseInt(h.replace("email-", ""), 10);
