@@ -923,6 +923,64 @@ body.view-inventory .pagination { display: none; }
 }
 .inv-form__actions { display: flex; gap: 10px; }
 
+/* ═══ INVENTORY CSV IMPORT modal ═══ */
+.inv-import-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; }
+.inv-import-overlay.open { display: block; }
+.inv-import-modal { position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: 980px; max-width: 96vw; height: 92vh; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+.inv-import-modal.open { display: flex; }
+.inv-import__header { display: flex; justify-content: space-between; align-items: flex-start; padding: 18px 24px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; gap: 16px; }
+.inv-import__title { font-family: var(--font-display); font-size: 17px; color: var(--text-bright); font-weight: 500; margin-bottom: 4px; }
+.inv-import__sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); line-height: 1.5; max-width: 700px; }
+.inv-import__close { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; flex-shrink: 0; }
+.inv-import__close:hover { color: var(--text-bright); border-color: var(--border-bright); }
+
+.inv-import__body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+.inv-import__drop { border: 2px dashed var(--border-bright); border-radius: 8px; padding: 36px; text-align: center; margin-bottom: 14px; transition: border-color 150ms, background 150ms; cursor: pointer; }
+.inv-import__drop:hover, .inv-import__drop.dragover { border-color: var(--accent); background: var(--bg-glow); }
+.inv-import__drop-icon { font-size: 28px; color: var(--accent-bright); font-family: var(--font-mono); margin-bottom: 6px; }
+.inv-import__drop-text { font-size: 13px; color: var(--text-bright); margin-bottom: 8px; }
+.inv-import__drop-sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin: 8px 0 12px; letter-spacing: 0.1em; }
+
+.inv-import__or { text-align: center; font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin: 14px 0; letter-spacing: 0.12em; text-transform: uppercase; }
+
+.inv-import__textarea { width: 100%; min-height: 220px; padding: 12px 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; line-height: 1.5; resize: vertical; }
+.inv-import__textarea:focus { outline: none; border-color: var(--accent); }
+
+.inv-import__sample { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 16px; }
+.inv-import__sample-link { background: transparent; border: none; color: var(--accent-bright); font-family: var(--font-mono); font-size: 11px; cursor: pointer; padding: 0; text-decoration: underline; }
+.inv-import__sample-link:hover { color: var(--accent); }
+.inv-import__sample-hint { font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); line-height: 1.5; text-align: right; flex: 1; }
+
+.inv-import__preview-stats { display: flex; gap: 14px; margin-bottom: 16px; padding: 12px 16px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; flex-wrap: wrap; }
+.inv-import__preview-stat { display: flex; flex-direction: column; gap: 2px; }
+.inv-import__preview-stat-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+.inv-import__preview-stat-value { font-family: var(--font-display); font-size: 18px; font-weight: 500; color: var(--text-bright); font-feature-settings: "tnum"; }
+.inv-import__preview-stat-value--ok { color: var(--ok); }
+.inv-import__preview-stat-value--warn { color: var(--warn); }
+.inv-import__preview-stat-value--err { color: var(--crit); }
+
+.inv-import__preview-wrap { background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.inv-import__preview-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.inv-import__preview-table thead { background: rgba(19,26,42,0.6); }
+.inv-import__preview-table th { padding: 8px 10px; text-align: left; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); border-bottom: 1px solid var(--border); white-space: nowrap; }
+.inv-import__preview-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text); font-family: var(--font-mono); }
+.inv-import__preview-table td.num { text-align: right; font-feature-settings: "tnum"; }
+.inv-import__preview-table tr.row-ok td { color: var(--text-bright); }
+.inv-import__preview-table tr.row-warn { background: rgba(217,119,6,0.04); }
+.inv-import__preview-table tr.row-err { background: rgba(239,68,68,0.06); }
+.inv-import__preview-table tr.row-err td { color: var(--text-dim); }
+
+.inv-import__status-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500; }
+.inv-import__status-pill--ok { background: rgba(16,185,129,0.12); color: var(--ok); border: 1px solid rgba(16,185,129,0.25); }
+.inv-import__status-pill--warn { background: rgba(217,119,6,0.12); color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.inv-import__status-pill--err { background: rgba(239,68,68,0.12); color: var(--crit); border: 1px solid rgba(239,68,68,0.3); }
+.inv-import__err-detail { font-family: var(--font-mono); font-size: 9px; color: var(--crit); margin-top: 3px; }
+
+.inv-import__footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; gap: 16px; }
+.inv-import__footer-hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); flex: 1; }
+.inv-import__footer-actions { display: flex; gap: 10px; }
+
 /* ═══ LOADING LISTS view ═══ */
 .loading-lists-view { overflow-y: auto; padding: 28px 32px; display: none; }
 body.view-loading_lists .loading-lists-view { display: block; }
@@ -2479,6 +2537,7 @@ body.layout-list .pagination { display: none; }
         </div>
         <div class="inventory-actions">
           <input id="inventory-search" placeholder="Search WR, part, description, location…" style="padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; width: 280px;">
+          <button class="btn btn--ghost" id="inventory-import-btn" style="border: 1px solid var(--border);">↑ Bulk import CSV</button>
           <button class="btn btn--accent" id="inventory-add-btn">+ New item</button>
         </div>
       </div>
@@ -2987,11 +3046,79 @@ body.layout-list .pagination { display: none; }
       <div class="inv-form__footer">
         <div class="inv-form__footer-hint">All fields with * are required. MSC reconciliation needs WR, Part, Desc, Package, Pieces, Quantity, Location.</div>
         <div class="inv-form__actions">
+          <button type="button" class="btn btn--ghost" id="inv-form-delete" style="color: var(--crit); border: 1px solid rgba(239,68,68,0.3); display: none;">Delete item</button>
           <button type="button" class="btn btn--ghost" id="inv-form-cancel">Cancel</button>
-          <button type="submit" class="btn btn--accent">Save item</button>
+          <button type="submit" class="btn btn--accent" id="inv-form-submit">Save item</button>
         </div>
       </div>
     </form>
+  </div>
+
+  <!-- INVENTORY CSV IMPORT MODAL -->
+  <div class="inv-import-overlay" id="inv-import-overlay"></div>
+  <div class="inv-import-modal" id="inv-import-modal">
+    <div class="inv-import__header">
+      <div>
+        <div class="inv-import__title">Bulk import inventory · from Magaya export</div>
+        <div class="inv-import__sub">Paste CSV or drop a file. Headers required (Warehouse Receipt, Part Number, etc.) Andrea's weekly Friday workflow — eliminates manual entry per item.</div>
+      </div>
+      <button class="inv-import__close" id="inv-import-close">Close ✕</button>
+    </div>
+
+    <div class="inv-import__body">
+      <div class="inv-import__step" id="inv-import-step-input">
+        <div class="inv-import__drop" id="inv-import-drop">
+          <div class="inv-import__drop-icon">↑</div>
+          <div class="inv-import__drop-text">Drop CSV file here</div>
+          <div class="inv-import__drop-sub">— or —</div>
+          <button class="btn btn--ghost" id="inv-import-pick-file" style="border: 1px solid var(--border);">Choose file</button>
+          <input type="file" id="inv-import-file-input" accept=".csv,text/csv" style="display:none;">
+        </div>
+
+        <div class="inv-import__or">— or paste CSV below —</div>
+
+        <textarea id="inv-import-textarea" class="inv-import__textarea" placeholder="Warehouse Receipt,Part Number,Description,Department,Package,Pieces,Quantity,Location,Entry Number&#10;WR-26500,S1234567,Sample MSC item,MSC Foundation,Box,5,60,R3-A-10,9Q4-0006200-1"></textarea>
+
+        <div class="inv-import__sample">
+          <button class="inv-import__sample-link" id="inv-import-load-sample">Load sample (3 rows, Magaya format) →</button>
+          <span class="inv-import__sample-hint">Expected columns: Warehouse Receipt · Part Number · Description · Department · Package · Pieces · Quantity · Location · Entry Number (optional). Header row required.</span>
+        </div>
+      </div>
+
+      <div class="inv-import__step" id="inv-import-step-preview" style="display:none;">
+        <div class="inv-import__preview-stats" id="inv-import-preview-stats"></div>
+        <div class="inv-import__preview-wrap">
+          <table class="inv-import__preview-table">
+            <thead>
+              <tr>
+                <th style="width:24px;">#</th>
+                <th>Status</th>
+                <th>WR</th>
+                <th>Part</th>
+                <th>Description</th>
+                <th>Dept</th>
+                <th>Pkg</th>
+                <th style="text-align:right">Pcs</th>
+                <th style="text-align:right">Qty</th>
+                <th>Location</th>
+                <th>Entry #</th>
+              </tr>
+            </thead>
+            <tbody id="inv-import-preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="inv-import__footer">
+      <div class="inv-import__footer-hint" id="inv-import-footer-hint">Paste CSV or drop a file to preview.</div>
+      <div class="inv-import__footer-actions">
+        <button class="btn btn--ghost" id="inv-import-cancel">Cancel</button>
+        <button class="btn btn--ghost" id="inv-import-back" style="border: 1px solid var(--border); display:none;">← Back to input</button>
+        <button class="btn btn--accent" id="inv-import-parse">Preview →</button>
+        <button class="btn btn--accent" id="inv-import-commit" style="display:none;">Import N items →</button>
+      </div>
+    </div>
   </div>
 
   <!-- MAILBOX CONFIG PANEL -->
@@ -6603,6 +6730,9 @@ function renderInventory() {
     tr.appendChild(el("td", {}, [
       item.entryNumber ? el("span", { class: "inv-entry", text: item.entryNumber }) : dash()
     ]));
+    // Click row → open edit modal (use INVENTORY index, not filtered)
+    const realIdx = INVENTORY.indexOf(item);
+    tr.addEventListener("click", () => openInventoryForm(realIdx));
     tbody.appendChild(tr);
   });
 
@@ -6617,22 +6747,54 @@ function renderInventory() {
   document.getElementById("inv-stat-locations").textContent = new Set(filtered.map(i => i.locationCode)).size;
 }
 
-function openInventoryForm() {
+let INVENTORY_EDIT_IDX = null; // null = add mode, integer = edit mode
+
+function openInventoryForm(editIdx) {
+  INVENTORY_EDIT_IDX = (typeof editIdx === "number") ? editIdx : null;
   document.getElementById("inv-modal-overlay").classList.add("open");
   document.getElementById("inv-modal").classList.add("open");
-  const today = new Date().toISOString().slice(0, 10);
-  const dateInput = document.querySelector('#inv-form [name="receivedDate"]');
-  if (dateInput && !dateInput.value) dateInput.value = today;
+  const form = document.getElementById("inv-form");
+  const title = document.getElementById("inv-modal-title");
+  const submitBtn = document.getElementById("inv-form-submit");
+  const deleteBtn = document.getElementById("inv-form-delete");
+
+  form.reset();
+
+  if (INVENTORY_EDIT_IDX !== null) {
+    // Edit mode — populate form
+    const item = INVENTORY[INVENTORY_EDIT_IDX];
+    if (item) {
+      Object.entries(item).forEach(([k, v]) => {
+        const field = form.querySelector('[name="' + k + '"]');
+        if (field && v != null) field.value = v;
+      });
+    }
+    if (title) title.textContent = "Edit · " + (item.warehouseReceipt || "") + " · " + (item.partNumber || "");
+    if (submitBtn) submitBtn.textContent = "Save changes";
+    if (deleteBtn) deleteBtn.style.display = "inline-flex";
+  } else {
+    // Add mode
+    if (title) title.textContent = "Add Inventory Item";
+    if (submitBtn) submitBtn.textContent = "Save item";
+    if (deleteBtn) deleteBtn.style.display = "none";
+    const today = new Date().toISOString().slice(0, 10);
+    const dateInput = form.querySelector('[name="receivedDate"]');
+    if (dateInput) dateInput.value = today;
+  }
 }
 
 function closeInventoryForm() {
   document.getElementById("inv-modal-overlay").classList.remove("open");
   document.getElementById("inv-modal").classList.remove("open");
+  INVENTORY_EDIT_IDX = null;
 }
 
 function setupInventory() {
   const addBtn = document.getElementById("inventory-add-btn");
-  if (addBtn) addBtn.addEventListener("click", openInventoryForm);
+  if (addBtn) addBtn.addEventListener("click", () => openInventoryForm());
+
+  const importBtn = document.getElementById("inventory-import-btn");
+  if (importBtn) importBtn.addEventListener("click", openInvImport);
 
   const closeBtn = document.getElementById("inv-modal-close");
   if (closeBtn) closeBtn.addEventListener("click", closeInventoryForm);
@@ -6642,6 +6804,17 @@ function setupInventory() {
 
   const overlay = document.getElementById("inv-modal-overlay");
   if (overlay) overlay.addEventListener("click", closeInventoryForm);
+
+  const deleteBtn = document.getElementById("inv-form-delete");
+  if (deleteBtn) deleteBtn.addEventListener("click", () => {
+    if (INVENTORY_EDIT_IDX === null) return;
+    const item = INVENTORY[INVENTORY_EDIT_IDX];
+    if (!item) return;
+    if (!confirm("Delete " + item.warehouseReceipt + " / " + item.partNumber + "?\n\n" + item.description + "\n\nThis cannot be undone.")) return;
+    INVENTORY.splice(INVENTORY_EDIT_IDX, 1);
+    closeInventoryForm();
+    renderInventory();
+  });
 
   const form = document.getElementById("inv-form");
   if (form) {
@@ -6659,8 +6832,12 @@ function setupInventory() {
         alert("Pallet weight exceeds 2,000 lb — FT operational rule. Reduce or split into multiple pallets.");
         return;
       }
-      INVENTORY.unshift(obj);
-      form.reset();
+      if (INVENTORY_EDIT_IDX !== null) {
+        // Preserve any fields not in form (e.g. status if not in form)
+        INVENTORY[INVENTORY_EDIT_IDX] = Object.assign({}, INVENTORY[INVENTORY_EDIT_IDX], obj);
+      } else {
+        INVENTORY.unshift(obj);
+      }
       closeInventoryForm();
       renderInventory();
     });
@@ -6668,6 +6845,285 @@ function setupInventory() {
 
   const search = document.getElementById("inventory-search");
   if (search) search.addEventListener("input", renderInventory);
+}
+
+/* ─── CSV bulk import ─── */
+
+const INV_IMPORT_COLUMN_MAP = {
+  // CSV header (lowercased) → INVENTORY field
+  "warehouse receipt": "warehouseReceipt",
+  "wr": "warehouseReceipt",
+  "wr#": "warehouseReceipt",
+  "part number": "partNumber",
+  "part #": "partNumber",
+  "part": "partNumber",
+  "description": "description",
+  "desc": "description",
+  "department": "department",
+  "dept": "department",
+  "package": "packageUnit",
+  "package unit": "packageUnit",
+  "pkg": "packageUnit",
+  "pieces": "pieces",
+  "pcs": "pieces",
+  "quantity": "quantity",
+  "qty": "quantity",
+  "location": "locationCode",
+  "location code": "locationCode",
+  "loc": "locationCode",
+  "entry number": "entryNumber",
+  "entry #": "entryNumber",
+  "entry": "entryNumber",
+};
+
+let INV_IMPORT_PARSED = []; // last preview result
+
+function openInvImport() {
+  document.getElementById("inv-import-overlay").classList.add("open");
+  document.getElementById("inv-import-modal").classList.add("open");
+  resetInvImportToInput();
+}
+
+function closeInvImport() {
+  document.getElementById("inv-import-overlay").classList.remove("open");
+  document.getElementById("inv-import-modal").classList.remove("open");
+  INV_IMPORT_PARSED = [];
+}
+
+function resetInvImportToInput() {
+  document.getElementById("inv-import-step-input").style.display = "block";
+  document.getElementById("inv-import-step-preview").style.display = "none";
+  document.getElementById("inv-import-parse").style.display = "inline-flex";
+  document.getElementById("inv-import-commit").style.display = "none";
+  document.getElementById("inv-import-back").style.display = "none";
+  document.getElementById("inv-import-footer-hint").textContent = "Paste CSV or drop a file to preview.";
+}
+
+// Minimal CSV parser — handles quoted fields, escaped quotes, commas inside quotes
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = "", inQuotes = false;
+  const t = text.replace(/^﻿/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (inQuotes) {
+      if (ch === '"' && t[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') { inQuotes = false; }
+      else { cell += ch; }
+    } else {
+      if (ch === '"') { inQuotes = true; }
+      else if (ch === ',') { row.push(cell); cell = ""; }
+      else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ""; }
+      else { cell += ch; }
+    }
+  }
+  if (cell.length > 0 || row.length > 0) { row.push(cell); rows.push(row); }
+  // Filter empty rows
+  return rows.filter(r => r.some(c => c && c.trim() !== ""));
+}
+
+function validateImportRow(row) {
+  const errors = [];
+  if (!row.warehouseReceipt) errors.push("Missing WR");
+  else if (!/^WR-\d+/i.test(row.warehouseReceipt)) errors.push("WR format invalid (expect WR-NNNN)");
+  if (!row.partNumber) errors.push("Missing Part #");
+  if (!row.description) errors.push("Missing description");
+  if (!row.packageUnit) errors.push("Missing package");
+  else if (!/^(Box|Pallet)$/i.test(row.packageUnit)) errors.push("Package must be Box or Pallet");
+  if (!row.pieces || isNaN(row.pieces) || row.pieces < 1) errors.push("Invalid Pieces (must be ≥1)");
+  if (!row.quantity || isNaN(row.quantity) || row.quantity < 1) errors.push("Invalid Quantity (must be ≥1)");
+  if (!row.locationCode) errors.push("Missing location");
+  const warnings = [];
+  // Duplicate WR+Part check against existing inventory
+  if (INVENTORY.find(i => i.warehouseReceipt === row.warehouseReceipt && i.partNumber === row.partNumber && i.locationCode === row.locationCode)) {
+    warnings.push("Duplicate (WR+Part+Loc exists)");
+  }
+  return { errors, warnings };
+}
+
+function previewInvImport() {
+  const text = document.getElementById("inv-import-textarea").value;
+  if (!text || !text.trim()) {
+    alert("Paste CSV or drop a file first.");
+    return;
+  }
+  const rows = parseCSV(text);
+  if (rows.length < 2) {
+    alert("Need at least a header row + 1 data row.");
+    return;
+  }
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+  const colMap = headers.map(h => INV_IMPORT_COLUMN_MAP[h] || null);
+  const unmapped = headers.filter((_, i) => !colMap[i]);
+
+  if (!colMap.includes("warehouseReceipt") || !colMap.includes("partNumber")) {
+    alert("CSV must include columns: Warehouse Receipt and Part Number (case-insensitive). Found headers: " + headers.join(", "));
+    return;
+  }
+
+  // Normalize rows to objects
+  INV_IMPORT_PARSED = rows.slice(1).map((rowArr, i) => {
+    const obj = { status: "in_stock" };
+    rowArr.forEach((val, ci) => {
+      if (colMap[ci]) {
+        let v = val.trim();
+        if (colMap[ci] === "pieces" || colMap[ci] === "quantity") {
+          v = parseInt(v.replace(/,/g, ""), 10) || 0;
+        } else if (colMap[ci] === "packageUnit") {
+          v = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+        }
+        obj[colMap[ci]] = v;
+      }
+    });
+    const validation = validateImportRow(obj);
+    obj._lineNo = i + 2; // 1-based, +1 for header
+    obj._errors = validation.errors;
+    obj._warnings = validation.warnings;
+    return obj;
+  });
+
+  renderImportPreview();
+}
+
+function renderImportPreview() {
+  document.getElementById("inv-import-step-input").style.display = "none";
+  document.getElementById("inv-import-step-preview").style.display = "block";
+  document.getElementById("inv-import-parse").style.display = "none";
+  document.getElementById("inv-import-back").style.display = "inline-flex";
+
+  const total = INV_IMPORT_PARSED.length;
+  const errs = INV_IMPORT_PARSED.filter(r => r._errors.length > 0).length;
+  const warns = INV_IMPORT_PARSED.filter(r => r._errors.length === 0 && r._warnings.length > 0).length;
+  const oks = total - errs - warns;
+
+  const stats = document.getElementById("inv-import-preview-stats");
+  while (stats.firstChild) stats.removeChild(stats.firstChild);
+  const mk = (label, value, klass) => {
+    const c = el("div", { class: "inv-import__preview-stat" });
+    c.appendChild(el("div", { class: "inv-import__preview-stat-label", text: label }));
+    c.appendChild(el("div", { class: "inv-import__preview-stat-value " + (klass || ""), text: String(value) }));
+    return c;
+  };
+  stats.appendChild(mk("Total rows", total));
+  stats.appendChild(mk("Valid (ready)", oks, "inv-import__preview-stat-value--ok"));
+  stats.appendChild(mk("Warnings (duplicates)", warns, "inv-import__preview-stat-value--warn"));
+  stats.appendChild(mk("Errors (skipped)", errs, errs > 0 ? "inv-import__preview-stat-value--err" : ""));
+
+  const tbody = document.getElementById("inv-import-preview-tbody");
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  INV_IMPORT_PARSED.forEach(r => {
+    const tr = el("tr");
+    let klass = "row-ok";
+    let statusText = "Ready";
+    let statusKlass = "inv-import__status-pill--ok";
+    if (r._errors.length > 0) { klass = "row-err"; statusText = "Skip"; statusKlass = "inv-import__status-pill--err"; }
+    else if (r._warnings.length > 0) { klass = "row-warn"; statusText = "Warn"; statusKlass = "inv-import__status-pill--warn"; }
+    tr.className = klass;
+
+    tr.appendChild(el("td", { class: "num", text: String(r._lineNo) }));
+    const statusTd = el("td");
+    statusTd.appendChild(el("span", { class: "inv-import__status-pill " + statusKlass, text: statusText }));
+    if (r._errors.length > 0) statusTd.appendChild(el("div", { class: "inv-import__err-detail", text: r._errors.join(", ") }));
+    else if (r._warnings.length > 0) statusTd.appendChild(el("div", { class: "inv-import__err-detail", style: "color: var(--accent-bright);", text: r._warnings.join(", ") }));
+    tr.appendChild(statusTd);
+    tr.appendChild(el("td", { text: r.warehouseReceipt || "—" }));
+    tr.appendChild(el("td", { text: r.partNumber || "—" }));
+    tr.appendChild(el("td", { text: (r.description || "").slice(0, 50) + ((r.description || "").length > 50 ? "…" : "") }));
+    tr.appendChild(el("td", { text: r.department || "—" }));
+    tr.appendChild(el("td", { text: r.packageUnit || "—" }));
+    tr.appendChild(el("td", { class: "num", text: r.pieces ? r.pieces.toLocaleString() : "—" }));
+    tr.appendChild(el("td", { class: "num", text: r.quantity ? r.quantity.toLocaleString() : "—" }));
+    tr.appendChild(el("td", { text: r.locationCode || "—" }));
+    tr.appendChild(el("td", { text: r.entryNumber || "—" }));
+    tbody.appendChild(tr);
+  });
+
+  const commitable = INV_IMPORT_PARSED.filter(r => r._errors.length === 0).length;
+  document.getElementById("inv-import-commit").textContent = "Import " + commitable + " item" + (commitable === 1 ? "" : "s") + " →";
+  document.getElementById("inv-import-commit").style.display = commitable > 0 ? "inline-flex" : "none";
+  document.getElementById("inv-import-footer-hint").textContent =
+    total + " row" + (total === 1 ? "" : "s") + " parsed · " +
+    oks + " ready · " + warns + " warning" + (warns === 1 ? "" : "s") + " · " + errs + " error" + (errs === 1 ? "" : "s");
+}
+
+function commitInvImport() {
+  const toImport = INV_IMPORT_PARSED.filter(r => r._errors.length === 0).map(r => {
+    const clean = Object.assign({}, r);
+    delete clean._lineNo; delete clean._errors; delete clean._warnings;
+    return clean;
+  });
+  if (toImport.length === 0) {
+    alert("Nothing to import.");
+    return;
+  }
+  // Unshift so newest at top
+  toImport.reverse().forEach(item => INVENTORY.unshift(item));
+  alert("Imported " + toImport.length + " item(s) into FT inventory.");
+  closeInvImport();
+  renderInventory();
+}
+
+function loadInvImportSample() {
+  document.getElementById("inv-import-textarea").value =
+    "Warehouse Receipt,Part Number,Description,Department,Package,Pieces,Quantity,Location,Entry Number\n" +
+    "WR-26500,S1890100,MSC Foundation tote bag canvas natural,MSC Foundation,Box,12,144,R3-A-8,9Q4-0006200-1\n" +
+    "WR-26501,P0024100,Ocean Cay welcome kit deluxe,Ocean Cay,Pallet,4,400,R7-B-2,9Q4-0006201-2\n" +
+    "WR-26502,S1890200,Voyagers Club lanyard navy,Shop,Box,30,750,R1-A-14,9Q4-0006202-3";
+}
+
+function setupInvImport() {
+  const closeBtn = document.getElementById("inv-import-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeInvImport);
+  const cancelBtn = document.getElementById("inv-import-cancel");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeInvImport);
+  const overlay = document.getElementById("inv-import-overlay");
+  if (overlay) overlay.addEventListener("click", closeInvImport);
+
+  const parseBtn = document.getElementById("inv-import-parse");
+  if (parseBtn) parseBtn.addEventListener("click", previewInvImport);
+  const backBtn = document.getElementById("inv-import-back");
+  if (backBtn) backBtn.addEventListener("click", resetInvImportToInput);
+  const commitBtn = document.getElementById("inv-import-commit");
+  if (commitBtn) commitBtn.addEventListener("click", commitInvImport);
+
+  const sampleBtn = document.getElementById("inv-import-load-sample");
+  if (sampleBtn) sampleBtn.addEventListener("click", loadInvImportSample);
+
+  const pickBtn = document.getElementById("inv-import-pick-file");
+  const fileInput = document.getElementById("inv-import-file-input");
+  if (pickBtn && fileInput) {
+    pickBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("inv-import-textarea").value = ev.target.result;
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  const drop = document.getElementById("inv-import-drop");
+  if (drop) {
+    drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("dragover"); });
+    drop.addEventListener("dragleave", () => drop.classList.remove("dragover"));
+    drop.addEventListener("drop", (e) => {
+      e.preventDefault();
+      drop.classList.remove("dragover");
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("inv-import-textarea").value = ev.target.result;
+      };
+      reader.readAsText(file);
+    });
+    drop.addEventListener("click", (e) => {
+      if (e.target.tagName !== "BUTTON") fileInput.click();
+    });
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -8116,6 +8572,7 @@ setupLayoutToggle();
 setupImport();
 setupSearch();
 setupInventory();
+setupInvImport();
 setupLoadingLists();
 setupDiscrepancyReports();
 setupCrunchTime();
