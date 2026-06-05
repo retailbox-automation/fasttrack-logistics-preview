@@ -818,6 +818,74 @@ body.view-inventory .pagination { display: none; }
 
 .inventory-actions { display: flex; align-items: center; gap: 12px; }
 
+/* status badges in inventory table */
+.inv-status-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; white-space: nowrap; }
+.inv-status-pill--in_stock { background: rgba(148,163,184,0.12); color: var(--text-dim);     border: 1px solid rgba(148,163,184,0.25); }
+.inv-status-pill--pulled   { background: rgba(217,119,6,0.12);  color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.inv-status-pill--loaded   { background: rgba(96,165,250,0.12); color: var(--info);          border: 1px solid rgba(96,165,250,0.25); }
+.inv-status-pill--sent     { background: rgba(16,185,129,0.12); color: var(--ok);            border: 1px solid rgba(16,185,129,0.25); }
+.inv-status-pill--bonded   { background: rgba(239,68,68,0.12);  color: var(--crit);          border: 1px solid rgba(239,68,68,0.3); }
+
+.inv-ll-tag { display: inline-block; padding: 1px 6px; border-radius: 8px; font-family: var(--font-mono); font-size: 9px; background: var(--bg-deep); color: var(--accent-bright); border: 1px solid var(--border-accent); margin-left: 4px; }
+
+/* filter chips */
+.inv-filter-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; padding: 10px 14px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; flex-wrap: wrap; }
+.inv-filter-bar__label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-right: 4px; }
+.inv-filter-bar__divider { width: 1px; height: 16px; background: var(--border); margin: 0 4px; }
+.inv-filter-bar__group-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dimmer); margin-right: 2px; }
+.inv-chip { background: var(--bg-deep); border: 1px solid var(--border); color: var(--text-dim); padding: 5px 10px; border-radius: 12px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; transition: all 120ms; letter-spacing: 0.04em; }
+.inv-chip:hover { color: var(--text-bright); border-color: var(--border-bright); }
+.inv-chip--active { background: var(--accent); color: var(--bg-deep); border-color: var(--accent); font-weight: 500; }
+.inv-chip--active:hover { background: var(--accent-bright); color: var(--bg-deep); }
+.inv-chip__count { opacity: 0.7; margin-left: 4px; font-size: 9px; }
+
+/* item detail drawer */
+.inv-drawer-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.6); backdrop-filter: blur(4px); z-index: 90; display: none; }
+.inv-drawer-overlay.open { display: block; }
+.inv-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: 540px; max-width: 96vw; background: var(--bg-elevated); border-left: 1px solid var(--border-bright); z-index: 91; display: none; flex-direction: column; transform: translateX(100%); transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; }
+.inv-drawer.open { display: flex; transform: translateX(0); }
+
+.inv-drawer__header { padding: 18px 22px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.inv-drawer__close-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.inv-drawer__close-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 5px 10px 5px 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.inv-drawer__close-btn:hover { color: var(--text-bright); border-color: var(--border-bright); }
+.inv-drawer__action-buttons { display: flex; gap: 6px; }
+.inv-drawer__action-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 5px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; letter-spacing: 0.08em; }
+.inv-drawer__action-btn:hover { color: var(--text-bright); border-color: var(--accent); }
+.inv-drawer__action-btn--danger:hover { color: var(--crit); border-color: rgba(239,68,68,0.4); }
+
+.inv-drawer__wr { font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); font-weight: 500; margin-bottom: 4px; letter-spacing: 0.04em; }
+.inv-drawer__title { font-family: var(--font-display); font-size: 18px; color: var(--text-bright); font-weight: 500; line-height: 1.3; margin-bottom: 6px; }
+.inv-drawer__subtitle { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 12px; }
+.inv-drawer__pills { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.inv-drawer__body { flex: 1; overflow-y: auto; padding: 0; }
+.inv-drawer__section { padding: 16px 22px; border-bottom: 1px solid var(--border); }
+.inv-drawer__section-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+
+.inv-drawer__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+.inv-drawer__field { display: flex; flex-direction: column; gap: 3px; }
+.inv-drawer__field-label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dimmer); }
+.inv-drawer__field-value { font-size: 12px; color: var(--text-bright); font-family: var(--font-body); }
+.inv-drawer__field-value--mono { font-family: var(--font-mono); }
+
+.inv-drawer__photo-placeholder { background: var(--bg-deep); border: 1px dashed var(--border); border-radius: 6px; padding: 36px; text-align: center; color: var(--text-dim); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.inv-drawer__ll-list { display: flex; flex-direction: column; gap: 8px; }
+.inv-drawer__ll-empty { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); font-style: italic; }
+.inv-drawer__ll-entry { padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-left: 2px solid var(--accent); border-radius: 0 4px 4px 0; cursor: pointer; transition: background 120ms; }
+.inv-drawer__ll-entry:hover { background: var(--bg-hover); }
+.inv-drawer__ll-entry-line1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.inv-drawer__ll-entry-id { font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); font-weight: 500; }
+.inv-drawer__ll-entry-meta { font-size: 11px; color: var(--text); }
+.inv-drawer__ll-entry-meta strong { color: var(--text-bright); }
+
+.inv-drawer__history { display: flex; flex-direction: column; gap: 8px; }
+.inv-drawer__history-entry { display: grid; grid-template-columns: 80px 1fr; gap: 12px; font-size: 11px; }
+.inv-drawer__history-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.inv-drawer__history-event { color: var(--text); line-height: 1.5; }
+.inv-drawer__history-event strong { color: var(--text-bright); font-family: var(--font-mono); font-size: 10px; }
+
 /* ═══ INVENTORY entry modal ═══ */
 .inv-modal-overlay {
   position: fixed; inset: 0;
@@ -2565,6 +2633,8 @@ body.layout-list .pagination { display: none; }
         </div>
       </div>
 
+      <div class="inv-filter-bar" id="inv-filter-bar"></div>
+
       <table class="inventory-table">
         <thead>
           <tr>
@@ -2576,6 +2646,7 @@ body.layout-list .pagination { display: none; }
             <th style="text-align:right">Pieces</th>
             <th style="text-align:right">Quantity</th>
             <th>Location</th>
+            <th>Status</th>
             <th>Entry #</th>
           </tr>
         </thead>
@@ -2921,6 +2992,27 @@ body.layout-list .pagination { display: none; }
     </div>
     <div class="dr-preview-doc" id="dr-preview-doc"></div>
   </div>
+
+  <!-- INVENTORY DETAIL DRAWER -->
+  <div class="inv-drawer-overlay" id="inv-drawer-overlay"></div>
+  <aside class="inv-drawer" id="inv-drawer">
+    <div class="inv-drawer__header">
+      <div class="inv-drawer__close-row">
+        <button class="inv-drawer__close-btn" id="inv-drawer-close">
+          <span>→</span> Close
+        </button>
+        <div class="inv-drawer__action-buttons">
+          <button class="inv-drawer__action-btn" id="inv-drawer-edit">EDIT</button>
+          <button class="inv-drawer__action-btn inv-drawer__action-btn--danger" id="inv-drawer-delete">DELETE</button>
+        </div>
+      </div>
+      <div class="inv-drawer__wr" id="inv-drawer-wr">—</div>
+      <div class="inv-drawer__title" id="inv-drawer-title">—</div>
+      <div class="inv-drawer__subtitle" id="inv-drawer-subtitle">—</div>
+      <div class="inv-drawer__pills" id="inv-drawer-pills"></div>
+    </div>
+    <div class="inv-drawer__body" id="inv-drawer-body"></div>
+  </aside>
 
   <!-- INVENTORY ENTRY MODAL -->
   <div class="inv-modal-overlay" id="inv-modal-overlay"></div>
@@ -6696,16 +6788,114 @@ const INVENTORY = [
   { warehouseReceipt: "WR-9723",  partNumber: "S1180225", description: "Plastic Pen MSC Flotter as per remarks and layout", department: "Shop", packageUnit: "Box", pieces: 28, quantity: 6048, locationCode: "R1-A-13", entryNumber: "9Q4-0005114-4", status: "in_stock" },
 ];
 
+/* Filter state — null when "All" active */
+let INV_FILTER = null; // { kind: 'status'|'dept', value: string } | null
+
+const STATUS_LABEL_INV = {
+  in_stock: "In stock",
+  pulled:   "Pulled",
+  loaded:   "Loaded",
+  sent:     "Sent",
+  bonded:   "Bonded",
+};
+
+function computeItemStatus(item, itemIdx) {
+  if (item.status === "bonded") return "bonded";
+  // Derive from Loading List membership (only consider real arrays — initial seed uses indexes 0-28)
+  const onLLs = LOADING_LISTS.filter(ll => ll.itemIdxs.includes(itemIdx));
+  if (onLLs.length > 0) {
+    if (onLLs.some(ll => ll.status === "loaded" || ll.status === "sent" || ll.status === "received")) return "loaded";
+    if (onLLs.some(ll => ll.status === "dispatched")) return "loaded";
+    if (onLLs.some(ll => ll.status === "draft")) return "pulled";
+  }
+  return item.status || "in_stock";
+}
+
+function findItemLoadingLists(itemIdx) {
+  return LOADING_LISTS.filter(ll => ll.itemIdxs.includes(itemIdx));
+}
+
+function renderInventoryFilterBar() {
+  const bar = document.getElementById("inv-filter-bar");
+  if (!bar) return;
+  while (bar.firstChild) bar.removeChild(bar.firstChild);
+
+  bar.appendChild(el("span", { class: "inv-filter-bar__label", text: "Filter:" }));
+
+  // "All" chip
+  const allChip = el("button", { class: "inv-chip" + (INV_FILTER === null ? " inv-chip--active" : "") });
+  allChip.appendChild(document.createTextNode("All"));
+  allChip.appendChild(el("span", { class: "inv-chip__count", text: "· " + INVENTORY.length }));
+  allChip.addEventListener("click", () => { INV_FILTER = null; renderInventory(); });
+  bar.appendChild(allChip);
+
+  bar.appendChild(el("span", { class: "inv-filter-bar__divider" }));
+  bar.appendChild(el("span", { class: "inv-filter-bar__group-label", text: "Status" }));
+
+  // Status chips — for statuses present in inventory
+  const statusCounts = {};
+  INVENTORY.forEach((it, i) => {
+    const s = computeItemStatus(it, i);
+    statusCounts[s] = (statusCounts[s] || 0) + 1;
+  });
+  ["in_stock", "pulled", "loaded", "sent", "bonded"].forEach(s => {
+    if (!statusCounts[s]) return;
+    const active = INV_FILTER && INV_FILTER.kind === "status" && INV_FILTER.value === s;
+    const chip = el("button", { class: "inv-chip" + (active ? " inv-chip--active" : "") });
+    chip.appendChild(document.createTextNode(STATUS_LABEL_INV[s] || s));
+    chip.appendChild(el("span", { class: "inv-chip__count", text: "· " + statusCounts[s] }));
+    chip.addEventListener("click", () => {
+      INV_FILTER = active ? null : { kind: "status", value: s };
+      renderInventory();
+    });
+    bar.appendChild(chip);
+  });
+
+  bar.appendChild(el("span", { class: "inv-filter-bar__divider" }));
+  bar.appendChild(el("span", { class: "inv-filter-bar__group-label", text: "Department" }));
+
+  // Department chips
+  const deptCounts = {};
+  INVENTORY.forEach(it => {
+    if (it.department) deptCounts[it.department] = (deptCounts[it.department] || 0) + 1;
+  });
+  Object.entries(deptCounts).sort((a, b) => b[1] - a[1]).forEach(([d, count]) => {
+    const active = INV_FILTER && INV_FILTER.kind === "dept" && INV_FILTER.value === d;
+    const chip = el("button", { class: "inv-chip" + (active ? " inv-chip--active" : "") });
+    chip.appendChild(document.createTextNode(d));
+    chip.appendChild(el("span", { class: "inv-chip__count", text: "· " + count }));
+    chip.addEventListener("click", () => {
+      INV_FILTER = active ? null : { kind: "dept", value: d };
+      renderInventory();
+    });
+    bar.appendChild(chip);
+  });
+}
+
 function renderInventory() {
+  renderInventoryFilterBar();
+
   const tbody = document.getElementById("inventory-tbody");
   if (!tbody) return;
   while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
   const q = (document.getElementById("inventory-search") || {}).value || "";
   const ql = q.trim().toLowerCase();
-  const filtered = ql ? INVENTORY.filter(it => {
-    return [it.warehouseReceipt, it.partNumber, it.description, it.locationCode, it.entryNumber, it.department].join(" ").toLowerCase().includes(ql);
-  }) : INVENTORY;
+
+  // Apply both search + filter chip
+  let filtered = INVENTORY.map((item, idx) => ({ item, idx }));
+  if (ql) {
+    filtered = filtered.filter(({ item }) =>
+      [item.warehouseReceipt, item.partNumber, item.description, item.locationCode, item.entryNumber, item.department].join(" ").toLowerCase().includes(ql)
+    );
+  }
+  if (INV_FILTER) {
+    if (INV_FILTER.kind === "status") {
+      filtered = filtered.filter(({ item, idx }) => computeItemStatus(item, idx) === INV_FILTER.value);
+    } else if (INV_FILTER.kind === "dept") {
+      filtered = filtered.filter(({ item }) => item.department === INV_FILTER.value);
+    }
+  }
 
   const dash = () => el("span", { class: "muted-dash", text: "—" });
   const numCell = (val) => {
@@ -6714,7 +6904,7 @@ function renderInventory() {
     return td;
   };
 
-  filtered.forEach(item => {
+  filtered.forEach(({ item, idx }) => {
     const tr = el("tr");
     tr.appendChild(el("td", {}, [el("span", { class: "inv-wr", text: item.warehouseReceipt })]));
     tr.appendChild(el("td", {}, [el("span", { class: "inv-part", text: item.partNumber })]));
@@ -6727,12 +6917,22 @@ function renderInventory() {
     tr.appendChild(numCell(item.pieces));
     tr.appendChild(numCell(item.quantity.toLocaleString()));
     tr.appendChild(el("td", {}, [el("span", { class: "inv-loc", text: item.locationCode })]));
+
+    // Status cell — auto-computed + LL count tag
+    const status = computeItemStatus(item, idx);
+    const lls = findItemLoadingLists(idx);
+    const statusTd = el("td");
+    statusTd.appendChild(el("span", { class: "inv-status-pill inv-status-pill--" + status, text: STATUS_LABEL_INV[status] || status }));
+    if (lls.length > 0) {
+      statusTd.appendChild(el("span", { class: "inv-ll-tag", title: lls.map(l => l.id).join(", "), text: lls.length + " LL" }));
+    }
+    tr.appendChild(statusTd);
+
     tr.appendChild(el("td", {}, [
       item.entryNumber ? el("span", { class: "inv-entry", text: item.entryNumber }) : dash()
     ]));
-    // Click row → open edit modal (use INVENTORY index, not filtered)
-    const realIdx = INVENTORY.indexOf(item);
-    tr.addEventListener("click", () => openInventoryForm(realIdx));
+    // Click row → open detail drawer (not edit modal anymore — Edit is a button in drawer)
+    tr.addEventListener("click", () => openInvDrawer(idx));
     tbody.appendChild(tr);
   });
 
@@ -7124,6 +7324,172 @@ function setupInvImport() {
       if (e.target.tagName !== "BUTTON") fileInput.click();
     });
   }
+}
+
+/* ─── Item detail drawer ─── */
+
+let INV_DRAWER_IDX = null;
+
+function openInvDrawer(idx) {
+  const item = INVENTORY[idx];
+  if (!item) return;
+  INV_DRAWER_IDX = idx;
+  document.getElementById("inv-drawer-overlay").classList.add("open");
+  document.getElementById("inv-drawer").classList.add("open");
+
+  document.getElementById("inv-drawer-wr").textContent = item.warehouseReceipt + " · " + item.partNumber;
+  document.getElementById("inv-drawer-title").textContent = item.description;
+  document.getElementById("inv-drawer-subtitle").textContent =
+    (item.department || "Department TBD") + " · " +
+    item.packageUnit + " · " +
+    item.pieces + " pcs · qty " + (item.quantity || 0).toLocaleString();
+
+  // Pills row: status, package
+  const pills = document.getElementById("inv-drawer-pills");
+  while (pills.firstChild) pills.removeChild(pills.firstChild);
+  const status = computeItemStatus(item, idx);
+  pills.appendChild(el("span", { class: "inv-status-pill inv-status-pill--" + status, text: STATUS_LABEL_INV[status] || status }));
+  const pkgClass = item.packageUnit === "Pallet" ? "inv-pkg inv-pkg--pallet" : "inv-pkg inv-pkg--box";
+  pills.appendChild(el("span", { class: pkgClass, text: item.packageUnit }));
+  if (item.department) pills.appendChild(el("span", { class: "inv-dept", text: item.department }));
+
+  // Body
+  const body = document.getElementById("inv-drawer-body");
+  while (body.firstChild) body.removeChild(body.firstChild);
+
+  // Section 1 — Stock details
+  const sec1 = el("div", { class: "inv-drawer__section" });
+  sec1.appendChild(el("div", { class: "inv-drawer__section-title", text: "Stock details" }));
+  const grid = el("div", { class: "inv-drawer__grid" });
+  const fld = (label, value, mono) => {
+    const f = el("div", { class: "inv-drawer__field" });
+    f.appendChild(el("div", { class: "inv-drawer__field-label", text: label }));
+    f.appendChild(el("div", { class: "inv-drawer__field-value" + (mono ? " inv-drawer__field-value--mono" : ""), text: value || "—" }));
+    return f;
+  };
+  grid.appendChild(fld("Warehouse Receipt", item.warehouseReceipt, true));
+  grid.appendChild(fld("Part Number", item.partNumber, true));
+  grid.appendChild(fld("Department", item.department));
+  grid.appendChild(fld("Target Vessel", item.vessel));
+  grid.appendChild(fld("Package", item.packageUnit));
+  grid.appendChild(fld("Status", STATUS_LABEL_INV[status] || status));
+  grid.appendChild(fld("Pieces", String(item.pieces || 0), true));
+  grid.appendChild(fld("Quantity", (item.quantity || 0).toLocaleString(), true));
+  grid.appendChild(fld("Location", item.locationCode, true));
+  grid.appendChild(fld("Entry #", item.entryNumber, true));
+  grid.appendChild(fld("PO Number", item.poNumber, true));
+  grid.appendChild(fld("Weight (lb)", item.weightLb ? String(item.weightLb) : "—", true));
+  grid.appendChild(fld("Received Date", item.receivedDate, true));
+  grid.appendChild(fld("Received By", item.receivedBy));
+  sec1.appendChild(grid);
+  body.appendChild(sec1);
+
+  // Section 2 — Linked Loading Lists
+  const sec2 = el("div", { class: "inv-drawer__section" });
+  sec2.appendChild(el("div", { class: "inv-drawer__section-title", text: "On Loading Lists" }));
+  const lls = findItemLoadingLists(idx);
+  if (lls.length === 0) {
+    sec2.appendChild(el("div", { class: "inv-drawer__ll-empty", text: "Not on any Loading List. Available for pick." }));
+  } else {
+    const list = el("div", { class: "inv-drawer__ll-list" });
+    lls.forEach(ll => {
+      const entry = el("div", { class: "inv-drawer__ll-entry" });
+      const line1 = el("div", { class: "inv-drawer__ll-entry-line1" });
+      line1.appendChild(el("span", { class: "inv-drawer__ll-entry-id", text: ll.id }));
+      line1.appendChild(el("span", { class: "ll-status ll-status--" + ll.status, text: STATUS_LABELS_LL[ll.status] }));
+      entry.appendChild(line1);
+      const meta = el("div", { class: "inv-drawer__ll-entry-meta" });
+      meta.appendChild(document.createTextNode(ll.vessel + " · "));
+      meta.appendChild(el("strong", { text: ll.truck || "no truck" }));
+      meta.appendChild(document.createTextNode(" · " + ll.port + " · departure " + ll.departure));
+      entry.appendChild(meta);
+      entry.addEventListener("click", () => {
+        closeInvDrawer();
+        switchView("loading_lists");
+        const llIdx = LOADING_LISTS.indexOf(ll);
+        if (llIdx >= 0) openLLPreview(llIdx);
+      });
+      list.appendChild(entry);
+    });
+    sec2.appendChild(list);
+  }
+  body.appendChild(sec2);
+
+  // Section 3 — Photo placeholder
+  const sec3 = el("div", { class: "inv-drawer__section" });
+  sec3.appendChild(el("div", { class: "inv-drawer__section-title", text: "Pallet photo" }));
+  sec3.appendChild(el("div", { class: "inv-drawer__photo-placeholder", text: "Photo placeholder · upload coming Phase 1B" }));
+  body.appendChild(sec3);
+
+  // Section 4 — History (synthetic — based on item + LL state)
+  const sec4 = el("div", { class: "inv-drawer__section" });
+  sec4.appendChild(el("div", { class: "inv-drawer__section-title", text: "Movement history" }));
+  const history = el("div", { class: "inv-drawer__history" });
+  const events = [];
+  if (item.receivedDate) {
+    events.push({ time: item.receivedDate, event: "Received at warehouse · " + (item.receivedBy || "FT receiving") + " · stored at " + item.locationCode });
+  } else {
+    events.push({ time: "Earlier", event: "Received at warehouse · stored at " + item.locationCode });
+  }
+  if (item.entryNumber) {
+    events.push({ time: "—", event: "Customs entry filed · " + item.entryNumber });
+  }
+  lls.forEach(ll => {
+    events.push({ time: ll.createdAt || "—", event: "Picked for Loading List " + ll.id + " (" + ll.vessel + ")" });
+    if (ll.status === "dispatched" || ll.status === "loaded" || ll.status === "sent") {
+      events.push({ time: ll.departure || "—", event: "Dispatched via " + (ll.truck || "truck") + " to " + ll.port });
+    }
+    if (ll.status === "loaded" || ll.status === "sent") {
+      events.push({ time: ll.departure || "—", event: "Loaded onto " + ll.vessel });
+    }
+    if (ll.status === "sent") {
+      events.push({ time: "—", event: "MSC confirmed receipt at gangway" });
+    }
+  });
+  if (events.length === 0) {
+    history.appendChild(el("div", { class: "inv-drawer__ll-empty", text: "No movement events yet." }));
+  } else {
+    events.forEach(ev => {
+      const e = el("div", { class: "inv-drawer__history-entry" });
+      e.appendChild(el("div", { class: "inv-drawer__history-time", text: ev.time }));
+      e.appendChild(el("div", { class: "inv-drawer__history-event", text: ev.event }));
+      history.appendChild(e);
+    });
+  }
+  sec4.appendChild(history);
+  body.appendChild(sec4);
+}
+
+function closeInvDrawer() {
+  document.getElementById("inv-drawer-overlay").classList.remove("open");
+  document.getElementById("inv-drawer").classList.remove("open");
+  INV_DRAWER_IDX = null;
+}
+
+function setupInvDrawer() {
+  const closeBtn = document.getElementById("inv-drawer-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeInvDrawer);
+  const overlay = document.getElementById("inv-drawer-overlay");
+  if (overlay) overlay.addEventListener("click", closeInvDrawer);
+
+  const editBtn = document.getElementById("inv-drawer-edit");
+  if (editBtn) editBtn.addEventListener("click", () => {
+    if (INV_DRAWER_IDX === null) return;
+    const idx = INV_DRAWER_IDX;
+    closeInvDrawer();
+    openInventoryForm(idx);
+  });
+
+  const delBtn = document.getElementById("inv-drawer-delete");
+  if (delBtn) delBtn.addEventListener("click", () => {
+    if (INV_DRAWER_IDX === null) return;
+    const item = INVENTORY[INV_DRAWER_IDX];
+    if (!item) return;
+    if (!confirm("Delete " + item.warehouseReceipt + " / " + item.partNumber + "?\n\n" + item.description + "\n\nThis cannot be undone.")) return;
+    INVENTORY.splice(INV_DRAWER_IDX, 1);
+    closeInvDrawer();
+    renderInventory();
+  });
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -8573,6 +8939,7 @@ setupImport();
 setupSearch();
 setupInventory();
 setupInvImport();
+setupInvDrawer();
 setupLoadingLists();
 setupDiscrepancyReports();
 setupCrunchTime();
