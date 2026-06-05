@@ -1453,6 +1453,132 @@ body.view-crunchtime .pagination { display: none; }
   100% { box-shadow: 0 0 0 0   rgba(96,165,250, 0); }
 }
 
+/* ═══ BARCODING view ═══ */
+.barcoding-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-barcoding .barcoding-view { display: block; }
+body.view-barcoding .dashboard,
+body.view-barcoding .inbox-view,
+body.view-barcoding .inventory-view,
+body.view-barcoding .loading-lists-view,
+body.view-barcoding .discrepancies-view,
+body.view-barcoding .crunchtime-view,
+body.view-barcoding .pagination { display: none; }
+
+.bc-mode-tabs { display: flex; gap: 6px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; padding: 4px; margin-bottom: 18px; }
+.bc-mode-tab { flex: 1; padding: 12px 14px; background: transparent; border: none; color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; border-radius: 5px; transition: all 120ms; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bc-mode-tab:hover { color: var(--text-bright); background: var(--bg-hover); }
+.bc-mode-tab--active { background: var(--accent); color: var(--bg-deep); font-weight: 500; }
+.bc-mode-tab--active:hover { background: var(--accent-bright); color: var(--bg-deep); }
+.bc-mode-tab__sub { font-size: 9px; opacity: 0.7; letter-spacing: 0.06em; text-transform: none; font-weight: 400; }
+.bc-mode-tab--active .bc-mode-tab__sub { opacity: 0.85; }
+
+.bc-banner { background: linear-gradient(135deg, rgba(217,119,6,0.08) 0%, rgba(96,165,250,0.06) 100%); border: 1px solid var(--border-accent); border-left: 3px solid var(--accent); border-radius: 6px; padding: 12px 16px; margin-bottom: 18px; display: flex; gap: 14px; align-items: center; }
+.bc-banner__text { flex: 1; font-size: 12px; color: var(--text); line-height: 1.5; }
+.bc-banner__text strong { color: var(--text-bright); }
+.bc-banner__pill { font-family: var(--font-mono); font-size: 10px; padding: 4px 10px; border-radius: 12px; background: rgba(217,119,6,0.15); color: var(--accent-bright); border: 1px solid var(--border-accent); white-space: nowrap; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.bc-context-bar { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; margin-bottom: 18px; display: flex; gap: 14px; align-items: center; }
+.bc-context-bar__label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+.bc-context-bar__select { padding: 7px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; min-width: 380px; }
+.bc-context-bar__select:focus { outline: none; border-color: var(--accent); }
+.bc-context-bar__progress { flex: 1; display: flex; align-items: center; gap: 8px; }
+.bc-context-bar__progress-bar { flex: 1; height: 8px; background: var(--bg-deep); border-radius: 4px; overflow: hidden; }
+.bc-context-bar__progress-fill { height: 100%; background: linear-gradient(90deg, var(--info) 0%, var(--accent) 100%); transition: width 220ms ease; }
+.bc-context-bar__progress-text { font-family: var(--font-mono); font-size: 11px; color: var(--text-bright); font-feature-settings: "tnum"; white-space: nowrap; }
+
+.bc-grid { display: grid; grid-template-columns: 1fr 380px; gap: 16px; align-items: start; }
+
+/* Camera viewport */
+.bc-camera { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.bc-camera__header { padding: 10px 14px; background: rgba(19,26,42,0.6); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.bc-camera__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+.bc-camera__status { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10px; color: var(--ok); letter-spacing: 0.08em; }
+.bc-camera__status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); animation: pulseGlow 2s infinite; box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+
+.bc-viewport { position: relative; aspect-ratio: 16/9; background: radial-gradient(circle at center, #0F1626 0%, #060A14 100%); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.bc-viewport__frame { position: relative; width: 60%; height: 50%; border: 2px solid rgba(217,119,6,0.5); border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.3), 0 0 30px rgba(217,119,6,0.15); }
+.bc-viewport__corner { position: absolute; width: 22px; height: 22px; border: 3px solid var(--accent); }
+.bc-viewport__corner--tl { top: -3px; left: -3px; border-right: none; border-bottom: none; }
+.bc-viewport__corner--tr { top: -3px; right: -3px; border-left: none; border-bottom: none; }
+.bc-viewport__corner--bl { bottom: -3px; left: -3px; border-right: none; border-top: none; }
+.bc-viewport__corner--br { bottom: -3px; right: -3px; border-left: none; border-top: none; }
+.bc-viewport__scanline { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent 0%, var(--accent-bright) 50%, transparent 100%); box-shadow: 0 0 8px var(--accent); animation: scanline 2.4s ease-in-out infinite; top: 0; }
+@keyframes scanline {
+  0%   { top: 0%;   opacity: 0.4; }
+  50%  { top: 95%;  opacity: 1; }
+  100% { top: 0%;   opacity: 0.4; }
+}
+.bc-viewport__barcode { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); letter-spacing: 0.2em; opacity: 0.5; }
+.bc-viewport__label { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+
+.bc-viewport.flash { animation: bc-flash 400ms ease; }
+@keyframes bc-flash {
+  0%   { background: radial-gradient(circle at center, #0F1626 0%, #060A14 100%); }
+  30%  { background: radial-gradient(circle at center, rgba(16,185,129,0.45) 0%, rgba(16,185,129,0.08) 100%); }
+  100% { background: radial-gradient(circle at center, #0F1626 0%, #060A14 100%); }
+}
+.bc-viewport.flash-err { animation: bc-flash-err 400ms ease; }
+@keyframes bc-flash-err {
+  0%   { background: radial-gradient(circle at center, #0F1626 0%, #060A14 100%); }
+  30%  { background: radial-gradient(circle at center, rgba(239,68,68,0.45) 0%, rgba(239,68,68,0.08) 100%); }
+  100% { background: radial-gradient(circle at center, #0F1626 0%, #060A14 100%); }
+}
+
+.bc-controls { padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); display: flex; gap: 10px; align-items: center; }
+.bc-controls__manual { flex: 1; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; }
+.bc-controls__manual:focus { outline: none; border-color: var(--accent); }
+
+.bc-last-result { padding: 16px 18px; border-top: 1px solid var(--border); }
+.bc-last-result__title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+.bc-last-result__none { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); font-style: italic; }
+.bc-last-result__row { display: flex; gap: 12px; padding: 12px 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; align-items: center; }
+.bc-last-result__row.match-ok { border-left: 3px solid var(--ok); }
+.bc-last-result__row.match-err { border-left: 3px solid var(--crit); }
+.bc-last-result__row.match-warn { border-left: 3px solid var(--accent); }
+.bc-last-result__icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.bc-last-result__icon--ok { background: rgba(16,185,129,0.15); color: var(--ok); }
+.bc-last-result__icon--err { background: rgba(239,68,68,0.15); color: var(--crit); }
+.bc-last-result__icon--warn { background: rgba(217,119,6,0.15); color: var(--accent-bright); }
+.bc-last-result__detail { flex: 1; }
+.bc-last-result__msg { font-size: 13px; color: var(--text-bright); font-weight: 500; margin-bottom: 3px; }
+.bc-last-result__sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+
+/* Right column: history + reconciliation */
+.bc-side-panel { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+.bc-side-panel__header { padding: 10px 14px; background: rgba(19,26,42,0.6); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.bc-side-panel__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); }
+.bc-side-panel__body { padding: 0; max-height: 360px; overflow-y: auto; }
+
+.bc-history-row { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
+.bc-history-row:last-child { border-bottom: none; }
+.bc-history-row__icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.bc-history-row__icon--ok { background: rgba(16,185,129,0.15); color: var(--ok); }
+.bc-history-row__icon--err { background: rgba(239,68,68,0.15); color: var(--crit); }
+.bc-history-row__icon--warn { background: rgba(217,119,6,0.15); color: var(--accent-bright); }
+.bc-history-row__body { flex: 1; min-width: 0; }
+.bc-history-row__code { font-family: var(--font-mono); font-size: 11px; color: var(--text-bright); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-history-row__msg { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-history-row__time { font-family: var(--font-mono); font-size: 9px; color: var(--text-dimmer); white-space: nowrap; flex-shrink: 0; }
+.bc-history-empty { padding: 36px 14px; text-align: center; color: var(--text-dim); font-family: var(--font-mono); font-size: 11px; font-style: italic; }
+
+.bc-reconcile-list { padding: 10px 14px; max-height: 360px; overflow-y: auto; }
+.bc-reconcile-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: center; }
+.bc-reconcile-item:last-child { border-bottom: none; }
+.bc-reconcile-item__check { width: 18px; height: 18px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; font-weight: 700; }
+.bc-reconcile-item--done .bc-reconcile-item__check { background: var(--ok); color: var(--bg-deep); border-color: var(--ok); }
+.bc-reconcile-item--done .bc-reconcile-item__check::before { content: "✓"; }
+.bc-reconcile-item__body { flex: 1; min-width: 0; }
+.bc-reconcile-item__wr { font-family: var(--font-mono); font-size: 11px; color: var(--accent-bright); }
+.bc-reconcile-item--done .bc-reconcile-item__wr { color: var(--text-dim); text-decoration: line-through; }
+.bc-reconcile-item__desc { font-size: 11px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-reconcile-item--done .bc-reconcile-item__desc { color: var(--text-dim); }
+
+.bc-spec-link { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; margin-top: 16px; }
+.bc-spec-link__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.bc-spec-link__body { font-size: 11px; color: var(--text); line-height: 1.5; }
+.bc-spec-link__body strong { color: var(--text-bright); }
+.bc-spec-link__path { font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); margin-top: 4px; }
+
 .inbox-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2740,6 +2866,124 @@ body.layout-list .pagination { display: none; }
       </table>
     </section>
 
+    <!-- BARCODING VIEW -->
+    <section class="barcoding-view" id="barcoding-view">
+      <div class="ll-header">
+        <div>
+          <div class="ll-crumb">Scan workflow · Magaya Flow + MSC ship reconciliation · Andrés "SUPER IMPORTANT!" 5/28</div>
+          <div class="ll-title">
+            <h1>Barcoding</h1>
+            <span class="ll-title-count" id="bc-title-count">Mock scanner · 4 modes</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <button class="btn btn--accent" id="bc-simulate-btn">🔍 Simulate scan</button>
+        </div>
+      </div>
+
+      <div class="bc-banner">
+        <div class="bc-banner__text">
+          <strong>Mock scanner UI.</strong> 4 modes mirror the end-to-end scan chain: <strong>Receiving</strong> (warehouse intake) → <strong>Picking</strong> (pull for Loading List) → <strong>Loading</strong> (onto truck) → <strong>Gangway</strong> (MSC ship receive).
+          Real integration = Magaya Flow API (FT-side) + MSC ship-side scanning system. Architecture spec inline below.
+        </div>
+        <span class="bc-banner__pill">MOCK</span>
+      </div>
+
+      <!-- Mode tabs -->
+      <div class="bc-mode-tabs" id="bc-mode-tabs">
+        <button class="bc-mode-tab bc-mode-tab--active" data-mode="receiving">
+          1 · Receiving
+          <span class="bc-mode-tab__sub">Warehouse intake — register new WR</span>
+        </button>
+        <button class="bc-mode-tab" data-mode="picking">
+          2 · Picking
+          <span class="bc-mode-tab__sub">Pull for active Loading List</span>
+        </button>
+        <button class="bc-mode-tab" data-mode="loading">
+          3 · Loading
+          <span class="bc-mode-tab__sub">Confirm on truck/seal</span>
+        </button>
+        <button class="bc-mode-tab" data-mode="gangway">
+          4 · Gangway
+          <span class="bc-mode-tab__sub">MSC ship-side receive</span>
+        </button>
+      </div>
+
+      <!-- Active LL context bar (only shown for picking/loading/gangway modes) -->
+      <div class="bc-context-bar" id="bc-context-bar" style="display:none;">
+        <span class="bc-context-bar__label">Active LL:</span>
+        <select class="bc-context-bar__select" id="bc-ll-select"></select>
+        <div class="bc-context-bar__progress" id="bc-context-progress">
+          <div class="bc-context-bar__progress-bar"><div class="bc-context-bar__progress-fill" id="bc-progress-fill" style="width:0%;"></div></div>
+          <div class="bc-context-bar__progress-text" id="bc-progress-text">— / —</div>
+        </div>
+      </div>
+
+      <!-- Camera + side panel -->
+      <div class="bc-grid">
+        <div class="bc-camera">
+          <div class="bc-camera__header">
+            <div class="bc-camera__title" id="bc-camera-title">Camera 01 · Receiving station · R-INTAKE-1</div>
+            <div class="bc-camera__status">
+              <span class="bc-camera__status-dot"></span>
+              CAM ACTIVE
+            </div>
+          </div>
+          <div class="bc-viewport" id="bc-viewport">
+            <div class="bc-viewport__label" id="bc-viewport-label">SCAN TARGET</div>
+            <div class="bc-viewport__frame">
+              <div class="bc-viewport__corner bc-viewport__corner--tl"></div>
+              <div class="bc-viewport__corner bc-viewport__corner--tr"></div>
+              <div class="bc-viewport__corner bc-viewport__corner--bl"></div>
+              <div class="bc-viewport__corner bc-viewport__corner--br"></div>
+              <div class="bc-viewport__scanline"></div>
+            </div>
+            <div class="bc-viewport__barcode">▌  ▌▌  ▌  ▌▌▌  ▌▌  ▌  ▌▌▌  ▌  ▌▌</div>
+          </div>
+          <div class="bc-controls">
+            <input class="bc-controls__manual" id="bc-manual-input" placeholder="Or type/paste barcode manually (e.g. WR-26201-S1677385 or S1677385)…">
+            <button class="btn btn--ghost" id="bc-manual-submit" style="border: 1px solid var(--border);">Scan →</button>
+          </div>
+          <div class="bc-last-result">
+            <div class="bc-last-result__title">Last scan result</div>
+            <div id="bc-last-result-body">
+              <div class="bc-last-result__none">No scans yet. Click "🔍 Simulate scan" or type a barcode above.</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="bc-side-panel">
+            <div class="bc-side-panel__header">
+              <div class="bc-side-panel__title" id="bc-side-panel-title">Session scan history</div>
+              <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);" id="bc-history-count">0 scans</div>
+            </div>
+            <div class="bc-side-panel__body" id="bc-history-body">
+              <div class="bc-history-empty">No scans yet this session</div>
+            </div>
+          </div>
+
+          <div class="bc-side-panel" id="bc-reconcile-panel" style="display:none;">
+            <div class="bc-side-panel__header">
+              <div class="bc-side-panel__title">Reconciliation · expected items</div>
+              <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);" id="bc-reconcile-count">— / —</div>
+            </div>
+            <div class="bc-reconcile-list" id="bc-reconcile-list"></div>
+          </div>
+
+          <div class="bc-spec-link">
+            <div class="bc-spec-link__title">Integration spec · Phase 2</div>
+            <div class="bc-spec-link__body">
+              <strong>FT side:</strong> Magaya Flow API (Magaya's barcode product, integrates with our Magaya 14.30 license).<br>
+              <strong>MSC side:</strong> ship-side scanning system (TBD — Andrés to confirm vendor). Likely linked to CrunchTime or INFOSHIP audit.<br>
+              <strong>Reconciliation:</strong> 1 scan FT-side + 1 scan MSC-side per item = closed-loop traceability per ops manual §6.
+              <div class="bc-spec-link__path">knowledge/barcoding-stack-research.md · pending Andrés batch reply</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- CRUNCHTIME VIEW -->
     <section class="crunchtime-view" id="crunchtime-view">
       <div class="ll-header">
@@ -3333,7 +3577,8 @@ const SIDEBAR_DATA = {
     { label: "Inventory · Warehouse", count: "29", view: "inventory" },
     { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists" },
     { label: "Discrepancy Reports",  count: "3", view: "discrepancies" },
-    { label: "CrunchTime · Requests", count: "4", view: "crunchtime", highlight: true },
+    { label: "CrunchTime · Requests", count: "4", view: "crunchtime" },
+    { label: "Barcoding · Scan",     count: "·", view: "barcoding", highlight: true },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
@@ -6741,12 +6986,13 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding");
   document.body.classList.add("view-" + view);
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
   if (view === "discrepancies") renderDiscrepancyReports();
   if (view === "crunchtime") renderCrunchTime();
+  if (view === "barcoding") renderBarcoding();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -8903,6 +9149,325 @@ function setupCrunchTime() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   BARCODING · 4-mode scan workflow (mock)
+   Per Andrés "SUPER IMPORTANT!" 5/28 — barcode reconciliation
+   across Magaya Flow (FT side) + MSC ship-side scanning.
+   Modes: receiving / picking / loading / gangway
+   ═══════════════════════════════════════════════════════════════════ */
+
+const BC_MODE_CONFIG = {
+  receiving: {
+    label: "Receiving station",
+    location: "R-INTAKE-1",
+    requiresLL: false,
+    successAction: "Item registered to warehouse intake",
+    audit: "MAGAYA_FLOW · intake scan",
+  },
+  picking: {
+    label: "Picking workstation",
+    location: "WH-FLOOR-PICK",
+    requiresLL: true,
+    successAction: "Item pulled for Loading List",
+    audit: "MAGAYA_FLOW · pick confirmed",
+  },
+  loading: {
+    label: "Loading dock scanner",
+    location: "DOCK-BAY-3",
+    requiresLL: true,
+    successAction: "Item loaded onto truck",
+    audit: "MAGAYA_FLOW · loaded · seal verified",
+  },
+  gangway: {
+    label: "MSC vessel gangway",
+    location: "MSC-RECEIVE",
+    requiresLL: true,
+    successAction: "MSC confirmed receipt at vessel",
+    audit: "MSC_SHIP_SCAN · gangway acceptance",
+  },
+};
+
+let BC_MODE = "receiving";
+let BC_ACTIVE_LL_IDX = null;
+let BC_HISTORY = []; // session scan history
+let BC_SCANNED_BY_LL = {}; // { llId: Set of itemIdx scanned in this session }
+
+function renderBarcoding() {
+  // Tabs already in HTML, just ensure active state matches BC_MODE
+  document.querySelectorAll(".bc-mode-tab").forEach(tab => {
+    tab.classList.toggle("bc-mode-tab--active", tab.dataset.mode === BC_MODE);
+  });
+
+  const config = BC_MODE_CONFIG[BC_MODE];
+  document.getElementById("bc-camera-title").textContent =
+    "Camera 01 · " + config.label + " · " + config.location;
+  document.getElementById("bc-viewport-label").textContent = "SCAN TARGET · " + BC_MODE.toUpperCase();
+
+  // Context bar visibility
+  const ctxBar = document.getElementById("bc-context-bar");
+  if (config.requiresLL) {
+    ctxBar.style.display = "flex";
+    // Populate LL select with dispatched/loaded LLs only (no drafts for picking, no point)
+    const select = document.getElementById("bc-ll-select");
+    const eligibleLLs = LOADING_LISTS.filter(ll => {
+      if (BC_MODE === "picking") return ll.status === "draft" || ll.status === "dispatched";
+      if (BC_MODE === "loading") return ll.status === "draft" || ll.status === "dispatched";
+      if (BC_MODE === "gangway") return ll.status === "dispatched" || ll.status === "loaded";
+      return true;
+    });
+    while (select.firstChild) select.removeChild(select.firstChild);
+    select.appendChild(el("option", { value: "", text: "— select active Loading List —" }));
+    eligibleLLs.forEach(ll => {
+      const idx = LOADING_LISTS.indexOf(ll);
+      const opt = el("option", { value: String(idx), text: ll.id + " · " + ll.vessel + " · " + ll.truck + " · " + STATUS_LABELS_LL[ll.status] });
+      select.appendChild(opt);
+    });
+    // Reset to "—" when switching modes if current LL not eligible
+    if (BC_ACTIVE_LL_IDX !== null && !eligibleLLs.includes(LOADING_LISTS[BC_ACTIVE_LL_IDX])) {
+      BC_ACTIVE_LL_IDX = null;
+    }
+    if (BC_ACTIVE_LL_IDX !== null) {
+      select.value = String(BC_ACTIVE_LL_IDX);
+    }
+  } else {
+    ctxBar.style.display = "none";
+    BC_ACTIVE_LL_IDX = null;
+  }
+
+  renderBCProgress();
+  renderBCReconcilePanel();
+  renderBCHistory();
+}
+
+function renderBCProgress() {
+  const fill = document.getElementById("bc-progress-fill");
+  const text = document.getElementById("bc-progress-text");
+  if (!fill || !text) return;
+  if (BC_ACTIVE_LL_IDX === null) {
+    fill.style.width = "0%";
+    text.textContent = "— / —";
+    return;
+  }
+  const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
+  const scanned = (BC_SCANNED_BY_LL[ll.id] || new Set()).size;
+  const total = ll.itemIdxs.length;
+  fill.style.width = total ? Math.round(scanned / total * 100) + "%" : "0%";
+  text.textContent = scanned + " / " + total + " scanned";
+}
+
+function renderBCReconcilePanel() {
+  const panel = document.getElementById("bc-reconcile-panel");
+  const list = document.getElementById("bc-reconcile-list");
+  const count = document.getElementById("bc-reconcile-count");
+  if (!panel || !list) return;
+
+  if (BC_ACTIVE_LL_IDX === null || BC_MODE === "receiving") {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
+  const scanned = BC_SCANNED_BY_LL[ll.id] || new Set();
+  ll.itemIdxs.forEach(itemIdx => {
+    const item = INVENTORY[itemIdx];
+    if (!item) return;
+    const isDone = scanned.has(itemIdx);
+    const row = el("div", { class: "bc-reconcile-item" + (isDone ? " bc-reconcile-item--done" : "") });
+    row.appendChild(el("div", { class: "bc-reconcile-item__check" }));
+    const body = el("div", { class: "bc-reconcile-item__body" });
+    body.appendChild(el("div", { class: "bc-reconcile-item__wr", text: item.warehouseReceipt + " · " + item.partNumber }));
+    body.appendChild(el("div", { class: "bc-reconcile-item__desc", title: item.description, text: item.description }));
+    row.appendChild(body);
+    list.appendChild(row);
+  });
+  count.textContent = scanned.size + " / " + ll.itemIdxs.length;
+}
+
+function renderBCHistory() {
+  const body = document.getElementById("bc-history-body");
+  const count = document.getElementById("bc-history-count");
+  if (!body) return;
+  while (body.firstChild) body.removeChild(body.firstChild);
+  if (BC_HISTORY.length === 0) {
+    body.appendChild(el("div", { class: "bc-history-empty", text: "No scans yet this session" }));
+  } else {
+    BC_HISTORY.slice().reverse().forEach(entry => {
+      const row = el("div", { class: "bc-history-row" });
+      const iconKlass = "bc-history-row__icon--" + entry.result;
+      const iconText = entry.result === "ok" ? "✓" : entry.result === "err" ? "✗" : "!";
+      row.appendChild(el("div", { class: "bc-history-row__icon " + iconKlass, text: iconText }));
+      const bodyCol = el("div", { class: "bc-history-row__body" });
+      bodyCol.appendChild(el("div", { class: "bc-history-row__code", text: entry.barcode }));
+      bodyCol.appendChild(el("div", { class: "bc-history-row__msg", text: entry.message }));
+      row.appendChild(bodyCol);
+      row.appendChild(el("div", { class: "bc-history-row__time", text: entry.time }));
+      body.appendChild(row);
+    });
+  }
+  count.textContent = BC_HISTORY.length + " scan" + (BC_HISTORY.length === 1 ? "" : "s");
+}
+
+function lookupBarcode(barcode) {
+  // Format A: WR-NNNNN-Pxxxx (exact item)
+  const exact = barcode.match(/^(WR-\d+)-(\S+)$/);
+  if (exact) {
+    const wr = exact[1], part = exact[2];
+    const idx = INVENTORY.findIndex(i => i.warehouseReceipt === wr && i.partNumber === part);
+    if (idx >= 0) return { matchType: "exact", itemIdx: idx, item: INVENTORY[idx] };
+    return { matchType: "none", reason: "WR/Part combo not in inventory" };
+  }
+  // Format B: Part-only — match first item with that part
+  const idx = INVENTORY.findIndex(i => i.partNumber === barcode);
+  if (idx >= 0) return { matchType: "part_only", itemIdx: idx, item: INVENTORY[idx] };
+  // Format C: WR-only — match first item with that WR
+  const idxWR = INVENTORY.findIndex(i => i.warehouseReceipt === barcode);
+  if (idxWR >= 0) return { matchType: "wr_only", itemIdx: idxWR, item: INVENTORY[idxWR] };
+  return { matchType: "none", reason: "Barcode format unrecognized or item not found" };
+}
+
+function processScan(barcode) {
+  if (!barcode || !barcode.trim()) return;
+  barcode = barcode.trim();
+  const config = BC_MODE_CONFIG[BC_MODE];
+  const viewport = document.getElementById("bc-viewport");
+  const resultBody = document.getElementById("bc-last-result-body");
+  const now = new Date();
+  const time = now.toISOString().slice(11, 19);
+
+  // Build flash + result
+  const lookup = lookupBarcode(barcode);
+  let result = "ok", icon = "ok", message = "", sub = "";
+
+  if (lookup.matchType === "none") {
+    result = "err"; icon = "err";
+    message = "No match";
+    sub = lookup.reason + " · barcode: " + barcode;
+  } else if (config.requiresLL && BC_ACTIVE_LL_IDX === null) {
+    result = "warn"; icon = "warn";
+    message = "Select active Loading List first";
+    sub = "Mode " + BC_MODE + " requires an LL context — scan registered but not actioned.";
+  } else if (config.requiresLL) {
+    const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
+    const itemInLL = ll.itemIdxs.includes(lookup.itemIdx);
+    if (!itemInLL) {
+      result = "warn"; icon = "warn";
+      message = "Item NOT on active LL — would alert MSC";
+      sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · " + lookup.item.description + " · expected on " + ll.id;
+    } else {
+      if (!BC_SCANNED_BY_LL[ll.id]) BC_SCANNED_BY_LL[ll.id] = new Set();
+      if (BC_SCANNED_BY_LL[ll.id].has(lookup.itemIdx)) {
+        result = "warn"; icon = "warn";
+        message = "Already scanned this session";
+        sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · prevents double-count";
+      } else {
+        BC_SCANNED_BY_LL[ll.id].add(lookup.itemIdx);
+        result = "ok"; icon = "ok";
+        message = config.successAction;
+        sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · " + lookup.item.description + " · " + config.audit;
+      }
+    }
+  } else {
+    // Receiving mode — accept any inventory hit
+    result = "ok"; icon = "ok";
+    message = config.successAction;
+    sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · " + lookup.item.description + " · " + config.audit;
+  }
+
+  // Flash viewport
+  viewport.classList.remove("flash", "flash-err");
+  void viewport.offsetWidth; // restart animation
+  viewport.classList.add(result === "err" ? "flash-err" : "flash");
+  setTimeout(() => viewport.classList.remove("flash", "flash-err"), 400);
+
+  // Update last-scan result panel
+  while (resultBody.firstChild) resultBody.removeChild(resultBody.firstChild);
+  const row = el("div", { class: "bc-last-result__row match-" + (result === "ok" ? "ok" : result === "err" ? "err" : "warn") });
+  row.appendChild(el("div", { class: "bc-last-result__icon bc-last-result__icon--" + icon, text: icon === "ok" ? "✓" : icon === "err" ? "✗" : "!" }));
+  const detail = el("div", { class: "bc-last-result__detail" });
+  detail.appendChild(el("div", { class: "bc-last-result__msg", text: message }));
+  detail.appendChild(el("div", { class: "bc-last-result__sub", text: sub }));
+  row.appendChild(detail);
+  resultBody.appendChild(row);
+
+  // Add to history
+  BC_HISTORY.push({ barcode, result, message, time });
+  if (BC_HISTORY.length > 50) BC_HISTORY.shift();
+
+  // Refresh dependent panels
+  renderBCProgress();
+  renderBCReconcilePanel();
+  renderBCHistory();
+}
+
+function simulateBarcode() {
+  // Pick a barcode strategically based on mode
+  if (BC_MODE === "receiving") {
+    // Pick random inventory item, generate exact barcode
+    const item = INVENTORY[Math.floor((BC_HISTORY.length * 7 + 3) % INVENTORY.length)];
+    return item.warehouseReceipt + "-" + item.partNumber;
+  }
+  if (BC_ACTIVE_LL_IDX !== null) {
+    const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
+    const scanned = BC_SCANNED_BY_LL[ll.id] || new Set();
+    // Find unscanned LL item
+    const unscanned = ll.itemIdxs.filter(idx => !scanned.has(idx));
+    if (unscanned.length > 0) {
+      const item = INVENTORY[unscanned[0]];
+      return item.warehouseReceipt + "-" + item.partNumber;
+    }
+    // All scanned — simulate an out-of-list scan (warning case)
+    const otherItems = INVENTORY.filter((_, i) => !ll.itemIdxs.includes(i));
+    if (otherItems.length > 0) {
+      const item = otherItems[0];
+      return item.warehouseReceipt + "-" + item.partNumber;
+    }
+  }
+  // Fallback — any item
+  const item = INVENTORY[0];
+  return item.warehouseReceipt + "-" + item.partNumber;
+}
+
+function setupBarcoding() {
+  // Mode tabs
+  document.querySelectorAll(".bc-mode-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      BC_MODE = tab.dataset.mode;
+      renderBarcoding();
+    });
+  });
+
+  // LL select
+  const llSelect = document.getElementById("bc-ll-select");
+  if (llSelect) llSelect.addEventListener("change", (e) => {
+    BC_ACTIVE_LL_IDX = e.target.value ? parseInt(e.target.value, 10) : null;
+    renderBCProgress();
+    renderBCReconcilePanel();
+  });
+
+  // Simulate scan button
+  const simBtn = document.getElementById("bc-simulate-btn");
+  if (simBtn) simBtn.addEventListener("click", () => processScan(simulateBarcode()));
+
+  // Manual entry
+  const manualInput = document.getElementById("bc-manual-input");
+  const manualSubmit = document.getElementById("bc-manual-submit");
+  const submitManual = () => {
+    const val = manualInput.value;
+    if (val && val.trim()) {
+      processScan(val);
+      manualInput.value = "";
+    }
+  };
+  if (manualInput) {
+    manualInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); submitManual(); }
+    });
+  }
+  if (manualSubmit) manualSubmit.addEventListener("click", submitManual);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    SEARCH  ·  Live filter cards
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -8943,6 +9508,7 @@ setupInvDrawer();
 setupLoadingLists();
 setupDiscrepancyReports();
 setupCrunchTime();
+setupBarcoding();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
@@ -8979,6 +9545,8 @@ setInterval(tickClock, 1000);
       if (!isNaN(drIdx) && DISCREPANCY_REPORTS[drIdx]) openDRPreview(drIdx);
     } else if (h === "crunchtime" || h === "ct") {
       switchView("crunchtime");
+    } else if (h === "barcoding" || h === "scan" || h === "bc") {
+      switchView("barcoding");
     } else if (h.startsWith("email-")) {
       switchView("inbox");
       const idx = parseInt(h.replace("email-", ""), 10);
