@@ -1193,13 +1193,17 @@ body.view-loading_lists .pagination { display: none; }
 @media print {
   body * { visibility: hidden; }
   .ll-preview-doc, .ll-preview-doc *,
-  .dr-preview-doc, .dr-preview-doc * { visibility: visible; }
+  .dr-preview-doc, .dr-preview-doc *,
+  .invc-preview-doc, .invc-preview-doc * { visibility: visible; }
   .ll-preview-overlay,
-  .dr-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
+  .dr-preview-overlay,
+  .invc-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
   .ll-preview-doc,
-  .dr-preview-doc { box-shadow: none; margin: 0; max-width: none; }
+  .dr-preview-doc,
+  .invc-preview-doc { box-shadow: none; margin: 0; max-width: none; }
   .ll-preview-toolbar,
-  .dr-preview-toolbar { display: none !important; }
+  .dr-preview-toolbar,
+  .invc-preview-toolbar { display: none !important; }
 }
 
 /* ═══ DISCREPANCY REPORTS view ═══ */
@@ -1578,6 +1582,144 @@ body.view-barcoding .pagination { display: none; }
 .bc-spec-link__body { font-size: 11px; color: var(--text); line-height: 1.5; }
 .bc-spec-link__body strong { color: var(--text-bright); }
 .bc-spec-link__path { font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); margin-top: 4px; }
+
+/* ═══ INVOICES view ═══ */
+.invoices-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-invoices .invoices-view { display: block; }
+body.view-invoices .dashboard,
+body.view-invoices .inbox-view,
+body.view-invoices .inventory-view,
+body.view-invoices .loading-lists-view,
+body.view-invoices .discrepancies-view,
+body.view-invoices .crunchtime-view,
+body.view-invoices .barcoding-view,
+body.view-invoices .pagination { display: none; }
+
+.inv-id { font-family: var(--font-mono); font-size: 11px; color: #34D399; font-weight: 500; }
+.inv-llref { font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); }
+.inv-status { display: inline-block; padding: 3px 10px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; white-space: nowrap; }
+.inv-status--draft             { background: rgba(148,163,184,0.12); color: var(--text-dim);     border: 1px solid rgba(148,163,184,0.25); }
+.inv-status--pending_approval  { background: rgba(217,119,6,0.12);  color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.inv-status--approved          { background: rgba(96,165,250,0.12); color: var(--info);          border: 1px solid rgba(96,165,250,0.25); }
+.inv-status--sent              { background: rgba(139,92,246,0.12); color: #C4B5FD;              border: 1px solid rgba(139,92,246,0.25); }
+.inv-status--paid              { background: rgba(16,185,129,0.12); color: var(--ok);            border: 1px solid rgba(16,185,129,0.25); }
+.inv-status--rejected          { background: rgba(239,68,68,0.12);  color: var(--crit);          border: 1px solid rgba(239,68,68,0.3); }
+.inv-amount { font-family: var(--font-mono); font-feature-settings: "tnum"; color: var(--text-bright); font-weight: 500; }
+
+/* invoice builder modal */
+.invc-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; }
+.invc-overlay.open { display: block; }
+.invc-modal { position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: 1100px; max-width: 96vw; height: 92vh; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+.invc-modal.open { display: flex; }
+.invc-modal__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.invc-modal__title { font-family: var(--font-display); font-size: 16px; color: var(--text-bright); font-weight: 500; }
+.invc-modal__close { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+.invc-modal__close:hover { color: var(--text-bright); border-color: var(--border-bright); }
+
+.invc-body { display: grid; grid-template-columns: 1fr 380px; flex: 1; overflow: hidden; }
+.invc-left { overflow-y: auto; padding: 18px 22px; border-right: 1px solid var(--border); }
+.invc-right { overflow-y: auto; padding: 18px 22px; background: rgba(10,15,28,0.3); }
+
+.invc-section-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+.invc-source-pick { padding: 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; margin-bottom: 14px; }
+.invc-source-pick select { width: 100%; padding: 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 12px; }
+.invc-source-pick select:focus { outline: none; border-color: var(--accent); }
+
+.invc-line-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.invc-line-row { display: grid; grid-template-columns: 140px 1fr 70px 100px 100px 24px; gap: 8px; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 5px; align-items: center; font-size: 11px; }
+.invc-line-row select,
+.invc-line-row input { padding: 6px 8px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; }
+.invc-line-row input:focus,
+.invc-line-row select:focus { outline: none; border-color: var(--accent); }
+.invc-line-row__desc { color: var(--text); font-family: var(--font-body); font-size: 11px; }
+.invc-line-row__num { text-align: right; }
+.invc-line-row__total { text-align: right; font-family: var(--font-mono); font-feature-settings: "tnum"; color: var(--accent-bright); font-weight: 500; }
+.invc-line-row__remove { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 4px 7px; border-radius: 4px; cursor: pointer; font-family: var(--font-mono); font-size: 10px; }
+.invc-line-row__remove:hover { color: var(--crit); border-color: rgba(239,68,68,0.4); }
+.invc-line-head { display: grid; grid-template-columns: 140px 1fr 70px 100px 100px 24px; gap: 8px; padding: 4px 12px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.invc-add-line { padding: 9px 14px; background: transparent; border: 1px dashed var(--border-bright); color: var(--text-dim); width: 100%; border-radius: 5px; cursor: pointer; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; }
+.invc-add-line:hover { color: var(--accent-bright); border-color: var(--accent); background: var(--bg-glow); }
+
+.invc-meta-form { display: flex; flex-direction: column; gap: 12px; }
+.invc-meta-field { display: flex; flex-direction: column; gap: 4px; }
+.invc-meta-field label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+.invc-meta-field input,
+.invc-meta-field select,
+.invc-meta-field textarea { padding: 8px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; resize: vertical; }
+.invc-meta-field textarea { font-family: var(--font-body); min-height: 60px; }
+.invc-meta-field input:focus,
+.invc-meta-field select:focus,
+.invc-meta-field textarea:focus { outline: none; border-color: var(--accent); }
+.invc-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.invc-summary { margin-top: 16px; padding: 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; }
+.invc-summary__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+.invc-summary__row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
+.invc-summary__row strong { color: var(--text-bright); font-family: var(--font-mono); font-feature-settings: "tnum"; }
+.invc-summary__row--total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; }
+.invc-summary__row--total strong { color: #34D399; font-size: 14px; }
+.invc-summary__warn { color: var(--crit); font-family: var(--font-mono); font-size: 10px; margin-top: 8px; padding: 6px 10px; background: rgba(239,68,68,0.08); border-left: 2px solid var(--crit); }
+
+.invc-footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.invc-footer-hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.invc-footer-actions { display: flex; gap: 10px; }
+
+/* invoice preview document */
+.invc-preview-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.85); backdrop-filter: blur(6px); z-index: 110; display: none; overflow-y: auto; padding: 24px; }
+.invc-preview-overlay.open { display: block; }
+.invc-preview-doc { max-width: 920px; margin: 0 auto; background: #FBFAF6; color: #1A1F2E; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); font-family: "Inter", -apple-system, sans-serif; position: relative; }
+.invc-preview-toolbar { display: flex; justify-content: space-between; align-items: center; max-width: 920px; margin: 0 auto 16px; padding: 0 4px; }
+.invc-preview-toolbar__left { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,250,246,0.7); }
+.invc-preview-toolbar__actions { display: flex; gap: 8px; }
+.invc-preview-toolbar__btn { background: rgba(251,250,246,0.1); border: 1px solid rgba(251,250,246,0.2); color: #FBFAF6; padding: 6px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.invc-preview-toolbar__btn:hover { background: rgba(251,250,246,0.16); border-color: rgba(251,250,246,0.4); }
+.invc-preview-toolbar__btn--primary { background: #10B981; border-color: #10B981; color: #FBFAF6; }
+.invc-preview-toolbar__btn--primary:hover { background: #34D399; }
+
+.invc-doc__header { padding: 32px 40px 18px; border-bottom: 2px solid #10B981; display: flex; justify-content: space-between; align-items: flex-start; }
+.invc-doc__brand { display: flex; flex-direction: column; gap: 2px; }
+.invc-doc__logo { font-family: "Fraunces", serif; font-size: 22px; font-weight: 600; color: #1A1F2E; letter-spacing: -0.01em; }
+.invc-doc__brand-sub { font-size: 10px; color: #555; letter-spacing: 0.04em; line-height: 1.5; }
+.invc-doc__title-block { text-align: right; }
+.invc-doc__title { font-family: "Fraunces", serif; font-size: 20px; font-weight: 500; color: #10B981; margin-bottom: 4px; }
+.invc-doc__id { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #10B981; font-weight: 600; }
+.invc-doc__date { font-family: "JetBrains Mono", monospace; font-size: 10px; color: #555; margin-top: 4px; }
+
+.invc-doc__meta { padding: 20px 40px; background: #F0FDF4; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; border-bottom: 1px solid #BBF7D0; }
+.invc-doc__meta-field { display: flex; flex-direction: column; gap: 2px; }
+.invc-doc__meta-label { font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: #777; }
+.invc-doc__meta-value { font-size: 12px; color: #1A1F2E; font-weight: 500; }
+.invc-doc__meta-value--mono { font-family: "JetBrains Mono", monospace; }
+
+.invc-doc__lines-section { padding: 20px 40px; }
+.invc-doc__lines-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 10px; }
+.invc-doc__lines-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.invc-doc__lines-table thead { background: #1A1F2E; color: #FBFAF6; }
+.invc-doc__lines-table th { padding: 8px 10px; text-align: left; font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+.invc-doc__lines-table th.num { text-align: right; }
+.invc-doc__lines-table td { padding: 10px; border-bottom: 1px solid #E0DBD0; vertical-align: top; }
+.invc-doc__lines-table td.num { text-align: right; font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum"; }
+.invc-doc__lines-table td.mono { font-family: "JetBrains Mono", monospace; font-size: 10px; }
+.invc-doc__lines-table tbody tr:nth-child(even) { background: #F8F6F0; }
+.invc-doc__lines-table tfoot td { background: #DCFCE7; font-weight: 600; padding: 10px; border-top: 2px solid #10B981; font-family: "JetBrains Mono", monospace; color: #047857; }
+.invc-doc__lines-table tfoot td.num { font-size: 13px; }
+.invc-doc__lines-table tfoot tr.subtotal td { background: #F8F6F0; color: #555; font-weight: 400; border-top: 1px solid #D5CFC2; font-size: 11px; }
+
+.invc-doc__totals-strip { padding: 16px 40px; background: #DCFCE7; display: flex; justify-content: flex-end; gap: 40px; border-top: 1px solid #BBF7D0; }
+.invc-doc__total-cell { display: flex; flex-direction: column; gap: 2px; text-align: right; }
+.invc-doc__total-label { font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; color: #555; }
+.invc-doc__total-value { font-family: "JetBrains Mono", monospace; font-size: 18px; font-weight: 700; color: #047857; }
+
+.invc-doc__notes-section { padding: 18px 40px; border-top: 1px solid #D5CFC2; background: #FFFBEB; }
+.invc-doc__notes-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 6px; }
+.invc-doc__notes-body { font-size: 11px; color: #1A1F2E; line-height: 1.5; }
+
+.invc-doc__payment { padding: 20px 40px; background: #F0FDF4; border-top: 1px solid #BBF7D0; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.invc-doc__payment-block-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: #555; margin-bottom: 6px; }
+.invc-doc__payment-block-body { font-size: 11px; color: #1A1F2E; line-height: 1.6; font-family: "JetBrains Mono", monospace; }
+
+.invc-doc__footer { padding: 14px 40px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
 
 .inbox-stats {
   display: grid;
@@ -2866,6 +3008,49 @@ body.layout-list .pagination { display: none; }
       </table>
     </section>
 
+    <!-- INVOICES VIEW -->
+    <section class="invoices-view" id="invoices-view">
+      <div class="ll-header">
+        <div>
+          <div class="ll-crumb">Billing · Shipment Detail Report engine · Ops Manual §3.1 + §9 ADS rate card</div>
+          <div class="ll-title">
+            <h1>Invoices</h1>
+            <span class="ll-title-count" id="invc-title-count">— invoices</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <input id="invc-search" placeholder="Search invoice#, LL#, vessel, PON…" style="padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; width: 260px;">
+          <button class="btn btn--accent" id="invc-new-btn">+ New Invoice</button>
+        </div>
+      </div>
+
+      <div class="ll-stats">
+        <div class="ll-stat"><div class="ll-stat__label">Total invoices</div><div class="ll-stat__value" id="invc-stat-total">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Pending approval</div><div class="ll-stat__value" id="invc-stat-pending" style="color:var(--accent-bright);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Sent · awaiting payment</div><div class="ll-stat__value" id="invc-stat-sent" style="color:#C4B5FD;">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Paid (this month)</div><div class="ll-stat__value" id="invc-stat-paid" style="color:var(--ok);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Outstanding (USD)</div><div class="ll-stat__value" id="invc-stat-outstanding" style="color:#34D399;">—</div></div>
+      </div>
+
+      <table class="ll-table">
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Source LL</th>
+            <th>Vessel</th>
+            <th>PON</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th style="text-align:right">Lines</th>
+            <th style="text-align:right">Subtotal</th>
+            <th style="text-align:right">Fuel +15%</th>
+            <th style="text-align:right">Total (USD)</th>
+          </tr>
+        </thead>
+        <tbody id="invc-tbody"></tbody>
+      </table>
+    </section>
+
     <!-- BARCODING VIEW -->
     <section class="barcoding-view" id="barcoding-view">
       <div class="ll-header">
@@ -3237,6 +3422,127 @@ body.layout-list .pagination { display: none; }
     <div class="dr-preview-doc" id="dr-preview-doc"></div>
   </div>
 
+  <!-- INVOICE BUILDER MODAL -->
+  <div class="invc-overlay" id="invc-overlay"></div>
+  <div class="invc-modal" id="invc-modal">
+    <div class="invc-modal__header">
+      <div class="invc-modal__title">New Invoice · ADS rate card billing</div>
+      <button class="invc-modal__close" id="invc-modal-close">Close ✕</button>
+    </div>
+    <div class="invc-body">
+      <div class="invc-left">
+        <div class="invc-section-title">Step 1 · Source Loading List (optional)</div>
+        <div class="invc-source-pick">
+          <select id="invc-source-ll">
+            <option value="">— Manual invoice (no source LL) —</option>
+          </select>
+          <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin-top: 6px;">
+            Auto-populate billing lines from a Loading List, or build manually. Hard rule: <strong style="color: var(--accent-bright);">No PO, no service</strong> — invoice requires PON.
+          </div>
+        </div>
+
+        <div class="invc-section-title">Step 2 · Billing lines (ADS codes × qty × rate)</div>
+        <div class="invc-line-head">
+          <span>ADS Code</span>
+          <span>Service description</span>
+          <span class="invc-line-row__num">Qty</span>
+          <span class="invc-line-row__num">Rate (USD)</span>
+          <span class="invc-line-row__num">Line total</span>
+          <span></span>
+        </div>
+        <div class="invc-line-list" id="invc-line-list"></div>
+        <button class="invc-add-line" id="invc-add-line-btn">+ Add billing line</button>
+      </div>
+
+      <div class="invc-right">
+        <div class="invc-section-title">Step 3 · Invoice metadata</div>
+        <form class="invc-meta-form" id="invc-meta-form" onsubmit="return false;">
+          <div class="invc-meta-field">
+            <label>Bill To (MSC entity)<span class="required">*</span></label>
+            <select name="billTo" required>
+              <option value="MSC Cruises USA · Logistics">MSC Cruises USA · Logistics</option>
+              <option value="MSC Procurement & Logistic S.p.A.">MSC Procurement & Logistic S.p.A.</option>
+              <option value="MSC Cruise Management (UK) Ltd.">MSC Cruise Management (UK) Ltd.</option>
+            </select>
+          </div>
+          <div class="invc-meta-field">
+            <label>Attn (MSC contact)</label>
+            <input name="attn" value="Jorge Vega · Logistics Manager USA">
+          </div>
+          <div class="invc-meta-grid">
+            <div class="invc-meta-field">
+              <label>PON (MSC PO #)<span class="required">*</span></label>
+              <input name="pon" required placeholder="4597196559-OCY00018">
+            </div>
+            <div class="invc-meta-field">
+              <label>Invoice date<span class="required">*</span></label>
+              <input name="invoiceDate" type="date" required>
+            </div>
+          </div>
+          <div class="invc-meta-grid">
+            <div class="invc-meta-field">
+              <label>Payment terms</label>
+              <select name="terms">
+                <option>NET 30</option>
+                <option>NET 45</option>
+                <option>NET 60</option>
+                <option>Due on receipt</option>
+              </select>
+            </div>
+            <div class="invc-meta-field">
+              <label>Currency</label>
+              <select name="currency">
+                <option>USD</option>
+                <option>EUR</option>
+              </select>
+            </div>
+          </div>
+          <div class="invc-meta-field">
+            <label>Fuel surcharge</label>
+            <select name="fuel">
+              <option value="15">Apply 15% (ADS-001886/001456)</option>
+              <option value="0">No fuel surcharge</option>
+            </select>
+          </div>
+          <div class="invc-meta-field">
+            <label>Notes (visible to MSC)</label>
+            <textarea name="notes" placeholder="e.g. Loading List LL-2026-0049 dispatch · MSC Seascape · Ocean Cay turnaround"></textarea>
+          </div>
+        </form>
+
+        <div class="invc-summary">
+          <div class="invc-summary__title">Invoice totals</div>
+          <div class="invc-summary__row"><span>Billing lines</span><strong id="invc-sum-lines">0</strong></div>
+          <div class="invc-summary__row"><span>Subtotal</span><strong id="invc-sum-subtotal">$0.00</strong></div>
+          <div class="invc-summary__row"><span>Fuel surcharge</span><strong id="invc-sum-fuel">$0.00</strong></div>
+          <div class="invc-summary__row invc-summary__row--total"><span>TOTAL DUE</span><strong id="invc-sum-total">$0.00</strong></div>
+          <div class="invc-summary__warn" id="invc-sum-warn" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="invc-footer">
+      <div class="invc-footer-hint">Per ops manual §3.1: Shipment Detail Report → triggers MSC PO → finance invoicing. "No PO, no service" hard rule.</div>
+      <div class="invc-footer-actions">
+        <button class="btn btn--ghost" id="invc-cancel-btn">Cancel</button>
+        <button class="btn btn--accent" id="invc-generate-btn">Generate Invoice →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVOICE PREVIEW DOCUMENT -->
+  <div class="invc-preview-overlay" id="invc-preview-overlay">
+    <div class="invc-preview-toolbar">
+      <div class="invc-preview-toolbar__left" id="invc-preview-toolbar-label">Invoice preview</div>
+      <div class="invc-preview-toolbar__actions">
+        <button class="invc-preview-toolbar__btn" id="invc-preview-close">Close ✕</button>
+        <button class="invc-preview-toolbar__btn" id="invc-preview-print">Print / PDF</button>
+        <button class="invc-preview-toolbar__btn" id="invc-preview-approve">Mark approved</button>
+        <button class="invc-preview-toolbar__btn invc-preview-toolbar__btn--primary" id="invc-preview-send">Send to MSC</button>
+      </div>
+    </div>
+    <div class="invc-preview-doc" id="invc-preview-doc"></div>
+  </div>
+
   <!-- INVENTORY DETAIL DRAWER -->
   <div class="inv-drawer-overlay" id="inv-drawer-overlay"></div>
   <aside class="inv-drawer" id="inv-drawer">
@@ -3578,7 +3884,8 @@ const SIDEBAR_DATA = {
     { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists" },
     { label: "Discrepancy Reports",  count: "3", view: "discrepancies" },
     { label: "CrunchTime · Requests", count: "4", view: "crunchtime" },
-    { label: "Barcoding · Scan",     count: "·", view: "barcoding", highlight: true },
+    { label: "Barcoding · Scan",     count: "·", view: "barcoding" },
+    { label: "Invoices · Billing",   count: "4", view: "invoices", highlight: true },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
@@ -6986,13 +7293,14 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices");
   document.body.classList.add("view-" + view);
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
   if (view === "discrepancies") renderDiscrepancyReports();
   if (view === "crunchtime") renderCrunchTime();
   if (view === "barcoding") renderBarcoding();
+  if (view === "invoices") renderInvoices();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -9428,6 +9736,617 @@ function simulateBarcode() {
   return item.warehouseReceipt + "-" + item.partNumber;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   INVOICES · Module 5 (Billing engine)
+   Per ops manual §3.1 Shipment Detail Report + §9 ADS rate card.
+   Hard rule §8.1: "No PO, no service" — invoice requires PON.
+   ═══════════════════════════════════════════════════════════════════ */
+
+// ADS rate card seeded from ops manual §9 (20 codes — Trucking + Container)
+const ADS_RATES = [
+  // Trucking (Operation 1)
+  { code: "ADS-002655", desc: "Truck delivery at port 53ft (dry)",       rate: 612.00, op: "trucking" },
+  { code: "ADS-002656", desc: "Truck delivery at port 53ft (reefer)",    rate: 680.00, op: "trucking" },
+  { code: "ADS-002954", desc: "Loading / unloading",                     rate: 480.00, op: "trucking" },
+  { code: "ADS-000065", desc: "Offload return — Miami",                  rate: 312.00, op: "trucking" },
+  { code: "ADS-002897", desc: "Pick-up — Miami / Galveston",             rate: 250.00, op: "trucking" },
+  { code: "ADS-002856", desc: "Bonded fee (per shipment)",               rate: 120.00, op: "trucking" },
+  { code: "ADS-000022", desc: "PO handling (per PO)",                    rate:  30.00, op: "trucking" },
+  { code: "ADS-03257",  desc: "Pallet in transit (per pallet)",          rate:  25.00, op: "trucking" },
+  { code: "ADS-002858", desc: "Weekend delivery fee",                    rate: 250.00, op: "trucking" },
+  { code: "ADS-001456", desc: "Fuel adjustment 15% (trucking)",          rate:   0,    op: "trucking", percentSurcharge: 0.15 },
+  // Import containers (Operation 2)
+  { code: "ADS-001479", desc: "Container land transport — round trip",   rate: 500.00, op: "import" },
+  { code: "ADS-000328", desc: "Container storage at yard (per day)",     rate:  45.00, op: "import" },
+  { code: "ADS-000422", desc: "Container storage at yard (per day, alt)",rate:  45.00, op: "import" },
+  { code: "ADS-002639", desc: "Chassis charge",                          rate:  35.00, op: "import" },
+  { code: "ADS-003082", desc: "Demurrage (per container)",               rate: 410.00, op: "import" },
+  { code: "ADS-002846", desc: "Bond fee per container",                  rate: 120.00, op: "import" },
+  { code: "ADS-000144", desc: "Port terminal import fee",                rate: 137.25, op: "import" },
+  { code: "ADS-002580", desc: "7512 issuing & validation",               rate:  90.00, op: "import" },
+  { code: "ADS-000157", desc: "ISF filing",                              rate:  45.00, op: "import" },
+  { code: "ADS-002845", desc: "FDA filing",                              rate: 200.00, op: "import" },
+  { code: "ADS-001886", desc: "Fuel surcharge 15% (containers)",         rate:   0,    op: "import", percentSurcharge: 0.15 },
+];
+
+const INVC_STATUS_LABELS = {
+  draft: "Draft",
+  pending_approval: "Pending approval",
+  approved: "Approved",
+  sent: "Sent to MSC",
+  paid: "Paid",
+  rejected: "Rejected",
+};
+
+// Seeded invoices (mock — link to real Loading Lists from earlier modules)
+const INVOICES = [
+  {
+    id: "FT-INV-46225",
+    loadingListId: "LL-2026-0048",
+    pon: "4597196559-OCY00018",
+    invoiceDate: "2026-05-31",
+    issueDate: "2026-05-31 16:08",
+    billTo: "MSC Cruises USA · Logistics",
+    attn: "Jorge Vega · Logistics Manager USA",
+    terms: "NET 30",
+    currency: "USD",
+    fuel: 15,
+    status: "paid",
+    notes: "Loading List LL-2026-0048 dispatch · MSC Seashore · Miami turnaround. Includes $42 credit adjustment for DR-2026-0010.",
+    lines: [
+      { code: "ADS-002655", desc: "Truck delivery at port 53ft (dry)", qty: 1, rate: 612.00 },
+      { code: "ADS-002954", desc: "Loading / unloading",               qty: 1, rate: 480.00 },
+      { code: "ADS-000022", desc: "PO handling",                       qty: 1, rate:  30.00 },
+      { code: "ADS-03257",  desc: "Pallet in transit",                 qty: 7, rate:  25.00 },
+      { code: "ADS-002856", desc: "Bonded fee",                        qty: 1, rate: 120.00 },
+    ],
+  },
+  {
+    id: "FT-INV-46247",
+    loadingListId: "LL-2026-0049",
+    pon: "4597196559-OCY00021",
+    invoiceDate: "2026-06-02",
+    issueDate: "2026-06-02 11:22",
+    billTo: "MSC Cruises USA · Logistics",
+    attn: "Jorge Vega · Logistics Manager USA",
+    terms: "NET 30",
+    currency: "USD",
+    fuel: 15,
+    status: "sent",
+    notes: "Loading List LL-2026-0049 dispatch · MSC Seascape · Ocean Cay turnaround. DR-2026-0011 investigation pending — may require adjustment.",
+    lines: [
+      { code: "ADS-002655", desc: "Truck delivery at port 53ft (dry)", qty: 1, rate: 612.00 },
+      { code: "ADS-002954", desc: "Loading / unloading",               qty: 1, rate: 480.00 },
+      { code: "ADS-000022", desc: "PO handling",                       qty: 1, rate:  30.00 },
+      { code: "ADS-03257",  desc: "Pallet in transit",                 qty: 7, rate:  25.00 },
+    ],
+  },
+  {
+    id: "FT-INV-46258",
+    loadingListId: null,
+    pon: "4597196559-OCY00019",
+    invoiceDate: "2026-06-05",
+    issueDate: "2026-06-05 09:30",
+    billTo: "MSC Procurement & Logistic S.p.A.",
+    attn: "Ana Sanchez · MSC Inventory Check",
+    terms: "NET 45",
+    currency: "USD",
+    fuel: 0,
+    status: "pending_approval",
+    notes: "May warehouse storage + inventory check reconciliation services. Manual invoice — no source LL.",
+    lines: [
+      { code: "ADS-000328", desc: "Container storage at yard (per day)", qty: 12, rate:  45.00 },
+      { code: "ADS-000022", desc: "PO handling",                         qty:  4, rate:  30.00 },
+    ],
+  },
+  {
+    id: "FT-INV-46260",
+    loadingListId: "LL-2026-0050",
+    pon: "4597196559-OCY00024",
+    invoiceDate: "2026-06-07",
+    issueDate: "2026-06-07 14:00",
+    billTo: "MSC Cruises USA · Logistics",
+    attn: "Jorge Vega · Logistics Manager USA",
+    terms: "NET 30",
+    currency: "USD",
+    fuel: 15,
+    status: "draft",
+    notes: "Draft for upcoming MSC Meraviglia dispatch · PCV. Pending Loading List finalization + seal/driver assignment.",
+    lines: [
+      { code: "ADS-002655", desc: "Truck delivery at port 53ft (dry)", qty: 1, rate: 612.00 },
+      { code: "ADS-002954", desc: "Loading / unloading",               qty: 1, rate: 480.00 },
+      { code: "ADS-000022", desc: "PO handling",                       qty: 1, rate:  30.00 },
+    ],
+  },
+];
+
+function calcInvoiceTotals(inv) {
+  const subtotal = inv.lines.reduce((s, ln) => s + (ln.qty || 0) * (ln.rate || 0), 0);
+  const fuelPct = (inv.fuel || 0) / 100;
+  const fuelAmt = subtotal * fuelPct;
+  const total = subtotal + fuelAmt;
+  return { subtotal, fuelAmt, total };
+}
+
+function renderInvoices() {
+  const tbody = document.getElementById("invc-tbody");
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  const q = ((document.getElementById("invc-search") || {}).value || "").trim().toLowerCase();
+  const filtered = q ? INVOICES.filter(inv => {
+    return [inv.id, inv.loadingListId || "", inv.pon, inv.billTo, inv.attn].join(" ").toLowerCase().includes(q);
+  }) : INVOICES;
+
+  filtered.forEach(inv => {
+    const totals = calcInvoiceTotals(inv);
+    const ll = inv.loadingListId ? LOADING_LISTS.find(l => l.id === inv.loadingListId) : null;
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, [el("span", { class: "inv-id", text: inv.id })]));
+    tr.appendChild(el("td", {}, [
+      inv.loadingListId ? el("span", { class: "inv-llref", text: inv.loadingListId }) : el("span", { class: "muted-dash", text: "— manual —" }),
+    ]));
+    tr.appendChild(el("td", { text: (ll && ll.vessel) || "—" }));
+    tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:10px;color:var(--text-dim);", text: inv.pon })]));
+    tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:11px;color:var(--text-bright);", text: inv.invoiceDate })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "inv-status inv-status--" + inv.status, text: INVC_STATUS_LABELS[inv.status] })]));
+    const tdLines = el("td", { class: "td-num" });
+    tdLines.appendChild(el("span", { class: "inv-num", text: String(inv.lines.length) }));
+    tr.appendChild(tdLines);
+    const tdSub = el("td", { class: "td-num" });
+    tdSub.appendChild(el("span", { class: "inv-amount", text: "$" + totals.subtotal.toFixed(2) }));
+    tr.appendChild(tdSub);
+    const tdFuel = el("td", { class: "td-num" });
+    tdFuel.appendChild(el("span", { class: "inv-amount", text: totals.fuelAmt > 0 ? "$" + totals.fuelAmt.toFixed(2) : "—" }));
+    tr.appendChild(tdFuel);
+    const tdTotal = el("td", { class: "td-num" });
+    tdTotal.appendChild(el("span", { class: "inv-amount", style: "color:#34D399;", text: "$" + totals.total.toFixed(2) }));
+    tr.appendChild(tdTotal);
+    tr.addEventListener("click", () => openInvcPreview(INVOICES.indexOf(inv)));
+    tbody.appendChild(tr);
+  });
+
+  const pendingCount = INVOICES.filter(i => i.status === "pending_approval").length;
+  const sentCount = INVOICES.filter(i => i.status === "sent" || i.status === "approved").length;
+  const paidCount = INVOICES.filter(i => i.status === "paid").length;
+  const outstanding = INVOICES
+    .filter(i => i.status === "sent" || i.status === "approved" || i.status === "pending_approval")
+    .reduce((s, i) => s + calcInvoiceTotals(i).total, 0);
+
+  document.getElementById("invc-title-count").textContent = q
+    ? filtered.length + " matching"
+    : INVOICES.length + " invoices · " + pendingCount + " pending approval";
+  document.getElementById("invc-stat-total").textContent = INVOICES.length;
+  document.getElementById("invc-stat-pending").textContent = pendingCount;
+  document.getElementById("invc-stat-sent").textContent = sentCount;
+  document.getElementById("invc-stat-paid").textContent = paidCount;
+  document.getElementById("invc-stat-outstanding").textContent = "$" + outstanding.toFixed(0);
+}
+
+/* ─── Invoice builder ─── */
+
+let INVC_BUILDER_LINES = [];
+
+function openInvcBuilder() {
+  INVC_BUILDER_LINES = [];
+  document.getElementById("invc-overlay").classList.add("open");
+  document.getElementById("invc-modal").classList.add("open");
+
+  const select = document.getElementById("invc-source-ll");
+  while (select.firstChild) select.removeChild(select.firstChild);
+  select.appendChild(el("option", { value: "", text: "— Manual invoice (no source LL) —" }));
+  LOADING_LISTS.forEach((ll, i) => {
+    const opt = el("option", { value: String(i), text: ll.id + " · " + ll.vessel + " · " + ll.truck + " · " + STATUS_LABELS_LL[ll.status] });
+    select.appendChild(opt);
+  });
+
+  document.getElementById("invc-meta-form").reset();
+  const dateInput = document.querySelector('#invc-meta-form [name="invoiceDate"]');
+  if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+
+  renderBuilderLines();
+  updateInvcSummary();
+}
+
+function closeInvcBuilder() {
+  document.getElementById("invc-overlay").classList.remove("open");
+  document.getElementById("invc-modal").classList.remove("open");
+}
+
+function renderBuilderLines() {
+  const list = document.getElementById("invc-line-list");
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  INVC_BUILDER_LINES.forEach((line, idx) => {
+    const row = el("div", { class: "invc-line-row" });
+
+    // ADS code select
+    const codeSel = el("select");
+    codeSel.appendChild(el("option", { value: "", text: "— select —" }));
+    ADS_RATES.forEach(r => {
+      const opt = el("option", { value: r.code, text: r.code });
+      if (line.code === r.code) opt.selected = true;
+      codeSel.appendChild(opt);
+    });
+    codeSel.addEventListener("change", () => {
+      const rate = ADS_RATES.find(r => r.code === codeSel.value);
+      if (rate) {
+        line.code = rate.code;
+        line.desc = rate.desc;
+        line.rate = rate.rate;
+        renderBuilderLines();
+        updateInvcSummary();
+      }
+    });
+    row.appendChild(codeSel);
+
+    // Description (text — shows ADS desc)
+    row.appendChild(el("span", { class: "invc-line-row__desc", text: line.desc || "—", title: line.desc }));
+
+    // Qty
+    const qtyInp = el("input", { type: "number", min: "1", value: String(line.qty || 1) });
+    qtyInp.className = "invc-line-row__num";
+    qtyInp.addEventListener("input", () => {
+      line.qty = parseInt(qtyInp.value, 10) || 0;
+      const totalCell = row.querySelector(".invc-line-row__total");
+      if (totalCell) totalCell.textContent = "$" + ((line.qty || 0) * (line.rate || 0)).toFixed(2);
+      updateInvcSummary();
+    });
+    row.appendChild(qtyInp);
+
+    // Rate (editable)
+    const rateInp = el("input", { type: "number", min: "0", step: "0.01", value: String(line.rate || 0) });
+    rateInp.className = "invc-line-row__num";
+    rateInp.addEventListener("input", () => {
+      line.rate = parseFloat(rateInp.value) || 0;
+      const totalCell = row.querySelector(".invc-line-row__total");
+      if (totalCell) totalCell.textContent = "$" + ((line.qty || 0) * (line.rate || 0)).toFixed(2);
+      updateInvcSummary();
+    });
+    row.appendChild(rateInp);
+
+    // Line total
+    const totalCell = el("span", { class: "invc-line-row__total", text: "$" + ((line.qty || 0) * (line.rate || 0)).toFixed(2) });
+    row.appendChild(totalCell);
+
+    // Remove
+    const rmBtn = el("button", { class: "invc-line-row__remove", text: "✕" });
+    rmBtn.addEventListener("click", () => {
+      INVC_BUILDER_LINES.splice(idx, 1);
+      renderBuilderLines();
+      updateInvcSummary();
+    });
+    row.appendChild(rmBtn);
+
+    list.appendChild(row);
+  });
+}
+
+function updateInvcSummary() {
+  const subtotal = INVC_BUILDER_LINES.reduce((s, ln) => s + (ln.qty || 0) * (ln.rate || 0), 0);
+  const fuelPct = parseFloat((document.querySelector('#invc-meta-form [name="fuel"]') || {}).value || "0") / 100;
+  const fuelAmt = subtotal * fuelPct;
+  const total = subtotal + fuelAmt;
+  document.getElementById("invc-sum-lines").textContent = INVC_BUILDER_LINES.length;
+  document.getElementById("invc-sum-subtotal").textContent = "$" + subtotal.toFixed(2);
+  document.getElementById("invc-sum-fuel").textContent = "$" + fuelAmt.toFixed(2);
+  document.getElementById("invc-sum-total").textContent = "$" + total.toFixed(2);
+
+  // Validation
+  const warn = document.getElementById("invc-sum-warn");
+  const ponInput = document.querySelector('#invc-meta-form [name="pon"]');
+  const warnings = [];
+  if (!ponInput || !ponInput.value.trim()) warnings.push("PON required — 'No PO, no service' hard rule (ops manual §8.1).");
+  if (INVC_BUILDER_LINES.length === 0) warnings.push("Add at least one billing line.");
+  if (warnings.length) {
+    warn.style.display = "block";
+    warn.textContent = warnings.join(" · ");
+  } else {
+    warn.style.display = "none";
+  }
+}
+
+function autoPopulateFromLL(llIdx) {
+  if (llIdx === null || llIdx === "") return;
+  const ll = LOADING_LISTS[parseInt(llIdx, 10)];
+  if (!ll) return;
+  // Auto-add standard trucking lines based on LL aggregate
+  const agg = aggregateLL(ll);
+  INVC_BUILDER_LINES = [
+    { code: "ADS-002655", desc: "Truck delivery at port 53ft (dry)", qty: 1, rate: 612.00 },
+    { code: "ADS-002954", desc: "Loading / unloading",               qty: 1, rate: 480.00 },
+    { code: "ADS-000022", desc: "PO handling",                       qty: 1, rate:  30.00 },
+  ];
+  // Add pallet-in-transit per total pallets+boxes
+  const pcs = agg.pallets + Math.ceil(agg.boxes / 10); // rough: 10 boxes ≈ 1 pallet equivalent
+  if (pcs > 0) {
+    INVC_BUILDER_LINES.push({ code: "ADS-03257", desc: "Pallet in transit", qty: pcs, rate: 25.00 });
+  }
+  // Bonded fee if any bonded items
+  const hasBonded = ll.itemIdxs.some(idx => INVENTORY[idx] && INVENTORY[idx].status === "bonded");
+  if (hasBonded) {
+    INVC_BUILDER_LINES.push({ code: "ADS-002856", desc: "Bonded fee", qty: 1, rate: 120.00 });
+  }
+  // Pre-fill notes
+  const notesInp = document.querySelector('#invc-meta-form [name="notes"]');
+  if (notesInp) notesInp.value = "Loading List " + ll.id + " dispatch · " + ll.vessel + " · " + ll.port + " turnaround.";
+  // Pre-fill PON if exists on LL
+  const ponInp = document.querySelector('#invc-meta-form [name="pon"]');
+  if (ponInp && ll.poNumber) ponInp.value = ll.poNumber;
+  renderBuilderLines();
+  updateInvcSummary();
+}
+
+function generateInvoice() {
+  const form = document.getElementById("invc-meta-form");
+  const fd = new FormData(form);
+  const meta = {};
+  fd.forEach((v, k) => { meta[k] = String(v).trim(); });
+
+  if (!meta.pon) {
+    alert("PON is required — 'No PO, no service' hard rule (ops manual §8.1).");
+    return;
+  }
+  if (INVC_BUILDER_LINES.length === 0) {
+    alert("Add at least one billing line.");
+    return;
+  }
+  if (!meta.invoiceDate) {
+    alert("Invoice date is required.");
+    return;
+  }
+
+  // Next invoice number
+  const maxNum = Math.max(...INVOICES.map(i => parseInt(i.id.replace(/\D/g, ""), 10) || 0));
+  const sourceLLSelect = document.getElementById("invc-source-ll");
+  const sourceLL = sourceLLSelect.value ? LOADING_LISTS[parseInt(sourceLLSelect.value, 10)] : null;
+
+  const newInv = {
+    id: "FT-INV-" + (maxNum + 1),
+    loadingListId: sourceLL ? sourceLL.id : null,
+    pon: meta.pon,
+    invoiceDate: meta.invoiceDate,
+    issueDate: new Date().toISOString().slice(0, 16).replace("T", " "),
+    billTo: meta.billTo || "MSC Cruises USA · Logistics",
+    attn: meta.attn || "Jorge Vega · Logistics Manager USA",
+    terms: meta.terms || "NET 30",
+    currency: meta.currency || "USD",
+    fuel: parseFloat(meta.fuel || "0"),
+    status: "draft",
+    notes: meta.notes || "",
+    lines: INVC_BUILDER_LINES.slice(),
+  };
+  INVOICES.unshift(newInv);
+  closeInvcBuilder();
+  renderInvoices();
+  openInvcPreview(0);
+}
+
+/* ─── Invoice preview document ─── */
+
+function openInvcPreview(idx) {
+  const inv = INVOICES[idx];
+  if (!inv) return;
+  const overlay = document.getElementById("invc-preview-overlay");
+  const doc = document.getElementById("invc-preview-doc");
+  while (doc.firstChild) doc.removeChild(doc.firstChild);
+  doc.appendChild(buildInvcPreviewDoc(inv));
+  document.getElementById("invc-preview-toolbar-label").textContent =
+    inv.id + " · " + INVC_STATUS_LABELS[inv.status].toUpperCase();
+  overlay.classList.add("open");
+  overlay.dataset.idx = String(idx);
+}
+
+function closeInvcPreview() {
+  document.getElementById("invc-preview-overlay").classList.remove("open");
+}
+
+function buildInvcPreviewDoc(inv) {
+  const totals = calcInvoiceTotals(inv);
+  const ll = inv.loadingListId ? LOADING_LISTS.find(l => l.id === inv.loadingListId) : null;
+  const root = el("div");
+
+  // Header
+  const header = el("div", { class: "invc-doc__header" });
+  const brand = el("div", { class: "invc-doc__brand" }, [
+    el("div", { class: "invc-doc__logo", text: "FAST TRACK WORLDWIDE LOGISTIC" }),
+    el("div", { class: "invc-doc__brand-sub", text: "1674 NW 215th Street · Miami Gardens, FL 33056" }),
+    el("div", { class: "invc-doc__brand-sub", text: "FIRMS LCS5 · Bonded Warehouse · CBP-Certified" }),
+    el("div", { class: "invc-doc__brand-sub", text: "+1 (941) 216-5279 · billing@fasttrackgroup.us" }),
+    el("div", { class: "invc-doc__brand-sub", text: "EIN: ##-####### · Federal Tax ID on file" }),
+  ]);
+  const titleBlock = el("div", { class: "invc-doc__title-block" }, [
+    el("div", { class: "invc-doc__title", text: "INVOICE" }),
+    el("div", { class: "invc-doc__id", text: inv.id }),
+    el("div", { class: "invc-doc__date", text: "Invoice date · " + inv.invoiceDate }),
+    el("div", { class: "invc-doc__date", text: "Issued · " + inv.issueDate }),
+    el("div", { class: "invc-doc__date", text: "Status · " + INVC_STATUS_LABELS[inv.status].toUpperCase() }),
+  ]);
+  header.appendChild(brand);
+  header.appendChild(titleBlock);
+  root.appendChild(header);
+
+  // Meta
+  const meta = el("div", { class: "invc-doc__meta" });
+  const metaField = (label, value, mono) => {
+    const f = el("div", { class: "invc-doc__meta-field" });
+    f.appendChild(el("div", { class: "invc-doc__meta-label", text: label }));
+    f.appendChild(el("div", { class: "invc-doc__meta-value" + (mono ? " invc-doc__meta-value--mono" : ""), text: value || "—" }));
+    return f;
+  };
+  meta.appendChild(metaField("BILL TO", inv.billTo));
+  meta.appendChild(metaField("ATTN", inv.attn));
+  meta.appendChild(metaField("PON (MSC PO)", inv.pon, true));
+  meta.appendChild(metaField("TERMS", inv.terms));
+  meta.appendChild(metaField("SOURCE LL", inv.loadingListId || "— manual —", true));
+  meta.appendChild(metaField("VESSEL", (ll && ll.vessel) || "—"));
+  meta.appendChild(metaField("CRUISE", (ll && ll.cruise) || "—", true));
+  meta.appendChild(metaField("CURRENCY", inv.currency));
+  root.appendChild(meta);
+
+  // Lines table
+  const linesSec = el("div", { class: "invc-doc__lines-section" });
+  linesSec.appendChild(el("div", { class: "invc-doc__lines-title", text: "BILLING LINES — ADS rate card (ops manual §9)" }));
+  const tbl = el("table", { class: "invc-doc__lines-table" });
+  const thead = el("thead");
+  const trh = el("tr");
+  ["#", "ADS Code", "Service description", "Qty", "Rate (USD)", "Line total"].forEach((h, i) => {
+    const th = el("th", { text: h });
+    if (i >= 3) th.className = "num";
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  tbl.appendChild(thead);
+
+  const tbody = el("tbody");
+  inv.lines.forEach((line, i) => {
+    const lineTotal = (line.qty || 0) * (line.rate || 0);
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "num mono", text: String(i + 1) }));
+    tr.appendChild(el("td", { class: "mono", text: line.code }));
+    tr.appendChild(el("td", { text: line.desc }));
+    tr.appendChild(el("td", { class: "num", text: String(line.qty) }));
+    tr.appendChild(el("td", { class: "num", text: "$" + line.rate.toFixed(2) }));
+    tr.appendChild(el("td", { class: "num", text: "$" + lineTotal.toFixed(2) }));
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);
+
+  // Footer: subtotal + fuel + total
+  const tfoot = el("tfoot");
+  const trSub = el("tr", { class: "subtotal" });
+  const tdSubLabel = el("td", { text: "Subtotal" });
+  tdSubLabel.setAttribute("colspan", "5");
+  trSub.appendChild(tdSubLabel);
+  trSub.appendChild(el("td", { class: "num", text: "$" + totals.subtotal.toFixed(2) }));
+  tfoot.appendChild(trSub);
+
+  if (totals.fuelAmt > 0) {
+    const trFuel = el("tr", { class: "subtotal" });
+    const tdFuelLabel = el("td", { text: "Fuel surcharge (" + inv.fuel + "%)" });
+    tdFuelLabel.setAttribute("colspan", "5");
+    trFuel.appendChild(tdFuelLabel);
+    trFuel.appendChild(el("td", { class: "num", text: "$" + totals.fuelAmt.toFixed(2) }));
+    tfoot.appendChild(trFuel);
+  }
+
+  const trTotal = el("tr");
+  const tdTotalLabel = el("td", { text: "TOTAL DUE (" + inv.currency + ")" });
+  tdTotalLabel.setAttribute("colspan", "5");
+  trTotal.appendChild(tdTotalLabel);
+  trTotal.appendChild(el("td", { class: "num", text: "$" + totals.total.toFixed(2) }));
+  tfoot.appendChild(trTotal);
+  tbl.appendChild(tfoot);
+
+  linesSec.appendChild(tbl);
+  root.appendChild(linesSec);
+
+  // Notes
+  if (inv.notes) {
+    const notesSec = el("div", { class: "invc-doc__notes-section" });
+    notesSec.appendChild(el("div", { class: "invc-doc__notes-title", text: "NOTES" }));
+    notesSec.appendChild(el("div", { class: "invc-doc__notes-body", text: inv.notes }));
+    root.appendChild(notesSec);
+  }
+
+  // Payment block
+  const pay = el("div", { class: "invc-doc__payment" });
+  const wireBlock = el("div");
+  wireBlock.appendChild(el("div", { class: "invc-doc__payment-block-title", text: "WIRE PAYMENT INSTRUCTIONS" }));
+  wireBlock.appendChild(el("div", { class: "invc-doc__payment-block-body", text:
+    "Bank: First American Bank\nABA / Routing: 067-###-###\nAccount: ####-####-####\nBeneficiary: Fast Track Worldwide Logistic\nReference: " + inv.id }));
+  pay.appendChild(wireBlock);
+
+  const remitBlock = el("div");
+  remitBlock.appendChild(el("div", { class: "invc-doc__payment-block-title", text: "REMITTANCE / QUERIES" }));
+  remitBlock.appendChild(el("div", { class: "invc-doc__payment-block-body", text:
+    "Billing: billing@fasttrackgroup.us\nPhone: +1 (941) 216-5279\nRemittance memo:\n   " + inv.id + " · PON " + inv.pon }));
+  pay.appendChild(remitBlock);
+  root.appendChild(pay);
+
+  // Footer
+  root.appendChild(el("div", { class: "invc-doc__footer", text:
+    "Payment due " + inv.terms + " from invoice date. Per ops manual §3.1: this invoice maps to Shipment Detail Report → MSC PO → MSC finance. " +
+    "Reference invoice ID + PON on all remittance. Disputes: notify within 7 business days of receipt. " +
+    "19 CFR 163.4 retention 5 years."
+  }));
+
+  return root;
+}
+
+function setupInvoices() {
+  const newBtn = document.getElementById("invc-new-btn");
+  if (newBtn) newBtn.addEventListener("click", openInvcBuilder);
+
+  const closeBtn = document.getElementById("invc-modal-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeInvcBuilder);
+  const cancelBtn = document.getElementById("invc-cancel-btn");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeInvcBuilder);
+  const overlay = document.getElementById("invc-overlay");
+  if (overlay) overlay.addEventListener("click", closeInvcBuilder);
+
+  const sourceSelect = document.getElementById("invc-source-ll");
+  if (sourceSelect) sourceSelect.addEventListener("change", (e) => {
+    autoPopulateFromLL(e.target.value);
+  });
+
+  const addLineBtn = document.getElementById("invc-add-line-btn");
+  if (addLineBtn) addLineBtn.addEventListener("click", () => {
+    INVC_BUILDER_LINES.push({ code: "", desc: "", qty: 1, rate: 0 });
+    renderBuilderLines();
+    updateInvcSummary();
+  });
+
+  const generateBtn = document.getElementById("invc-generate-btn");
+  if (generateBtn) generateBtn.addEventListener("click", generateInvoice);
+
+  const invcSearch = document.getElementById("invc-search");
+  if (invcSearch) invcSearch.addEventListener("input", renderInvoices);
+
+  // Re-validate on form changes
+  const metaForm = document.getElementById("invc-meta-form");
+  if (metaForm) {
+    metaForm.addEventListener("input", updateInvcSummary);
+    metaForm.addEventListener("change", updateInvcSummary);
+  }
+
+  // Preview actions
+  const previewClose = document.getElementById("invc-preview-close");
+  if (previewClose) previewClose.addEventListener("click", closeInvcPreview);
+  const previewPrint = document.getElementById("invc-preview-print");
+  if (previewPrint) previewPrint.addEventListener("click", () => window.print());
+  const previewApprove = document.getElementById("invc-preview-approve");
+  if (previewApprove) previewApprove.addEventListener("click", () => {
+    const ovl = document.getElementById("invc-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (isNaN(idx) || !INVOICES[idx]) return;
+    const inv = INVOICES[idx];
+    if (inv.status === "draft" || inv.status === "pending_approval") {
+      inv.status = "approved";
+      renderInvoices();
+      alert("Invoice " + inv.id + " marked APPROVED.\nReady to send to MSC.");
+      openInvcPreview(idx);
+    } else {
+      alert("Invoice already " + INVC_STATUS_LABELS[inv.status] + ".");
+    }
+  });
+  const previewSend = document.getElementById("invc-preview-send");
+  if (previewSend) previewSend.addEventListener("click", () => {
+    const ovl = document.getElementById("invc-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (isNaN(idx) || !INVOICES[idx]) return;
+    const inv = INVOICES[idx];
+    if (inv.status === "approved" || inv.status === "draft" || inv.status === "pending_approval") {
+      inv.status = "sent";
+      renderInvoices();
+      alert("Invoice " + inv.id + " sent to MSC (" + inv.billTo + ").\n\n(Phase 2: auto-email PDF + post to MSC vendor portal.)");
+      closeInvcPreview();
+    } else {
+      alert("Invoice already " + INVC_STATUS_LABELS[inv.status] + ".");
+    }
+  });
+}
+
 function setupBarcoding() {
   // Mode tabs
   document.querySelectorAll(".bc-mode-tab").forEach(tab => {
@@ -9509,6 +10428,7 @@ setupLoadingLists();
 setupDiscrepancyReports();
 setupCrunchTime();
 setupBarcoding();
+setupInvoices();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
@@ -9547,6 +10467,12 @@ setInterval(tickClock, 1000);
       switchView("crunchtime");
     } else if (h === "barcoding" || h === "scan" || h === "bc") {
       switchView("barcoding");
+    } else if (h === "invoices" || h === "billing" || h === "inv") {
+      switchView("invoices");
+    } else if (h.startsWith("invc-")) {
+      switchView("invoices");
+      const invIdx = parseInt(h.replace("invc-", ""), 10);
+      if (!isNaN(invIdx) && INVOICES[invIdx]) openInvcPreview(invIdx);
     } else if (h.startsWith("email-")) {
       switchView("inbox");
       const idx = parseInt(h.replace("email-", ""), 10);
