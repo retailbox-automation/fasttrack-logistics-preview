@@ -3481,6 +3481,16 @@ body.layout-list .pagination { display: none; }
           </div>
           <div class="invc-meta-grid">
             <div class="invc-meta-field">
+              <label>GWX (per §3.6 Agency Cost)</label>
+              <input name="gwx" placeholder="— pending Andrés clarification —">
+            </div>
+            <div class="invc-meta-field">
+              <label>Cruise / Trip ID</label>
+              <input name="cruiseId" placeholder="SE20260602MIAOC">
+            </div>
+          </div>
+          <div class="invc-meta-grid">
+            <div class="invc-meta-field">
               <label>Payment terms</label>
               <select name="terms">
                 <option>NET 30</option>
@@ -9791,6 +9801,8 @@ const INVOICES = [
     terms: "NET 30",
     currency: "USD",
     fuel: 15,
+    gwx: "GWX-2026-0048",
+    cruiseId: "SS20260530MIAOC",
     status: "paid",
     notes: "Loading List LL-2026-0048 dispatch · MSC Seashore · Miami turnaround. Includes $42 credit adjustment for DR-2026-0010.",
     lines: [
@@ -9812,6 +9824,8 @@ const INVOICES = [
     terms: "NET 30",
     currency: "USD",
     fuel: 15,
+    gwx: "GWX-2026-0049",
+    cruiseId: "SE20260602MIAOC",
     status: "sent",
     notes: "Loading List LL-2026-0049 dispatch · MSC Seascape · Ocean Cay turnaround. DR-2026-0011 investigation pending — may require adjustment.",
     lines: [
@@ -9832,6 +9846,8 @@ const INVOICES = [
     terms: "NET 45",
     currency: "USD",
     fuel: 0,
+    gwx: "",
+    cruiseId: "",
     status: "pending_approval",
     notes: "May warehouse storage + inventory check reconciliation services. Manual invoice — no source LL.",
     lines: [
@@ -9850,6 +9866,8 @@ const INVOICES = [
     terms: "NET 30",
     currency: "USD",
     fuel: 15,
+    gwx: "GWX-2026-0050",
+    cruiseId: "MV20260608MIAPCV",
     status: "draft",
     notes: "Draft for upcoming MSC Meraviglia dispatch · PCV. Pending Loading List finalization + seal/driver assignment.",
     lines: [
@@ -9861,11 +9879,24 @@ const INVOICES = [
 ];
 
 function calcInvoiceTotals(inv) {
-  const subtotal = inv.lines.reduce((s, ln) => s + (ln.qty || 0) * (ln.rate || 0), 0);
+  // Classify each line by op (Trucking vs Container) using ADS_RATES lookup
+  const classify = (code) => {
+    const r = ADS_RATES.find(x => x.code === code);
+    return r ? r.op : "other";
+  };
+  let truckingSub = 0, importSub = 0, otherSub = 0;
+  inv.lines.forEach(ln => {
+    const amt = (ln.qty || 0) * (ln.rate || 0);
+    const op = classify(ln.code);
+    if (op === "trucking") truckingSub += amt;
+    else if (op === "import") importSub += amt;
+    else otherSub += amt;
+  });
+  const subtotal = truckingSub + importSub + otherSub;
   const fuelPct = (inv.fuel || 0) / 100;
   const fuelAmt = subtotal * fuelPct;
   const total = subtotal + fuelAmt;
-  return { subtotal, fuelAmt, total };
+  return { subtotal, truckingSub, importSub, otherSub, fuelAmt, total };
 }
 
 function renderInvoices() {
@@ -10112,6 +10143,8 @@ function generateInvoice() {
     terms: meta.terms || "NET 30",
     currency: meta.currency || "USD",
     fuel: parseFloat(meta.fuel || "0"),
+    gwx: meta.gwx || "",
+    cruiseId: meta.cruiseId || (sourceLL && sourceLL.cruise) || "",
     status: "draft",
     notes: meta.notes || "",
     lines: INVC_BUILDER_LINES.slice(),
@@ -10180,13 +10213,24 @@ function buildInvcPreviewDoc(inv) {
   meta.appendChild(metaField("TERMS", inv.terms));
   meta.appendChild(metaField("SOURCE LL", inv.loadingListId || "— manual —", true));
   meta.appendChild(metaField("VESSEL", (ll && ll.vessel) || "—"));
-  meta.appendChild(metaField("CRUISE", (ll && ll.cruise) || "—", true));
+  meta.appendChild(metaField("CRUISE", inv.cruiseId || (ll && ll.cruise) || "—", true));
   meta.appendChild(metaField("CURRENCY", inv.currency));
+  meta.appendChild(metaField("GWX", inv.gwx || "—", true));
   root.appendChild(meta);
 
-  // Lines table
+  // Lines table — per ops manual §3.1 two-tab structure
+  // Auto-classify lines by ADS op (trucking vs import vs other)
+  const classifyOp = (code) => {
+    const r = ADS_RATES.find(x => x.code === code);
+    return r ? r.op : "other";
+  };
+  const truckingLines = inv.lines.filter(l => classifyOp(l.code) === "trucking");
+  const importLines = inv.lines.filter(l => classifyOp(l.code) === "import");
+  const otherLines = inv.lines.filter(l => !["trucking", "import"].includes(classifyOp(l.code)));
+
   const linesSec = el("div", { class: "invc-doc__lines-section" });
-  linesSec.appendChild(el("div", { class: "invc-doc__lines-title", text: "BILLING LINES — ADS rate card (ops manual §9)" }));
+  linesSec.appendChild(el("div", { class: "invc-doc__lines-title", text: "BILLING LINES — ADS rate card (ops manual §3.1 + §9)" }));
+
   const tbl = el("table", { class: "invc-doc__lines-table" });
   const thead = el("thead");
   const trh = el("tr");
@@ -10199,23 +10243,70 @@ function buildInvcPreviewDoc(inv) {
   tbl.appendChild(thead);
 
   const tbody = el("tbody");
-  inv.lines.forEach((line, i) => {
-    const lineTotal = (line.qty || 0) * (line.rate || 0);
-    const tr = el("tr");
-    tr.appendChild(el("td", { class: "num mono", text: String(i + 1) }));
-    tr.appendChild(el("td", { class: "mono", text: line.code }));
-    tr.appendChild(el("td", { text: line.desc }));
-    tr.appendChild(el("td", { class: "num", text: String(line.qty) }));
-    tr.appendChild(el("td", { class: "num", text: "$" + line.rate.toFixed(2) }));
-    tr.appendChild(el("td", { class: "num", text: "$" + lineTotal.toFixed(2) }));
-    tbody.appendChild(tr);
-  });
+  let lineCounter = 0;
+
+  const renderGroup = (groupName, groupLines, subAmt) => {
+    if (groupLines.length === 0) return;
+    // Group header row
+    const groupTr = el("tr");
+    const groupTd = el("td", { text: groupName });
+    groupTd.setAttribute("colspan", "6");
+    groupTd.style.background = "#1A1F2E";
+    groupTd.style.color = "#34D399";
+    groupTd.style.fontFamily = "'JetBrains Mono', monospace";
+    groupTd.style.fontSize = "9px";
+    groupTd.style.letterSpacing = "0.14em";
+    groupTd.style.textTransform = "uppercase";
+    groupTd.style.padding = "8px 10px";
+    groupTr.appendChild(groupTd);
+    tbody.appendChild(groupTr);
+
+    groupLines.forEach(line => {
+      lineCounter++;
+      const lineTotal = (line.qty || 0) * (line.rate || 0);
+      const tr = el("tr");
+      tr.appendChild(el("td", { class: "num mono", text: String(lineCounter) }));
+      tr.appendChild(el("td", { class: "mono", text: line.code }));
+      tr.appendChild(el("td", { text: line.desc }));
+      tr.appendChild(el("td", { class: "num", text: String(line.qty) }));
+      tr.appendChild(el("td", { class: "num", text: "$" + line.rate.toFixed(2) }));
+      tr.appendChild(el("td", { class: "num", text: "$" + lineTotal.toFixed(2) }));
+      tbody.appendChild(tr);
+    });
+
+    // Tab subtotal row
+    const subTr = el("tr");
+    const subLabel = el("td", { text: groupName + " subtotal" });
+    subLabel.setAttribute("colspan", "5");
+    subLabel.style.background = "#F0FDF4";
+    subLabel.style.color = "#047857";
+    subLabel.style.fontWeight = "600";
+    subLabel.style.fontFamily = "'JetBrains Mono', monospace";
+    subLabel.style.fontSize = "11px";
+    subLabel.style.padding = "8px 10px";
+    subLabel.style.borderTop = "1px solid #BBF7D0";
+    subTr.appendChild(subLabel);
+    const subVal = el("td", { class: "num", text: "$" + subAmt.toFixed(2) });
+    subVal.style.background = "#F0FDF4";
+    subVal.style.color = "#047857";
+    subVal.style.fontWeight = "600";
+    subVal.style.fontFamily = "'JetBrains Mono', monospace";
+    subVal.style.padding = "8px 10px";
+    subVal.style.borderTop = "1px solid #BBF7D0";
+    subTr.appendChild(subVal);
+    tbody.appendChild(subTr);
+  };
+
+  renderGroup("Tab A · Trucking (Operation 1)",   truckingLines, totals.truckingSub);
+  renderGroup("Tab B · Import Containers (Operation 2)", importLines, totals.importSub);
+  renderGroup("Other services",                    otherLines, totals.otherSub);
+
   tbl.appendChild(tbody);
 
-  // Footer: subtotal + fuel + total
+  // Footer: combined subtotal + fuel + total
   const tfoot = el("tfoot");
   const trSub = el("tr", { class: "subtotal" });
-  const tdSubLabel = el("td", { text: "Subtotal" });
+  const tdSubLabel = el("td", { text: "Combined subtotal" });
   tdSubLabel.setAttribute("colspan", "5");
   trSub.appendChild(tdSubLabel);
   trSub.appendChild(el("td", { class: "num", text: "$" + totals.subtotal.toFixed(2) }));
@@ -10336,14 +10427,85 @@ function setupInvoices() {
     const idx = parseInt(ovl.dataset.idx, 10);
     if (isNaN(idx) || !INVOICES[idx]) return;
     const inv = INVOICES[idx];
-    if (inv.status === "approved" || inv.status === "draft" || inv.status === "pending_approval") {
+    if (!(inv.status === "approved" || inv.status === "draft" || inv.status === "pending_approval")) {
+      alert("Invoice already " + INVC_STATUS_LABELS[inv.status] + ".");
+      return;
+    }
+
+    // Real mailto-based send: opens user's default mail client with pre-filled content
+    const ll = inv.loadingListId ? LOADING_LISTS.find(l => l.id === inv.loadingListId) : null;
+    const totals = calcInvoiceTotals(inv);
+
+    // MSC AP routing per ops manual §7 contacts — primary recipient + CC
+    let primaryEmail = "";
+    if (inv.billTo.includes("USA")) primaryEmail = "ap-usa@msccruisesusa.com";
+    else if (inv.billTo.includes("S.p.A.") || inv.billTo.includes("Italy")) primaryEmail = "ap@msc-procurement.it";
+    else if (inv.billTo.includes("UK")) primaryEmail = "ap@msccruises.co.uk";
+    else primaryEmail = "ap-usa@msccruisesusa.com";
+
+    // CC: Jorge Vega (Logistics Manager — receives Shipment Detail per §3.1)
+    const ccEmails = ["j.vega@msccruisesusa.com"];
+
+    const subject = "Invoice " + inv.id + " · PON " + inv.pon + " · " + (ll ? ll.vessel : inv.billTo);
+
+    const lineSummary = inv.lines.map(l =>
+      "  " + l.code + " · " + l.desc + " × " + l.qty + " @ $" + l.rate.toFixed(2) + " = $" + ((l.qty || 0) * (l.rate || 0)).toFixed(2)
+    ).join("\n");
+
+    const body =
+      "Dear MSC Accounts Payable team,\n\n" +
+      "Please find attached Fast Track Worldwide Logistic invoice for your reference.\n\n" +
+      "═══════════════════════════════════════\n" +
+      "INVOICE SUMMARY\n" +
+      "═══════════════════════════════════════\n" +
+      "Invoice #:     " + inv.id + "\n" +
+      "Date:          " + inv.invoiceDate + "\n" +
+      "Bill To:       " + inv.billTo + "\n" +
+      "Attn:          " + inv.attn + "\n" +
+      "PON:           " + inv.pon + "\n" +
+      (inv.gwx ? "GWX:           " + inv.gwx + "\n" : "") +
+      (ll ? "Vessel:        " + ll.vessel + "\n" : "") +
+      (inv.cruiseId ? "Cruise:        " + inv.cruiseId + "\n" : "") +
+      (inv.loadingListId ? "Source LL:     " + inv.loadingListId + "\n" : "") +
+      "Terms:         " + inv.terms + "\n" +
+      "Currency:      " + inv.currency + "\n\n" +
+      "BILLING LINES (per ops manual §3.1 + §9):\n" +
+      lineSummary + "\n\n" +
+      "─────────────────────────────────────\n" +
+      "Trucking subtotal:   $" + totals.truckingSub.toFixed(2) + "\n" +
+      "Container subtotal:  $" + totals.importSub.toFixed(2) + "\n" +
+      (totals.otherSub > 0 ? "Other services:      $" + totals.otherSub.toFixed(2) + "\n" : "") +
+      "Combined subtotal:   $" + totals.subtotal.toFixed(2) + "\n" +
+      (totals.fuelAmt > 0 ? "Fuel surcharge " + inv.fuel + "%: $" + totals.fuelAmt.toFixed(2) + "\n" : "") +
+      "═══════════════════════════════════════\n" +
+      "TOTAL DUE (" + inv.currency + "):  $" + totals.total.toFixed(2) + "\n" +
+      "═══════════════════════════════════════\n\n" +
+      "Payment instructions and remittance details are included on the attached PDF document.\n\n" +
+      "For any disputes please notify within 7 business days of receipt. " +
+      "Reference invoice ID and PON on all remittance.\n\n" +
+      "Thank you,\n" +
+      "Fast Track Worldwide Logistic\n" +
+      "billing@fasttrackgroup.us · +1 (941) 216-5279";
+
+    const mailtoUrl = "mailto:" + encodeURIComponent(primaryEmail) +
+      "?cc=" + encodeURIComponent(ccEmails.join(",")) +
+      "&subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+
+    // Open user's default mail client
+    window.location.href = mailtoUrl;
+
+    // Update status after a brief delay (gives mail client time to open)
+    setTimeout(() => {
       inv.status = "sent";
       renderInvoices();
-      alert("Invoice " + inv.id + " sent to MSC (" + inv.billTo + ").\n\n(Phase 2: auto-email PDF + post to MSC vendor portal.)");
-      closeInvcPreview();
-    } else {
-      alert("Invoice already " + INVC_STATUS_LABELS[inv.status] + ".");
-    }
+      if (confirm("Invoice " + inv.id + " marked SENT.\n\n" +
+        "Your mail client should have opened with a pre-filled draft to:\n" +
+        "  " + primaryEmail + "\n  CC: " + ccEmails.join(", ") + "\n\n" +
+        "Click OK to close preview, Cancel to stay.")) {
+        closeInvcPreview();
+      }
+    }, 600);
   });
 }
 
