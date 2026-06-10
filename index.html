@@ -1194,16 +1194,20 @@ body.view-loading_lists .pagination { display: none; }
   body * { visibility: hidden; }
   .ll-preview-doc, .ll-preview-doc *,
   .dr-preview-doc, .dr-preview-doc *,
-  .invc-preview-doc, .invc-preview-doc * { visibility: visible; }
+  .invc-preview-doc, .invc-preview-doc *,
+  .sdr-preview-doc, .sdr-preview-doc * { visibility: visible; }
   .ll-preview-overlay,
   .dr-preview-overlay,
-  .invc-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
+  .invc-preview-overlay,
+  .sdr-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
   .ll-preview-doc,
   .dr-preview-doc,
-  .invc-preview-doc { box-shadow: none; margin: 0; max-width: none; }
+  .invc-preview-doc,
+  .sdr-preview-doc { box-shadow: none; margin: 0; max-width: none; }
   .ll-preview-toolbar,
   .dr-preview-toolbar,
-  .invc-preview-toolbar { display: none !important; }
+  .invc-preview-toolbar,
+  .sdr-preview-toolbar { display: none !important; }
 }
 
 /* ═══ DISCREPANCY REPORTS view ═══ */
@@ -1720,6 +1724,151 @@ body.view-invoices .pagination { display: none; }
 .invc-doc__payment-block-body { font-size: 11px; color: #1A1F2E; line-height: 1.6; font-family: "JetBrains Mono", monospace; }
 
 .invc-doc__footer { padding: 14px 40px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
+
+/* ═══ SHIPMENT DETAIL REPORT (SDR) view ═══ */
+.sdr-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-sdr .sdr-view { display: block; }
+body.view-sdr .dashboard,
+body.view-sdr .inbox-view,
+body.view-sdr .inventory-view,
+body.view-sdr .loading-lists-view,
+body.view-sdr .discrepancies-view,
+body.view-sdr .crunchtime-view,
+body.view-sdr .barcoding-view,
+body.view-sdr .invoices-view,
+body.view-sdr .pagination { display: none; }
+
+.sdr-flow-banner { background: linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(96,165,250,0.06) 100%); border: 1px solid rgba(139,92,246,0.25); border-left: 3px solid #8B5CF6; border-radius: 6px; padding: 14px 18px; margin-bottom: 18px; }
+.sdr-flow-banner__text { font-size: 12px; color: var(--text); line-height: 1.6; }
+.sdr-flow-banner__text strong { color: var(--text-bright); }
+.sdr-flow-chain { display: flex; gap: 6px; align-items: center; margin-top: 8px; font-family: var(--font-mono); font-size: 10px; flex-wrap: wrap; }
+.sdr-flow-chain__step { padding: 4px 10px; border-radius: 12px; background: rgba(139,92,246,0.12); color: #C4B5FD; border: 1px solid rgba(139,92,246,0.25); }
+.sdr-flow-chain__arrow { color: var(--text-dim); }
+
+.sdr-id { font-family: var(--font-mono); font-size: 11px; color: #C4B5FD; font-weight: 500; }
+.sdr-gwx { font-family: var(--font-mono); font-size: 10px; color: var(--accent-bright); }
+.sdr-status { display: inline-block; padding: 3px 10px; border-radius: 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; white-space: nowrap; }
+.sdr-status--draft           { background: rgba(148,163,184,0.12); color: var(--text-dim);     border: 1px solid rgba(148,163,184,0.25); }
+.sdr-status--sent_to_msc     { background: rgba(217,119,6,0.12);  color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.sdr-status--variables_added { background: rgba(245,158,11,0.12); color: #FCD34D;              border: 1px solid rgba(245,158,11,0.25); }
+.sdr-status--po_received     { background: rgba(96,165,250,0.12); color: var(--info);          border: 1px solid rgba(96,165,250,0.25); }
+.sdr-status--closed          { background: rgba(16,185,129,0.12); color: var(--ok);            border: 1px solid rgba(16,185,129,0.25); }
+.sdr-amount { font-family: var(--font-mono); font-feature-settings: "tnum"; color: var(--text-bright); font-weight: 500; }
+
+/* SDR builder modal */
+.sdr-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; }
+.sdr-overlay.open { display: block; }
+.sdr-modal { position: fixed; top: 3vh; left: 50%; transform: translateX(-50%); width: 1180px; max-width: 96vw; height: 94vh; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+.sdr-modal.open { display: flex; }
+.sdr-modal__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.sdr-modal__title { font-family: var(--font-display); font-size: 16px; color: var(--text-bright); font-weight: 500; }
+.sdr-modal__close { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+.sdr-modal__close:hover { color: var(--text-bright); border-color: var(--border-bright); }
+
+.sdr-body { display: grid; grid-template-columns: 1fr 380px; flex: 1; overflow: hidden; }
+.sdr-left { overflow-y: auto; padding: 18px 22px; border-right: 1px solid var(--border); }
+.sdr-right { overflow-y: auto; padding: 18px 22px; background: rgba(10,15,28,0.3); }
+
+.sdr-section-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+.sdr-services-tabs { display: flex; gap: 4px; margin-bottom: 10px; background: var(--bg-deep); padding: 4px; border-radius: 6px; border: 1px solid var(--border); }
+.sdr-services-tab { flex: 1; padding: 7px 10px; background: transparent; border: none; color: var(--text-dim); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; border-radius: 4px; }
+.sdr-services-tab--active { background: var(--accent); color: var(--bg-deep); font-weight: 500; }
+.sdr-services-tab:not(.sdr-services-tab--active):hover { color: var(--text-bright); background: var(--bg-hover); }
+
+.sdr-line-list { display: flex; flex-direction: column; gap: 4px; }
+.sdr-line-row { display: grid; grid-template-columns: 120px 1fr 80px 90px 100px; gap: 10px; padding: 8px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; align-items: center; font-size: 11px; transition: all 120ms; }
+.sdr-line-row.has-qty { border-color: rgba(217,119,6,0.4); background: rgba(217,119,6,0.04); }
+.sdr-line-row__code { font-family: var(--font-mono); color: var(--text-bright); font-weight: 500; }
+.sdr-line-row__desc { color: var(--text-dim); font-family: var(--font-body); font-size: 11px; line-height: 1.4; }
+.sdr-line-row.has-qty .sdr-line-row__desc { color: var(--text); }
+.sdr-line-row__qty { padding: 5px 8px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; text-align: right; width: 100%; }
+.sdr-line-row__qty:focus { outline: none; border-color: var(--accent); }
+.sdr-line-row__rate { text-align: right; font-family: var(--font-mono); color: var(--text-dim); font-size: 11px; }
+.sdr-line-row__total { text-align: right; font-family: var(--font-mono); font-feature-settings: "tnum"; color: var(--accent-bright); font-weight: 500; }
+.sdr-line-row.has-qty .sdr-line-row__total { color: #34D399; }
+.sdr-line-head { display: grid; grid-template-columns: 120px 1fr 80px 90px 100px; gap: 10px; padding: 4px 12px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.sdr-line-head__num { text-align: right; }
+
+.sdr-variables-section { margin-top: 20px; padding: 14px; background: rgba(245,158,11,0.04); border: 1px dashed rgba(245,158,11,0.3); border-radius: 6px; }
+.sdr-variables-title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: #FCD34D; margin-bottom: 8px; }
+.sdr-variables-hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin-bottom: 12px; line-height: 1.5; }
+
+.sdr-meta-form { display: flex; flex-direction: column; gap: 12px; }
+.sdr-meta-field { display: flex; flex-direction: column; gap: 4px; }
+.sdr-meta-field label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+.sdr-meta-field input,
+.sdr-meta-field select,
+.sdr-meta-field textarea { padding: 8px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; resize: vertical; }
+.sdr-meta-field textarea { font-family: var(--font-body); min-height: 50px; }
+.sdr-meta-field input:focus,
+.sdr-meta-field select:focus,
+.sdr-meta-field textarea:focus { outline: none; border-color: var(--accent); }
+.sdr-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.sdr-summary { margin-top: 16px; padding: 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; }
+.sdr-summary__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+.sdr-summary__row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 11px; }
+.sdr-summary__row strong { color: var(--text-bright); font-family: var(--font-mono); font-feature-settings: "tnum"; }
+.sdr-summary__row--total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; }
+.sdr-summary__row--total strong { color: #C4B5FD; font-size: 14px; }
+
+.sdr-footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.sdr-footer-hint { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.sdr-footer-actions { display: flex; gap: 10px; }
+
+/* SDR preview document (Excel-style) */
+.sdr-preview-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.85); backdrop-filter: blur(6px); z-index: 110; display: none; overflow-y: auto; padding: 24px; }
+.sdr-preview-overlay.open { display: block; }
+.sdr-preview-doc { max-width: 980px; margin: 0 auto; background: #FBFAF6; color: #1A1F2E; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); font-family: "Inter", -apple-system, sans-serif; position: relative; }
+.sdr-preview-toolbar { display: flex; justify-content: space-between; align-items: center; max-width: 980px; margin: 0 auto 16px; padding: 0 4px; }
+.sdr-preview-toolbar__left { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,250,246,0.7); }
+.sdr-preview-toolbar__actions { display: flex; gap: 8px; }
+.sdr-preview-toolbar__btn { background: rgba(251,250,246,0.1); border: 1px solid rgba(251,250,246,0.2); color: #FBFAF6; padding: 6px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.sdr-preview-toolbar__btn:hover { background: rgba(251,250,246,0.16); border-color: rgba(251,250,246,0.4); }
+.sdr-preview-toolbar__btn--primary { background: #8B5CF6; border-color: #8B5CF6; color: #FBFAF6; }
+.sdr-preview-toolbar__btn--primary:hover { background: #A78BFA; }
+.sdr-preview-toolbar__btn--invoice { background: #10B981; border-color: #10B981; color: #FBFAF6; }
+.sdr-preview-toolbar__btn--invoice:hover { background: #34D399; }
+
+.sdr-doc__header { padding: 28px 36px 16px; border-bottom: 2px solid #8B5CF6; display: flex; justify-content: space-between; align-items: flex-start; }
+.sdr-doc__brand { display: flex; flex-direction: column; gap: 2px; }
+.sdr-doc__logo { font-family: "Fraunces", serif; font-size: 20px; font-weight: 600; color: #1A1F2E; letter-spacing: -0.01em; }
+.sdr-doc__brand-sub { font-size: 10px; color: #555; letter-spacing: 0.04em; line-height: 1.5; }
+.sdr-doc__title-block { text-align: right; }
+.sdr-doc__title { font-family: "Fraunces", serif; font-size: 18px; font-weight: 500; color: #8B5CF6; margin-bottom: 4px; }
+.sdr-doc__id { font-family: "JetBrains Mono", monospace; font-size: 11px; color: #8B5CF6; font-weight: 600; }
+.sdr-doc__date { font-family: "JetBrains Mono", monospace; font-size: 10px; color: #555; margin-top: 4px; }
+
+.sdr-doc__meta { padding: 16px 36px; background: #F5F3FF; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; border-bottom: 1px solid #DDD6FE; }
+.sdr-doc__meta-field { display: flex; flex-direction: column; gap: 2px; }
+.sdr-doc__meta-label { font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: #777; }
+.sdr-doc__meta-value { font-size: 12px; color: #1A1F2E; font-weight: 500; }
+.sdr-doc__meta-value--mono { font-family: "JetBrains Mono", monospace; }
+
+.sdr-doc__excel { padding: 16px 36px; }
+.sdr-doc__excel-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 8px; }
+.sdr-doc__excel-table { width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #C4B5FD; }
+.sdr-doc__excel-table thead { background: #1A1F2E; color: #FBFAF6; }
+.sdr-doc__excel-table th { padding: 7px 8px; text-align: left; font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 500; }
+.sdr-doc__excel-table th.num { text-align: right; }
+.sdr-doc__excel-table td { padding: 6px 8px; border: 1px solid #E5E7EB; vertical-align: middle; }
+.sdr-doc__excel-table td.num { text-align: right; font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum"; }
+.sdr-doc__excel-table td.mono { font-family: "JetBrains Mono", monospace; font-size: 10px; }
+.sdr-doc__excel-table tr.zero-qty td { color: #999; }
+.sdr-doc__excel-table tr.used-qty td { background: #F5F3FF; font-weight: 500; }
+.sdr-doc__excel-table tr.section-header td { background: #1A1F2E; color: #C4B5FD; font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; padding: 6px 8px; }
+.sdr-doc__excel-table tr.variable-row td { background: #FFFBEB; font-weight: 500; }
+.sdr-doc__excel-table tfoot td { background: #DDD6FE; font-weight: 600; padding: 8px; border-top: 2px solid #8B5CF6; font-family: "JetBrains Mono", monospace; color: #5B21B6; }
+.sdr-doc__excel-table tfoot td.num { font-size: 13px; }
+.sdr-doc__excel-table tfoot tr.subtotal td { background: #F5F3FF; color: #555; font-weight: 400; font-size: 11px; }
+
+.sdr-doc__approval { padding: 14px 36px; background: #F0FDF4; border-top: 1px solid #BBF7D0; }
+.sdr-doc__approval-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #047857; margin-bottom: 6px; }
+.sdr-doc__approval-body { font-size: 11px; color: #1A1F2E; line-height: 1.5; }
+.sdr-doc__approval-pon { font-family: "JetBrains Mono", monospace; font-size: 13px; color: #047857; font-weight: 700; margin-top: 4px; }
+
+.sdr-doc__footer { padding: 12px 36px 20px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
 
 .inbox-stats {
   display: grid;
@@ -3008,6 +3157,65 @@ body.layout-list .pagination { display: none; }
       </table>
     </section>
 
+    <!-- SHIPMENT DETAIL REPORT (SDR) VIEW -->
+    <section class="sdr-view" id="sdr-view">
+      <div class="ll-header">
+        <div>
+          <div class="ll-crumb">Billing approval cycle · Ops Manual §3.1 + Andrés 6/09 clarification</div>
+          <div class="ll-title">
+            <h1>Shipment Detail Report</h1>
+            <span class="ll-title-count" id="sdr-title-count">— reports</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <input id="sdr-search" placeholder="Search SDR#, GWX, vessel, LL#…" style="padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; width: 260px;">
+          <button class="btn btn--accent" id="sdr-new-btn">+ New SDR</button>
+        </div>
+      </div>
+
+      <div class="sdr-flow-banner">
+        <div class="sdr-flow-banner__text">
+          <strong>The billing approval cycle.</strong> Per Andrés: SDR is the primary doc that goes to MSC for approval BEFORE we can invoice. All ADS service codes are pre-loaded — operator only modifies qty. PON arrives FROM MSC after approval — not entered by us.
+        </div>
+        <div class="sdr-flow-chain">
+          <span class="sdr-flow-chain__step">1. Map services</span>
+          <span class="sdr-flow-chain__arrow">→</span>
+          <span class="sdr-flow-chain__step">2. Send Excel to MSC (Thu)</span>
+          <span class="sdr-flow-chain__arrow">→</span>
+          <span class="sdr-flow-chain__step">3. Variables added (Mon)</span>
+          <span class="sdr-flow-chain__arrow">→</span>
+          <span class="sdr-flow-chain__step">4. MSC issues PO</span>
+          <span class="sdr-flow-chain__arrow">→</span>
+          <span class="sdr-flow-chain__step">5. Generate Invoice</span>
+        </div>
+      </div>
+
+      <div class="ll-stats">
+        <div class="ll-stat"><div class="ll-stat__label">Total SDRs</div><div class="ll-stat__value" id="sdr-stat-total">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Awaiting MSC</div><div class="ll-stat__value" id="sdr-stat-awaiting" style="color:var(--accent-bright);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">PO received</div><div class="ll-stat__value" id="sdr-stat-po" style="color:var(--info);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Closed (invoiced)</div><div class="ll-stat__value" id="sdr-stat-closed" style="color:var(--ok);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Pending value (USD)</div><div class="ll-stat__value" id="sdr-stat-pending" style="color:#C4B5FD;">—</div></div>
+      </div>
+
+      <table class="ll-table">
+        <thead>
+          <tr>
+            <th>SDR #</th>
+            <th>GWX</th>
+            <th>Source LL</th>
+            <th>Vessel</th>
+            <th>Sent to MSC</th>
+            <th>Status</th>
+            <th>PON</th>
+            <th style="text-align:right">Lines used</th>
+            <th style="text-align:right">Total (USD)</th>
+          </tr>
+        </thead>
+        <tbody id="sdr-tbody"></tbody>
+      </table>
+    </section>
+
     <!-- INVOICES VIEW -->
     <section class="invoices-view" id="invoices-view">
       <div class="ll-header">
@@ -3420,6 +3628,122 @@ body.layout-list .pagination { display: none; }
       </div>
     </div>
     <div class="dr-preview-doc" id="dr-preview-doc"></div>
+  </div>
+
+  <!-- SDR BUILDER MODAL -->
+  <div class="sdr-overlay" id="sdr-overlay"></div>
+  <div class="sdr-modal" id="sdr-modal">
+    <div class="sdr-modal__header">
+      <div class="sdr-modal__title">New Shipment Detail Report · all ADS service codes pre-loaded</div>
+      <button class="sdr-modal__close" id="sdr-modal-close">Close ✕</button>
+    </div>
+    <div class="sdr-body">
+      <div class="sdr-left">
+        <div class="sdr-section-title">Step 1 · Service codes (all 20 pre-loaded — set qty per actual usage)</div>
+        <div class="sdr-services-tabs" id="sdr-services-tabs">
+          <button class="sdr-services-tab sdr-services-tab--active" data-tab="trucking">Tab A · Trucking (Op 1)</button>
+          <button class="sdr-services-tab" data-tab="import">Tab B · Import Containers (Op 2)</button>
+        </div>
+        <div class="sdr-line-head">
+          <span>ADS Code</span>
+          <span>Service description</span>
+          <span class="sdr-line-head__num">Qty</span>
+          <span class="sdr-line-head__num">Rate (USD)</span>
+          <span class="sdr-line-head__num">Line total</span>
+        </div>
+        <div class="sdr-line-list" id="sdr-line-list"></div>
+
+        <div class="sdr-variables-section">
+          <div class="sdr-variables-title">+ Variables (post-weekend modifications)</div>
+          <div class="sdr-variables-hint">Per Andrés: on Mondays we send variables — waiting time, accessorial, weekend services. Bump qty on relevant lines above, or notes here.</div>
+          <textarea id="sdr-variables-notes" placeholder="e.g. Waiting time at gate 1.5hrs · Saturday weekend delivery surcharge applies · Re-route via PCV" style="width:100%; padding:8px 10px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-body); font-size: 11px; min-height: 60px;"></textarea>
+        </div>
+      </div>
+
+      <div class="sdr-right">
+        <div class="sdr-section-title">Step 2 · Shipment metadata</div>
+        <form class="sdr-meta-form" id="sdr-meta-form" onsubmit="return false;">
+          <div class="sdr-meta-field">
+            <label>Source Loading List<span class="required">*</span></label>
+            <select name="loadingListId" required id="sdr-source-ll">
+              <option value="">— select source LL —</option>
+            </select>
+          </div>
+          <div class="sdr-meta-grid">
+            <div class="sdr-meta-field">
+              <label>GWX (per shipment)<span class="required">*</span></label>
+              <input name="gwx" required placeholder="GWX-2026-XXXX">
+            </div>
+            <div class="sdr-meta-field">
+              <label>Bill To</label>
+              <select name="billTo">
+                <option>MSC Cruises USA · Logistics</option>
+                <option>MSC Procurement & Logistic S.p.A.</option>
+                <option>MSC Cruise Management (UK) Ltd.</option>
+              </select>
+            </div>
+          </div>
+          <div class="sdr-meta-field">
+            <label>Send to (MSC contact)</label>
+            <input name="msContact" value="MSC PL Finance + Jorge Vega CC">
+          </div>
+          <div class="sdr-meta-grid">
+            <div class="sdr-meta-field">
+              <label>Service period start</label>
+              <input name="periodStart" type="date">
+            </div>
+            <div class="sdr-meta-field">
+              <label>Service period end</label>
+              <input name="periodEnd" type="date">
+            </div>
+          </div>
+          <div class="sdr-meta-field">
+            <label>Prepared by</label>
+            <select name="preparedBy">
+              <option>Gabriela Pita</option>
+              <option>Luis Cruz</option>
+              <option>Andrés Yeguez</option>
+              <option>Andrea Palmisano (draft only)</option>
+            </select>
+          </div>
+          <div class="sdr-meta-field">
+            <label>Notes для MSC</label>
+            <textarea name="notes" placeholder="e.g. Covers MSC Seascape 6/02 turnaround dispatch · 7 items loaded"></textarea>
+          </div>
+        </form>
+
+        <div class="sdr-summary">
+          <div class="sdr-summary__title">Charges summary</div>
+          <div class="sdr-summary__row"><span>Lines used (qty &gt; 0)</span><strong id="sdr-sum-lines">0</strong></div>
+          <div class="sdr-summary__row"><span>Trucking subtotal</span><strong id="sdr-sum-trucking">$0.00</strong></div>
+          <div class="sdr-summary__row"><span>Container subtotal</span><strong id="sdr-sum-import">$0.00</strong></div>
+          <div class="sdr-summary__row"><span>Fuel surcharge 15%</span><strong id="sdr-sum-fuel">$0.00</strong></div>
+          <div class="sdr-summary__row sdr-summary__row--total"><span>Quoted TOTAL</span><strong id="sdr-sum-total">$0.00</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="sdr-footer">
+      <div class="sdr-footer-hint">Per Andrés 6/09: this report goes to MSC PL Finance for approval. They return a PON which unlocks invoice generation.</div>
+      <div class="sdr-footer-actions">
+        <button class="btn btn--ghost" id="sdr-cancel-btn">Cancel</button>
+        <button class="btn btn--accent" id="sdr-generate-btn">Generate SDR →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SDR PREVIEW DOCUMENT -->
+  <div class="sdr-preview-overlay" id="sdr-preview-overlay">
+    <div class="sdr-preview-toolbar">
+      <div class="sdr-preview-toolbar__left" id="sdr-preview-toolbar-label">Shipment Detail Report preview</div>
+      <div class="sdr-preview-toolbar__actions">
+        <button class="sdr-preview-toolbar__btn" id="sdr-preview-close">Close ✕</button>
+        <button class="sdr-preview-toolbar__btn" id="sdr-preview-print">Print / PDF</button>
+        <button class="sdr-preview-toolbar__btn sdr-preview-toolbar__btn--primary" id="sdr-preview-send">Send to MSC</button>
+        <button class="sdr-preview-toolbar__btn" id="sdr-preview-receive-po">Record PO received</button>
+        <button class="sdr-preview-toolbar__btn sdr-preview-toolbar__btn--invoice" id="sdr-preview-generate-invoice">Generate Invoice →</button>
+      </div>
+    </div>
+    <div class="sdr-preview-doc" id="sdr-preview-doc"></div>
   </div>
 
   <!-- INVOICE BUILDER MODAL -->
@@ -3893,9 +4217,10 @@ const SIDEBAR_DATA = {
     { label: "Inventory · Warehouse", count: "29", view: "inventory" },
     { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists" },
     { label: "Discrepancy Reports",  count: "3", view: "discrepancies" },
+    { label: "Shipment Detail · MSC approval", count: "3", view: "sdr", highlight: true },
+    { label: "Invoices · Billing",   count: "4", view: "invoices" },
     { label: "CrunchTime · Requests", count: "4", view: "crunchtime" },
     { label: "Barcoding · Scan",     count: "·", view: "barcoding" },
-    { label: "Invoices · Billing",   count: "4", view: "invoices", highlight: true },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
@@ -7303,7 +7628,7 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr");
   document.body.classList.add("view-" + view);
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
@@ -7311,6 +7636,7 @@ function switchView(view) {
   if (view === "crunchtime") renderCrunchTime();
   if (view === "barcoding") renderBarcoding();
   if (view === "invoices") renderInvoices();
+  if (view === "sdr") renderSDRs();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -10509,6 +10835,662 @@ function setupInvoices() {
   });
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   SHIPMENT DETAIL REPORT (SDR) · per Andrés 6/09 clarification
+   Per Andrés: "we map in the shipment detail report all the services
+   and we send the Excel sheet to MSC cruises for approval... once we
+   receive that PO we can send the invoice."
+   ═══════════════════════════════════════════════════════════════════ */
+
+const SDR_STATUS_LABELS = {
+  draft:           "Draft",
+  sent_to_msc:     "Sent to MSC",
+  variables_added: "Variables added",
+  po_received:    "PO received",
+  closed:         "Closed (invoiced)",
+};
+
+// Mock SDRs — exemplify the full lifecycle
+const SDRS = [
+  {
+    id: "SDR-2026-0048",
+    gwx: "GWX-2026-0048",
+    loadingListId: "LL-2026-0048",
+    billTo: "MSC Cruises USA · Logistics",
+    msContact: "MSC PL Finance + Jorge Vega CC",
+    preparedBy: "Gabriela Pita",
+    periodStart: "2026-05-30",
+    periodEnd: "2026-05-30",
+    createdAt: "2026-05-29 17:00",
+    sentAt: "2026-05-29 17:42",
+    variablesAt: "2026-06-01 09:15",
+    poReceivedAt: "2026-06-01 14:30",
+    pon: "4597196559-OCY00018",
+    closedAt: "2026-05-31 16:08",
+    status: "closed",
+    notes: "MSC Seashore turnaround dispatch · Miami home port.",
+    variables: "No variables this cycle — standard weekend turnaround.",
+    invoiceId: "FT-INV-46225",
+    qtys: { "ADS-002655": 1, "ADS-002954": 1, "ADS-000022": 1, "ADS-03257": 7, "ADS-002856": 1, "ADS-001456": 1 },
+  },
+  {
+    id: "SDR-2026-0049",
+    gwx: "GWX-2026-0049",
+    loadingListId: "LL-2026-0049",
+    billTo: "MSC Cruises USA · Logistics",
+    msContact: "MSC PL Finance + Jorge Vega CC",
+    preparedBy: "Luis Cruz",
+    periodStart: "2026-06-02",
+    periodEnd: "2026-06-02",
+    createdAt: "2026-06-01 14:00",
+    sentAt: "2026-06-01 14:14",
+    variablesAt: "",
+    poReceivedAt: "2026-06-02 11:00",
+    pon: "4597196559-OCY00021",
+    closedAt: "2026-06-02 11:22",
+    status: "closed",
+    notes: "MSC Seascape Ocean Cay turnaround.",
+    variables: "",
+    invoiceId: "FT-INV-46247",
+    qtys: { "ADS-002655": 1, "ADS-002954": 1, "ADS-000022": 1, "ADS-03257": 7, "ADS-001456": 1 },
+  },
+  {
+    id: "SDR-2026-0050",
+    gwx: "GWX-2026-0050",
+    loadingListId: "LL-2026-0050",
+    billTo: "MSC Cruises USA · Logistics",
+    msContact: "MSC PL Finance + Jorge Vega CC",
+    preparedBy: "Gabriela Pita",
+    periodStart: "2026-06-08",
+    periodEnd: "2026-06-08",
+    createdAt: "2026-06-06 17:00",
+    sentAt: "",
+    variablesAt: "",
+    poReceivedAt: "",
+    pon: "",
+    closedAt: "",
+    status: "draft",
+    notes: "MSC Meraviglia PCV dispatch. Awaiting LL finalization + seal/driver assignment before sending to MSC.",
+    variables: "",
+    invoiceId: null,
+    qtys: { "ADS-002655": 1, "ADS-002954": 1, "ADS-000022": 1, "ADS-03257": 3, "ADS-001456": 1 },
+  },
+];
+
+function calcSDRTotals(sdr) {
+  let truckingSub = 0, importSub = 0, otherSub = 0;
+  let linesUsed = 0;
+  ADS_RATES.forEach(r => {
+    const qty = (sdr.qtys || {})[r.code] || 0;
+    if (qty <= 0) return;
+    if (r.percentSurcharge) return; // fuel handled separately
+    const amt = qty * r.rate;
+    linesUsed++;
+    if (r.op === "trucking") truckingSub += amt;
+    else if (r.op === "import") importSub += amt;
+    else otherSub += amt;
+  });
+  const subtotal = truckingSub + importSub + otherSub;
+  // Fuel surcharge applied if any fuel ADS code has qty>0
+  const fuelTrucking = ((sdr.qtys || {})["ADS-001456"] || 0) > 0 ? truckingSub * 0.15 : 0;
+  const fuelImport = ((sdr.qtys || {})["ADS-001886"] || 0) > 0 ? importSub * 0.15 : 0;
+  const fuelAmt = fuelTrucking + fuelImport;
+  const total = subtotal + fuelAmt;
+  return { truckingSub, importSub, otherSub, subtotal, fuelAmt, total, linesUsed };
+}
+
+function renderSDRs() {
+  const tbody = document.getElementById("sdr-tbody");
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  const q = ((document.getElementById("sdr-search") || {}).value || "").trim().toLowerCase();
+  const filtered = q ? SDRS.filter(sdr => {
+    return [sdr.id, sdr.gwx, sdr.loadingListId || "", sdr.pon].join(" ").toLowerCase().includes(q);
+  }) : SDRS;
+
+  filtered.forEach(sdr => {
+    const ll = sdr.loadingListId ? LOADING_LISTS.find(l => l.id === sdr.loadingListId) : null;
+    const totals = calcSDRTotals(sdr);
+
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, [el("span", { class: "sdr-id", text: sdr.id })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "sdr-gwx", text: sdr.gwx })]));
+    tr.appendChild(el("td", {}, [
+      sdr.loadingListId ? el("span", { class: "inv-llref", text: sdr.loadingListId }) : el("span", { class: "muted-dash", text: "—" }),
+    ]));
+    tr.appendChild(el("td", { text: (ll && ll.vessel) || "—" }));
+    tr.appendChild(el("td", {}, [
+      sdr.sentAt ? el("span", { style: "font-family:var(--font-mono);font-size:10px;color:var(--text-dim);", text: sdr.sentAt.slice(0, 16) })
+      : el("span", { class: "muted-dash", text: "— not yet —" }),
+    ]));
+    tr.appendChild(el("td", {}, [el("span", { class: "sdr-status sdr-status--" + sdr.status, text: SDR_STATUS_LABELS[sdr.status] })]));
+    tr.appendChild(el("td", {}, [
+      sdr.pon ? el("span", { style: "font-family:var(--font-mono);font-size:10px;color:var(--info);", text: sdr.pon })
+      : el("span", { class: "muted-dash", text: "—" }),
+    ]));
+    const tdLines = el("td", { class: "td-num" });
+    tdLines.appendChild(el("span", { class: "inv-num", text: String(totals.linesUsed) }));
+    tr.appendChild(tdLines);
+    const tdTotal = el("td", { class: "td-num" });
+    tdTotal.appendChild(el("span", { class: "sdr-amount", style: "color:#C4B5FD;", text: "$" + totals.total.toFixed(2) }));
+    tr.appendChild(tdTotal);
+
+    tr.style.cursor = "pointer";
+    tr.addEventListener("click", () => openSDRPreview(SDRS.indexOf(sdr)));
+    tbody.appendChild(tr);
+  });
+
+  // Stats
+  const awaitingCount = SDRS.filter(s => s.status === "sent_to_msc" || s.status === "variables_added").length;
+  const poCount = SDRS.filter(s => s.status === "po_received").length;
+  const closedCount = SDRS.filter(s => s.status === "closed").length;
+  const pendingValue = SDRS
+    .filter(s => s.status !== "closed")
+    .reduce((s, sdr) => s + calcSDRTotals(sdr).total, 0);
+
+  document.getElementById("sdr-title-count").textContent = q
+    ? filtered.length + " matching"
+    : SDRS.length + " SDRs · " + awaitingCount + " awaiting MSC";
+  document.getElementById("sdr-stat-total").textContent = SDRS.length;
+  document.getElementById("sdr-stat-awaiting").textContent = awaitingCount;
+  document.getElementById("sdr-stat-po").textContent = poCount;
+  document.getElementById("sdr-stat-closed").textContent = closedCount;
+  document.getElementById("sdr-stat-pending").textContent = "$" + Math.round(pendingValue).toLocaleString();
+}
+
+/* ─── SDR builder ─── */
+
+let SDR_BUILDER_QTYS = {};
+let SDR_BUILDER_TAB = "trucking";
+
+function openSDRBuilder() {
+  SDR_BUILDER_QTYS = {};
+  SDR_BUILDER_TAB = "trucking";
+
+  // Pre-populate all ADS codes with qty=0
+  ADS_RATES.forEach(r => { SDR_BUILDER_QTYS[r.code] = 0; });
+
+  document.getElementById("sdr-overlay").classList.add("open");
+  document.getElementById("sdr-modal").classList.add("open");
+
+  // Populate source LL select
+  const select = document.getElementById("sdr-source-ll");
+  while (select.firstChild) select.removeChild(select.firstChild);
+  select.appendChild(el("option", { value: "", text: "— select source LL —" }));
+  LOADING_LISTS.forEach(ll => {
+    const opt = el("option", { value: ll.id, text: ll.id + " · " + ll.vessel + " · " + ll.truck + " · " + STATUS_LABELS_LL[ll.status] });
+    select.appendChild(opt);
+  });
+
+  document.getElementById("sdr-meta-form").reset();
+  const today = new Date().toISOString().slice(0, 10);
+  document.querySelector('#sdr-meta-form [name="periodStart"]').value = today;
+  document.querySelector('#sdr-meta-form [name="periodEnd"]').value = today;
+
+  // Auto-generate GWX placeholder
+  const maxGwx = Math.max(...SDRS.map(s => parseInt((s.gwx || "").split("-").pop(), 10) || 0));
+  document.querySelector('#sdr-meta-form [name="gwx"]').value = "GWX-2026-" + String(maxGwx + 1).padStart(4, "0");
+
+  // Reset tabs
+  document.querySelectorAll(".sdr-services-tab").forEach(t => t.classList.toggle("sdr-services-tab--active", t.dataset.tab === SDR_BUILDER_TAB));
+
+  renderSDRLines();
+  updateSDRSummary();
+}
+
+function closeSDRBuilder() {
+  document.getElementById("sdr-overlay").classList.remove("open");
+  document.getElementById("sdr-modal").classList.remove("open");
+}
+
+function renderSDRLines() {
+  const list = document.getElementById("sdr-line-list");
+  while (list.firstChild) list.removeChild(list.firstChild);
+
+  const filteredRates = ADS_RATES.filter(r => r.op === SDR_BUILDER_TAB);
+  filteredRates.forEach(rate => {
+    const qty = SDR_BUILDER_QTYS[rate.code] || 0;
+    const isUsed = qty > 0;
+    const row = el("div", { class: "sdr-line-row" + (isUsed ? " has-qty" : "") });
+    row.appendChild(el("span", { class: "sdr-line-row__code", text: rate.code }));
+    row.appendChild(el("span", { class: "sdr-line-row__desc", text: rate.desc + (rate.percentSurcharge ? " (toggle: 0 = off, 1 = apply 15%)" : "") }));
+
+    const qtyInp = el("input", { type: "number", min: "0", step: rate.percentSurcharge ? "1" : "1", value: String(qty) });
+    qtyInp.className = "sdr-line-row__qty";
+    qtyInp.addEventListener("input", () => {
+      const v = parseInt(qtyInp.value, 10) || 0;
+      SDR_BUILDER_QTYS[rate.code] = v;
+      row.classList.toggle("has-qty", v > 0);
+      const totalCell = row.querySelector(".sdr-line-row__total");
+      if (totalCell) totalCell.textContent = rate.percentSurcharge ? (v > 0 ? "15%" : "—") : "$" + (v * rate.rate).toFixed(2);
+      updateSDRSummary();
+    });
+    row.appendChild(qtyInp);
+
+    row.appendChild(el("span", { class: "sdr-line-row__rate", text: rate.percentSurcharge ? "(surcharge)" : "$" + rate.rate.toFixed(2) }));
+    const totalText = rate.percentSurcharge ? (qty > 0 ? "15%" : "—") : "$" + (qty * rate.rate).toFixed(2);
+    row.appendChild(el("span", { class: "sdr-line-row__total", text: totalText }));
+
+    list.appendChild(row);
+  });
+}
+
+function updateSDRSummary() {
+  // Build temp sdr-like obj
+  const fakeSdr = { qtys: SDR_BUILDER_QTYS };
+  const totals = calcSDRTotals(fakeSdr);
+  document.getElementById("sdr-sum-lines").textContent = totals.linesUsed;
+  document.getElementById("sdr-sum-trucking").textContent = "$" + totals.truckingSub.toFixed(2);
+  document.getElementById("sdr-sum-import").textContent = "$" + totals.importSub.toFixed(2);
+  document.getElementById("sdr-sum-fuel").textContent = "$" + totals.fuelAmt.toFixed(2);
+  document.getElementById("sdr-sum-total").textContent = "$" + totals.total.toFixed(2);
+}
+
+function generateSDR() {
+  const form = document.getElementById("sdr-meta-form");
+  const fd = new FormData(form);
+  const meta = {};
+  fd.forEach((v, k) => { meta[k] = String(v).trim(); });
+
+  if (!meta.loadingListId) {
+    alert("Source Loading List is required.");
+    return;
+  }
+  if (!meta.gwx) {
+    alert("GWX code is required (one per shipment).");
+    return;
+  }
+  const hasAnyQty = Object.values(SDR_BUILDER_QTYS).some(v => v > 0);
+  if (!hasAnyQty) {
+    alert("Set quantity > 0 on at least one service line.");
+    return;
+  }
+
+  const variables = document.getElementById("sdr-variables-notes").value.trim();
+  const maxNum = Math.max(...SDRS.map(s => parseInt(s.id.split("-").pop(), 10) || 0));
+
+  const newSDR = {
+    id: "SDR-2026-" + String(maxNum + 1).padStart(4, "0"),
+    gwx: meta.gwx,
+    loadingListId: meta.loadingListId,
+    billTo: meta.billTo || "MSC Cruises USA · Logistics",
+    msContact: meta.msContact || "MSC PL Finance + Jorge Vega CC",
+    preparedBy: meta.preparedBy || "Gabriela Pita",
+    periodStart: meta.periodStart || "",
+    periodEnd: meta.periodEnd || "",
+    createdAt: new Date().toISOString().slice(0, 16).replace("T", " "),
+    sentAt: "",
+    variablesAt: "",
+    poReceivedAt: "",
+    pon: "",
+    closedAt: "",
+    status: "draft",
+    notes: meta.notes || "",
+    variables: variables,
+    invoiceId: null,
+    qtys: Object.assign({}, SDR_BUILDER_QTYS),
+  };
+  SDRS.unshift(newSDR);
+  closeSDRBuilder();
+  renderSDRs();
+  openSDRPreview(0);
+}
+
+/* ─── SDR preview document (Excel-style) ─── */
+
+function openSDRPreview(idx) {
+  const sdr = SDRS[idx];
+  if (!sdr) return;
+  const overlay = document.getElementById("sdr-preview-overlay");
+  const doc = document.getElementById("sdr-preview-doc");
+  while (doc.firstChild) doc.removeChild(doc.firstChild);
+  doc.appendChild(buildSDRPreviewDoc(sdr));
+  document.getElementById("sdr-preview-toolbar-label").textContent =
+    sdr.id + " · " + SDR_STATUS_LABELS[sdr.status].toUpperCase();
+  overlay.classList.add("open");
+  overlay.dataset.idx = String(idx);
+
+  // Show/hide action buttons based on status
+  const sendBtn = document.getElementById("sdr-preview-send");
+  const poBtn = document.getElementById("sdr-preview-receive-po");
+  const invBtn = document.getElementById("sdr-preview-generate-invoice");
+  sendBtn.style.display = (sdr.status === "draft" || sdr.status === "variables_added") ? "inline-flex" : "none";
+  poBtn.style.display   = (sdr.status === "sent_to_msc" || sdr.status === "variables_added") ? "inline-flex" : "none";
+  invBtn.style.display  = (sdr.status === "po_received") ? "inline-flex" : "none";
+}
+
+function closeSDRPreview() {
+  document.getElementById("sdr-preview-overlay").classList.remove("open");
+}
+
+function buildSDRPreviewDoc(sdr) {
+  const ll = sdr.loadingListId ? LOADING_LISTS.find(l => l.id === sdr.loadingListId) : null;
+  const totals = calcSDRTotals(sdr);
+  const root = el("div");
+
+  // Header
+  const header = el("div", { class: "sdr-doc__header" });
+  const brand = el("div", { class: "sdr-doc__brand" }, [
+    el("div", { class: "sdr-doc__logo", text: "FAST TRACK WORLDWIDE LOGISTIC" }),
+    el("div", { class: "sdr-doc__brand-sub", text: "1674 NW 215th Street · Miami Gardens, FL 33056" }),
+    el("div", { class: "sdr-doc__brand-sub", text: "FIRMS LCS5 · Bonded Warehouse · CBP-Certified" }),
+    el("div", { class: "sdr-doc__brand-sub", text: "accounting@fasttrackgroup.us · +1 (941) 216-5279" }),
+  ]);
+  const titleBlock = el("div", { class: "sdr-doc__title-block" }, [
+    el("div", { class: "sdr-doc__title", text: "SHIPMENT DETAIL REPORT" }),
+    el("div", { class: "sdr-doc__id", text: sdr.id }),
+    el("div", { class: "sdr-doc__date", text: "GWX · " + sdr.gwx }),
+    el("div", { class: "sdr-doc__date", text: "Status · " + SDR_STATUS_LABELS[sdr.status].toUpperCase() }),
+  ]);
+  header.appendChild(brand);
+  header.appendChild(titleBlock);
+  root.appendChild(header);
+
+  // Meta
+  const meta = el("div", { class: "sdr-doc__meta" });
+  const metaField = (label, value, mono) => {
+    const f = el("div", { class: "sdr-doc__meta-field" });
+    f.appendChild(el("div", { class: "sdr-doc__meta-label", text: label }));
+    f.appendChild(el("div", { class: "sdr-doc__meta-value" + (mono ? " sdr-doc__meta-value--mono" : ""), text: value || "—" }));
+    return f;
+  };
+  meta.appendChild(metaField("BILL TO", sdr.billTo));
+  meta.appendChild(metaField("FOR APPROVAL OF", sdr.msContact));
+  meta.appendChild(metaField("SOURCE LL", sdr.loadingListId, true));
+  meta.appendChild(metaField("VESSEL", (ll && ll.vessel) || "—"));
+  meta.appendChild(metaField("PERIOD START", sdr.periodStart, true));
+  meta.appendChild(metaField("PERIOD END", sdr.periodEnd, true));
+  meta.appendChild(metaField("PREPARED BY", sdr.preparedBy));
+  meta.appendChild(metaField("CREATED", sdr.createdAt, true));
+  root.appendChild(meta);
+
+  // Excel-style table
+  const excelSec = el("div", { class: "sdr-doc__excel" });
+  excelSec.appendChild(el("div", { class: "sdr-doc__excel-title", text: "SERVICE CHARGES — all ADS codes (qty = 0 means not used; qty > 0 means applied this shipment)" }));
+  const tbl = el("table", { class: "sdr-doc__excel-table" });
+
+  const thead = el("thead");
+  const trh = el("tr");
+  ["ADS Code", "Service description", "Qty", "Rate (USD)", "Line total"].forEach((h, i) => {
+    const th = el("th", { text: h });
+    if (i >= 2) th.className = "num";
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  tbl.appendChild(thead);
+
+  const tbody = el("tbody");
+
+  const renderGroup = (groupName, op) => {
+    const headerTr = el("tr", { class: "section-header" });
+    const td = el("td", { text: groupName });
+    td.setAttribute("colspan", "5");
+    headerTr.appendChild(td);
+    tbody.appendChild(headerTr);
+
+    ADS_RATES.filter(r => r.op === op).forEach(rate => {
+      const qty = (sdr.qtys || {})[rate.code] || 0;
+      const lineTotal = rate.percentSurcharge ? (qty > 0 ? "15% applied" : "—") : "$" + (qty * rate.rate).toFixed(2);
+      const tr = el("tr", { class: qty > 0 ? "used-qty" : "zero-qty" });
+      tr.appendChild(el("td", { class: "mono", text: rate.code }));
+      tr.appendChild(el("td", { text: rate.desc }));
+      tr.appendChild(el("td", { class: "num", text: String(qty) }));
+      tr.appendChild(el("td", { class: "num", text: rate.percentSurcharge ? "(15% surcharge)" : "$" + rate.rate.toFixed(2) }));
+      tr.appendChild(el("td", { class: "num", text: lineTotal }));
+      tbody.appendChild(tr);
+    });
+  };
+
+  renderGroup("Tab A · Trucking (Operation 1)", "trucking");
+  renderGroup("Tab B · Import Containers (Operation 2)", "import");
+
+  // Variables row если есть
+  if (sdr.variables) {
+    const varHeaderTr = el("tr", { class: "section-header" });
+    const varTd = el("td", { text: "Variables (post-weekend modifications)" });
+    varTd.setAttribute("colspan", "5");
+    varHeaderTr.appendChild(varTd);
+    tbody.appendChild(varHeaderTr);
+
+    const varTr = el("tr", { class: "variable-row" });
+    const noteTd = el("td", { text: sdr.variables });
+    noteTd.setAttribute("colspan", "5");
+    noteTd.style.fontStyle = "italic";
+    varTr.appendChild(noteTd);
+    tbody.appendChild(varTr);
+  }
+
+  tbl.appendChild(tbody);
+
+  // Totals footer
+  const tfoot = el("tfoot");
+  const trTruckSub = el("tr", { class: "subtotal" });
+  const tdTruckLabel = el("td", { text: "Trucking subtotal" });
+  tdTruckLabel.setAttribute("colspan", "4");
+  trTruckSub.appendChild(tdTruckLabel);
+  trTruckSub.appendChild(el("td", { class: "num", text: "$" + totals.truckingSub.toFixed(2) }));
+  tfoot.appendChild(trTruckSub);
+
+  const trImportSub = el("tr", { class: "subtotal" });
+  const tdImportLabel = el("td", { text: "Container subtotal" });
+  tdImportLabel.setAttribute("colspan", "4");
+  trImportSub.appendChild(tdImportLabel);
+  trImportSub.appendChild(el("td", { class: "num", text: "$" + totals.importSub.toFixed(2) }));
+  tfoot.appendChild(trImportSub);
+
+  if (totals.fuelAmt > 0) {
+    const trFuel = el("tr", { class: "subtotal" });
+    const tdFuelLabel = el("td", { text: "Fuel surcharge (15%)" });
+    tdFuelLabel.setAttribute("colspan", "4");
+    trFuel.appendChild(tdFuelLabel);
+    trFuel.appendChild(el("td", { class: "num", text: "$" + totals.fuelAmt.toFixed(2) }));
+    tfoot.appendChild(trFuel);
+  }
+
+  const trTotal = el("tr");
+  const tdTotalLabel = el("td", { text: "QUOTED TOTAL (USD) — pending MSC approval" });
+  tdTotalLabel.setAttribute("colspan", "4");
+  trTotal.appendChild(tdTotalLabel);
+  trTotal.appendChild(el("td", { class: "num", text: "$" + totals.total.toFixed(2) }));
+  tfoot.appendChild(trTotal);
+  tbl.appendChild(tfoot);
+
+  excelSec.appendChild(tbl);
+  root.appendChild(excelSec);
+
+  // Approval section (only if PON received)
+  if (sdr.pon) {
+    const approvalSec = el("div", { class: "sdr-doc__approval" });
+    approvalSec.appendChild(el("div", { class: "sdr-doc__approval-title", text: "✓ MSC APPROVAL RECEIVED" }));
+    approvalSec.appendChild(el("div", { class: "sdr-doc__approval-body", text:
+      "MSC has reviewed and approved this Shipment Detail Report on " + (sdr.poReceivedAt || "—") + ". " +
+      "Invoice can now be generated using the assigned PO number below." }));
+    approvalSec.appendChild(el("div", { class: "sdr-doc__approval-pon", text: "PON: " + sdr.pon }));
+    if (sdr.invoiceId) {
+      approvalSec.appendChild(el("div", { class: "sdr-doc__approval-body", style: "margin-top:6px;", text: "Invoice issued: " + sdr.invoiceId }));
+    }
+    root.appendChild(approvalSec);
+  }
+
+  // Notes
+  if (sdr.notes) {
+    const notesSec = el("div", { class: "invc-doc__notes-section" });
+    notesSec.appendChild(el("div", { class: "invc-doc__notes-title", text: "NOTES" }));
+    notesSec.appendChild(el("div", { class: "invc-doc__notes-body", text: sdr.notes }));
+    root.appendChild(notesSec);
+  }
+
+  // Footer
+  root.appendChild(el("div", { class: "sdr-doc__footer", text:
+    "Per ops manual §3.1: this Shipment Detail Report is submitted to MSC PL Finance for review and PO approval. " +
+    "Per Andrés (6/09): variables added Monday post-weekend dispatches. Once MSC issues PO, FT generates linked invoice. " +
+    "Per Andrés (6/09): only Gabriela Pita / Luis Cruz / Andrés Yeguez are authorized to issue invoices."
+  }));
+
+  return root;
+}
+
+function setupSDR() {
+  const newBtn = document.getElementById("sdr-new-btn");
+  if (newBtn) newBtn.addEventListener("click", openSDRBuilder);
+
+  const closeBtn = document.getElementById("sdr-modal-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeSDRBuilder);
+  const cancelBtn = document.getElementById("sdr-cancel-btn");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeSDRBuilder);
+  const overlay = document.getElementById("sdr-overlay");
+  if (overlay) overlay.addEventListener("click", closeSDRBuilder);
+
+  const generateBtn = document.getElementById("sdr-generate-btn");
+  if (generateBtn) generateBtn.addEventListener("click", generateSDR);
+
+  const sdrSearch = document.getElementById("sdr-search");
+  if (sdrSearch) sdrSearch.addEventListener("input", renderSDRs);
+
+  // Tabs
+  document.querySelectorAll(".sdr-services-tab").forEach(t => {
+    t.addEventListener("click", () => {
+      SDR_BUILDER_TAB = t.dataset.tab;
+      document.querySelectorAll(".sdr-services-tab").forEach(x => x.classList.toggle("sdr-services-tab--active", x.dataset.tab === SDR_BUILDER_TAB));
+      renderSDRLines();
+    });
+  });
+
+  // Preview actions
+  const previewClose = document.getElementById("sdr-preview-close");
+  if (previewClose) previewClose.addEventListener("click", closeSDRPreview);
+  const previewPrint = document.getElementById("sdr-preview-print");
+  if (previewPrint) previewPrint.addEventListener("click", () => window.print());
+
+  // Send to MSC
+  const previewSend = document.getElementById("sdr-preview-send");
+  if (previewSend) previewSend.addEventListener("click", () => {
+    const ovl = document.getElementById("sdr-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (isNaN(idx) || !SDRS[idx]) return;
+    const sdr = SDRS[idx];
+    const ll = sdr.loadingListId ? LOADING_LISTS.find(l => l.id === sdr.loadingListId) : null;
+    const totals = calcSDRTotals(sdr);
+
+    const subject = "Shipment Detail Report " + sdr.id + " · GWX " + sdr.gwx + " · " + (ll ? ll.vessel : "");
+
+    const body =
+      "Dear MSC PL Finance team,\n\n" +
+      "Please find attached the Shipment Detail Report for your review and PO approval.\n\n" +
+      "═══════════════════════════════════════\n" +
+      "SDR #:         " + sdr.id + "\n" +
+      "GWX:           " + sdr.gwx + "\n" +
+      "Source LL:     " + sdr.loadingListId + "\n" +
+      (ll ? "Vessel:        " + ll.vessel + "\n" : "") +
+      "Period:        " + sdr.periodStart + " — " + sdr.periodEnd + "\n" +
+      "Prepared by:   " + sdr.preparedBy + "\n" +
+      "Quoted total:  $" + totals.total.toFixed(2) + " USD\n" +
+      (sdr.variables ? "\nVariables:\n" + sdr.variables + "\n" : "") +
+      "═══════════════════════════════════════\n\n" +
+      "Once reviewed, please respond with the approved PO number so we can issue the corresponding invoice.\n\n" +
+      "Thank you,\n" +
+      sdr.preparedBy + "\n" +
+      "Fast Track Worldwide Logistic\n" +
+      "accounting@fasttrackgroup.us · +1 (941) 216-5279";
+
+    const primaryEmail = "pl-finance@msccruisesusa.com";
+    const ccEmails = ["j.vega@msccruisesusa.com"];
+
+    const mailtoUrl = "mailto:" + encodeURIComponent(primaryEmail) +
+      "?cc=" + encodeURIComponent(ccEmails.join(",")) +
+      "&subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+
+    window.location.href = mailtoUrl;
+
+    setTimeout(() => {
+      sdr.status = "sent_to_msc";
+      sdr.sentAt = new Date().toISOString().slice(0, 16).replace("T", " ");
+      renderSDRs();
+      if (confirm("SDR " + sdr.id + " marked SENT TO MSC.\n\n" +
+        "Your mail client should have opened with a pre-filled draft to:\n" +
+        "  " + primaryEmail + "\n  CC: " + ccEmails.join(", ") + "\n\n" +
+        "Click OK to close preview, Cancel to stay.")) {
+        closeSDRPreview();
+      } else {
+        openSDRPreview(idx);
+      }
+    }, 600);
+  });
+
+  // Record PO received (simulate MSC response)
+  const previewPoBtn = document.getElementById("sdr-preview-receive-po");
+  if (previewPoBtn) previewPoBtn.addEventListener("click", () => {
+    const ovl = document.getElementById("sdr-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (isNaN(idx) || !SDRS[idx]) return;
+    const sdr = SDRS[idx];
+    const pon = prompt("Enter PO number received from MSC:", "4597196559-OCY" + String(Math.floor(Math.random() * 90000) + 10000));
+    if (!pon || !pon.trim()) return;
+    sdr.pon = pon.trim();
+    sdr.poReceivedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
+    sdr.status = "po_received";
+    renderSDRs();
+    openSDRPreview(idx);
+  });
+
+  // Generate Invoice from SDR
+  const previewInvBtn = document.getElementById("sdr-preview-generate-invoice");
+  if (previewInvBtn) previewInvBtn.addEventListener("click", () => {
+    const ovl = document.getElementById("sdr-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (isNaN(idx) || !SDRS[idx]) return;
+    const sdr = SDRS[idx];
+    if (sdr.status !== "po_received") {
+      alert("Cannot generate invoice — PO not yet received from MSC.");
+      return;
+    }
+
+    // Auto-create invoice from SDR
+    const totals = calcSDRTotals(sdr);
+    const lines = [];
+    ADS_RATES.forEach(r => {
+      const qty = (sdr.qtys || {})[r.code] || 0;
+      if (qty > 0 && !r.percentSurcharge) {
+        lines.push({ code: r.code, desc: r.desc, qty, rate: r.rate });
+      }
+    });
+    const fuel = ((sdr.qtys || {})["ADS-001456"] || 0) > 0 || ((sdr.qtys || {})["ADS-001886"] || 0) > 0 ? 15 : 0;
+
+    const ll = sdr.loadingListId ? LOADING_LISTS.find(l => l.id === sdr.loadingListId) : null;
+    const maxInv = Math.max(...INVOICES.map(i => parseInt(i.id.replace(/\D/g, ""), 10) || 0));
+
+    const newInv = {
+      id: "FT-INV-" + (maxInv + 1),
+      sdrId: sdr.id,
+      loadingListId: sdr.loadingListId,
+      pon: sdr.pon,
+      invoiceDate: new Date().toISOString().slice(0, 10),
+      issueDate: new Date().toISOString().slice(0, 16).replace("T", " "),
+      billTo: sdr.billTo,
+      attn: "Jorge Vega · Logistics Manager USA",
+      terms: "NET 30",
+      currency: "USD",
+      fuel,
+      gwx: sdr.gwx,
+      cruiseId: (ll && ll.cruise) || "",
+      status: "draft",
+      notes: "Generated from " + sdr.id + " · " + sdr.notes,
+      lines,
+    };
+    INVOICES.unshift(newInv);
+    sdr.status = "closed";
+    sdr.closedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
+    sdr.invoiceId = newInv.id;
+
+    renderSDRs();
+    closeSDRPreview();
+    switchView("invoices");
+    setTimeout(() => openInvcPreview(0), 200);
+  });
+}
+
 function setupBarcoding() {
   // Mode tabs
   document.querySelectorAll(".bc-mode-tab").forEach(tab => {
@@ -10591,6 +11573,7 @@ setupDiscrepancyReports();
 setupCrunchTime();
 setupBarcoding();
 setupInvoices();
+setupSDR();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
@@ -10635,6 +11618,12 @@ setInterval(tickClock, 1000);
       switchView("invoices");
       const invIdx = parseInt(h.replace("invc-", ""), 10);
       if (!isNaN(invIdx) && INVOICES[invIdx]) openInvcPreview(invIdx);
+    } else if (h === "sdr" || h === "shipment-detail" || h === "approval") {
+      switchView("sdr");
+    } else if (h.startsWith("sdr-")) {
+      switchView("sdr");
+      const sdrIdx = parseInt(h.replace("sdr-", ""), 10);
+      if (!isNaN(sdrIdx) && SDRS[sdrIdx]) openSDRPreview(sdrIdx);
     } else if (h.startsWith("email-")) {
       switchView("inbox");
       const idx = parseInt(h.replace("email-", ""), 10);
