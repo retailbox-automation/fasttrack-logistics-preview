@@ -206,6 +206,29 @@ input { font: inherit; color: inherit; background: none; border: none; outline: 
 
 .user-chip__name { font-size: 12px; color: var(--text); }
 
+.user-switcher { position: absolute; top: 56px; right: 24px; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; padding: 6px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 200; min-width: 280px; display: none; }
+.user-switcher.open { display: block; }
+.user-switcher-header { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); padding: 8px 12px 6px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.user-switcher-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 5px; cursor: pointer; transition: background 120ms; }
+.user-switcher-item:hover { background: var(--bg-hover); }
+.user-switcher-item.active { background: var(--bg-glow); }
+.user-switcher-item__avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg-deep); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; font-weight: 700; flex-shrink: 0; }
+.user-switcher-item__info { flex: 1; min-width: 0; }
+.user-switcher-item__name { font-size: 12px; color: var(--text-bright); }
+.user-switcher-item__role { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.user-switcher-item__perm { font-family: var(--font-mono); font-size: 9px; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; letter-spacing: 0.06em; }
+.user-switcher-item__perm--can { background: rgba(16,185,129,0.12); color: var(--ok); border: 1px solid rgba(16,185,129,0.25); }
+.user-switcher-item__perm--cant { background: rgba(148,163,184,0.12); color: var(--text-dim); border: 1px solid rgba(148,163,184,0.25); }
+
+.invc-no-permission-banner { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-left: 3px solid var(--crit); border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--crit); line-height: 1.5; }
+.invc-no-permission-banner strong { color: #FCA5A5; }
+
+button.invc-disabled-send {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  position: relative;
+}
+
 /* ── STATS STRIP ── */
 .stats {
   display: grid;
@@ -2855,11 +2878,12 @@ body.layout-list .pagination { display: none; }
         <input id="search-input" placeholder="PO, cruise, vessel, or vendor…">
         <span class="search__kbd">⌘K</span>
       </div>
-      <button class="user-chip">
-        <div class="user-chip__avatar">AY</div>
-        <div class="user-chip__name">Andrés Y.</div>
+      <button class="user-chip" id="user-chip-btn" title="Click to switch user role (demo)">
+        <div class="user-chip__avatar" id="user-chip-avatar">GP</div>
+        <div class="user-chip__name" id="user-chip-name">Gabriela P.</div>
         <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
       </button>
+      <div class="user-switcher" id="user-switcher"></div>
     </div>
   </header>
 
@@ -3244,14 +3268,14 @@ body.layout-list .pagination { display: none; }
         <thead>
           <tr>
             <th>Invoice #</th>
-            <th>Source LL</th>
+            <th>Source SDR</th>
             <th>Vessel</th>
             <th>PON</th>
-            <th>Date</th>
+            <th>Issued by</th>
             <th>Status</th>
             <th style="text-align:right">Lines</th>
             <th style="text-align:right">Subtotal</th>
-            <th style="text-align:right">Fuel +15%</th>
+            <th style="text-align:right">Fuel</th>
             <th style="text-align:right">Total (USD)</th>
           </tr>
         </thead>
@@ -10114,10 +10138,34 @@ const INVC_STATUS_LABELS = {
   rejected: "Rejected",
 };
 
+// Permission gate per Andrés 6/09: only 3 named persons can send invoices
+const INVOICE_SENDERS_AUTHORIZED = [
+  "Gabriela Pita",
+  "Luis Cruz",
+  "Andrés Yeguez",
+];
+
+// All available user roles (for current-user switcher demo)
+const USER_ROLES = [
+  { name: "Gabriela Pita",     role: "Accounting",       email: "gabriela@fasttrackgroup.us", canSendInvoice: true },
+  { name: "Luis Cruz",         role: "Accounting",       email: "l.cruz@fasttrackgroup.us",   canSendInvoice: true },
+  { name: "Andrés Yeguez",     role: "CEO Fast Track",   email: "a.yeguez@fasttrackgroup.us", canSendInvoice: true },
+  { name: "Andrea Palmisano",  role: "Operations Mgr",   email: "andrea@fasttrackgroup.us",   canSendInvoice: false },
+  { name: "Yamisley Barros",   role: "Receiving",        email: "yamisley@fasttrackgroup.us", canSendInvoice: false },
+];
+
+// Default current user — first authorized (Gabriela)
+let CURRENT_USER = USER_ROLES[0];
+
+function userCanSendInvoice() {
+  return CURRENT_USER && CURRENT_USER.canSendInvoice;
+}
+
 // Seeded invoices (mock — link to real Loading Lists from earlier modules)
 const INVOICES = [
   {
     id: "FT-INV-46225",
+    sdrId: "SDR-2026-0048",
     loadingListId: "LL-2026-0048",
     pon: "4597196559-OCY00018",
     invoiceDate: "2026-05-31",
@@ -10129,6 +10177,7 @@ const INVOICES = [
     fuel: 15,
     gwx: "GWX-2026-0048",
     cruiseId: "SS20260530MIAOC",
+    issuedBy: "Gabriela Pita",
     status: "paid",
     notes: "Loading List LL-2026-0048 dispatch · MSC Seashore · Miami turnaround. Includes $42 credit adjustment for DR-2026-0010.",
     lines: [
@@ -10152,6 +10201,8 @@ const INVOICES = [
     fuel: 15,
     gwx: "GWX-2026-0049",
     cruiseId: "SE20260602MIAOC",
+    sdrId: "SDR-2026-0049",
+    issuedBy: "Luis Cruz",
     status: "sent",
     notes: "Loading List LL-2026-0049 dispatch · MSC Seascape · Ocean Cay turnaround. DR-2026-0011 investigation pending — may require adjustment.",
     lines: [
@@ -10174,6 +10225,8 @@ const INVOICES = [
     fuel: 0,
     gwx: "",
     cruiseId: "",
+    sdrId: null,
+    issuedBy: "Gabriela Pita",
     status: "pending_approval",
     notes: "May warehouse storage + inventory check reconciliation services. Manual invoice — no source LL.",
     lines: [
@@ -10194,6 +10247,8 @@ const INVOICES = [
     fuel: 15,
     gwx: "GWX-2026-0050",
     cruiseId: "MV20260608MIAPCV",
+    sdrId: null,
+    issuedBy: "Gabriela Pita",
     status: "draft",
     notes: "Draft for upcoming MSC Meraviglia dispatch · PCV. Pending Loading List finalization + seal/driver assignment.",
     lines: [
@@ -10241,11 +10296,11 @@ function renderInvoices() {
     const tr = el("tr");
     tr.appendChild(el("td", {}, [el("span", { class: "inv-id", text: inv.id })]));
     tr.appendChild(el("td", {}, [
-      inv.loadingListId ? el("span", { class: "inv-llref", text: inv.loadingListId }) : el("span", { class: "muted-dash", text: "— manual —" }),
+      inv.sdrId ? el("span", { class: "sdr-id", text: inv.sdrId }) : el("span", { class: "muted-dash", text: "— manual —" }),
     ]));
     tr.appendChild(el("td", { text: (ll && ll.vessel) || "—" }));
     tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:10px;color:var(--text-dim);", text: inv.pon })]));
-    tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:11px;color:var(--text-bright);", text: inv.invoiceDate })]));
+    tr.appendChild(el("td", { text: inv.issuedBy || "—" }));
     tr.appendChild(el("td", {}, [el("span", { class: "inv-status inv-status--" + inv.status, text: INVC_STATUS_LABELS[inv.status] })]));
     const tdLines = el("td", { class: "td-num" });
     tdLines.appendChild(el("span", { class: "inv-num", text: String(inv.lines.length) }));
@@ -10288,6 +10343,11 @@ function openInvcBuilder() {
   INVC_BUILDER_LINES = [];
   document.getElementById("invc-overlay").classList.add("open");
   document.getElementById("invc-modal").classList.add("open");
+
+  // Warn that manual invoice creation is non-standard — per Andrés 6/09 workflow,
+  // invoices should chain from approved SDRs (which carry PON). Manual = exception.
+  const titleEl = document.querySelector(".invc-modal__title");
+  if (titleEl) titleEl.textContent = "New Manual Invoice · NB: standard path is via Shipment Detail Report → MSC PO → auto-generate";
 
   const select = document.getElementById("invc-source-ll");
   while (select.firstChild) select.removeChild(select.firstChild);
@@ -10494,6 +10554,18 @@ function openInvcPreview(idx) {
     inv.id + " · " + INVC_STATUS_LABELS[inv.status].toUpperCase();
   overlay.classList.add("open");
   overlay.dataset.idx = String(idx);
+
+  // Apply permission gate on Send button per Andrés 6/09 (3 authorized only)
+  const sendBtn = document.getElementById("invc-preview-send");
+  if (sendBtn) {
+    if (userCanSendInvoice()) {
+      sendBtn.classList.remove("invc-disabled-send");
+      sendBtn.title = "Send invoice — you are authorized (" + CURRENT_USER.name + ")";
+    } else {
+      sendBtn.classList.add("invc-disabled-send");
+      sendBtn.title = "Cannot send — " + (CURRENT_USER ? CURRENT_USER.name : "current user") + " is not authorized. Per Andrés 6/09: only Gabriela Pita / Luis Cruz / Andrés Yeguez can send invoices.";
+    }
+  }
 }
 
 function closeInvcPreview() {
@@ -10537,11 +10609,14 @@ function buildInvcPreviewDoc(inv) {
   meta.appendChild(metaField("ATTN", inv.attn));
   meta.appendChild(metaField("PON (MSC PO)", inv.pon, true));
   meta.appendChild(metaField("TERMS", inv.terms));
-  meta.appendChild(metaField("SOURCE LL", inv.loadingListId || "— manual —", true));
+  meta.appendChild(metaField("SOURCE SDR", inv.sdrId || "— manual —", true));
+  meta.appendChild(metaField("SOURCE LL", inv.loadingListId || "—", true));
   meta.appendChild(metaField("VESSEL", (ll && ll.vessel) || "—"));
   meta.appendChild(metaField("CRUISE", inv.cruiseId || (ll && ll.cruise) || "—", true));
-  meta.appendChild(metaField("CURRENCY", inv.currency));
   meta.appendChild(metaField("GWX", inv.gwx || "—", true));
+  meta.appendChild(metaField("CURRENCY", inv.currency));
+  meta.appendChild(metaField("ISSUED BY", inv.issuedBy || "—"));
+  meta.appendChild(metaField("SENDER", "accounting@fasttrackgroup.us", true));
   root.appendChild(meta);
 
   // Lines table — per ops manual §3.1 two-tab structure
@@ -10753,6 +10828,19 @@ function setupInvoices() {
     const idx = parseInt(ovl.dataset.idx, 10);
     if (isNaN(idx) || !INVOICES[idx]) return;
     const inv = INVOICES[idx];
+
+    // Permission gate per Andrés 6/09
+    if (!userCanSendInvoice()) {
+      alert("Permission denied.\n\n" + (CURRENT_USER ? CURRENT_USER.name : "Current user") + " (" +
+        (CURRENT_USER ? CURRENT_USER.role : "no role") + ") is not authorized to send invoices.\n\n" +
+        "Per Andrés (6/09): only the 3 authorized senders can issue invoices:\n" +
+        "  • Gabriela Pita (Accounting)\n" +
+        "  • Luis Cruz (Accounting)\n" +
+        "  • Andrés Yeguez (CEO)\n\n" +
+        "Switch user via the top-right user chip to demo.");
+      return;
+    }
+
     if (!(inv.status === "approved" || inv.status === "draft" || inv.status === "pending_approval")) {
       alert("Invoice already " + INVC_STATUS_LABELS[inv.status] + ".");
       return;
@@ -10810,8 +10898,9 @@ function setupInvoices() {
       "For any disputes please notify within 7 business days of receipt. " +
       "Reference invoice ID and PON on all remittance.\n\n" +
       "Thank you,\n" +
+      (CURRENT_USER ? CURRENT_USER.name + "\n" : "") +
       "Fast Track Worldwide Logistic\n" +
-      "billing@fasttrackgroup.us · +1 (941) 216-5279";
+      "accounting@fasttrackgroup.us · +1 (941) 216-5279";
 
     const mailtoUrl = "mailto:" + encodeURIComponent(primaryEmail) +
       "?cc=" + encodeURIComponent(ccEmails.join(",")) +
@@ -10821,17 +10910,80 @@ function setupInvoices() {
     // Open user's default mail client
     window.location.href = mailtoUrl;
 
-    // Update status after a brief delay (gives mail client time to open)
+    // Update status + record issuer
     setTimeout(() => {
       inv.status = "sent";
+      inv.issuedBy = CURRENT_USER ? CURRENT_USER.name : inv.issuedBy;
       renderInvoices();
-      if (confirm("Invoice " + inv.id + " marked SENT.\n\n" +
+      if (confirm("Invoice " + inv.id + " marked SENT (by " + (CURRENT_USER ? CURRENT_USER.name : "—") + ").\n\n" +
         "Your mail client should have opened with a pre-filled draft to:\n" +
         "  " + primaryEmail + "\n  CC: " + ccEmails.join(", ") + "\n\n" +
         "Click OK to close preview, Cancel to stay.")) {
         closeInvcPreview();
       }
     }, 600);
+  });
+}
+
+/* ─── Permission gate UI + user switcher ─── */
+
+function applyUserChip() {
+  const avatar = document.getElementById("user-chip-avatar");
+  const name = document.getElementById("user-chip-name");
+  if (!avatar || !name || !CURRENT_USER) return;
+  const initials = CURRENT_USER.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  avatar.textContent = initials;
+  name.textContent = CURRENT_USER.name.split(" ")[0] + " " + (CURRENT_USER.name.split(" ")[1] || "").charAt(0) + ".";
+}
+
+function renderUserSwitcher() {
+  const sw = document.getElementById("user-switcher");
+  if (!sw) return;
+  while (sw.firstChild) sw.removeChild(sw.firstChild);
+  sw.appendChild(el("div", { class: "user-switcher-header", text: "Switch role (demo) · invoice send permission gated" }));
+  USER_ROLES.forEach(u => {
+    const isActive = CURRENT_USER && CURRENT_USER.name === u.name;
+    const item = el("div", { class: "user-switcher-item" + (isActive ? " active" : "") });
+    const initials = u.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    item.appendChild(el("div", { class: "user-switcher-item__avatar", text: initials }));
+    const info = el("div", { class: "user-switcher-item__info" });
+    info.appendChild(el("div", { class: "user-switcher-item__name", text: u.name }));
+    info.appendChild(el("div", { class: "user-switcher-item__role", text: u.role + " · " + u.email }));
+    item.appendChild(info);
+    item.appendChild(el("span", {
+      class: "user-switcher-item__perm " + (u.canSendInvoice ? "user-switcher-item__perm--can" : "user-switcher-item__perm--cant"),
+      text: u.canSendInvoice ? "✓ Send invoice" : "✗ No send"
+    }));
+    item.addEventListener("click", () => {
+      CURRENT_USER = u;
+      applyUserChip();
+      sw.classList.remove("open");
+      renderInvoices();
+      // If invoice preview is open, refresh its action availability
+      const ovl = document.getElementById("invc-preview-overlay");
+      if (ovl && ovl.classList.contains("open")) {
+        const idx = parseInt(ovl.dataset.idx, 10);
+        if (!isNaN(idx) && INVOICES[idx]) openInvcPreview(idx);
+      }
+    });
+    sw.appendChild(item);
+  });
+}
+
+function setupUserSwitcher() {
+  applyUserChip();
+  renderUserSwitcher();
+  const btn = document.getElementById("user-chip-btn");
+  if (btn) btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const sw = document.getElementById("user-switcher");
+    sw.classList.toggle("open");
+  });
+  document.addEventListener("click", (e) => {
+    const sw = document.getElementById("user-switcher");
+    if (sw && !sw.contains(e.target) && !document.getElementById("user-chip-btn").contains(e.target)) {
+      sw.classList.remove("open");
+    }
   });
 }
 
@@ -11574,6 +11726,7 @@ setupCrunchTime();
 setupBarcoding();
 setupInvoices();
 setupSDR();
+setupUserSwitcher();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
