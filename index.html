@@ -1218,19 +1218,23 @@ body.view-loading_lists .pagination { display: none; }
   .ll-preview-doc, .ll-preview-doc *,
   .dr-preview-doc, .dr-preview-doc *,
   .invc-preview-doc, .invc-preview-doc *,
-  .sdr-preview-doc, .sdr-preview-doc * { visibility: visible; }
+  .sdr-preview-doc, .sdr-preview-doc *,
+  .cm-preview-doc, .cm-preview-doc * { visibility: visible; }
   .ll-preview-overlay,
   .dr-preview-overlay,
   .invc-preview-overlay,
-  .sdr-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
+  .sdr-preview-overlay,
+  .cm-preview-overlay { position: static; padding: 0; background: white; overflow: visible; }
   .ll-preview-doc,
   .dr-preview-doc,
   .invc-preview-doc,
-  .sdr-preview-doc { box-shadow: none; margin: 0; max-width: none; }
+  .sdr-preview-doc,
+  .cm-preview-doc { box-shadow: none; margin: 0; max-width: none; }
   .ll-preview-toolbar,
   .dr-preview-toolbar,
   .invc-preview-toolbar,
-  .sdr-preview-toolbar { display: none !important; }
+  .sdr-preview-toolbar,
+  .cm-preview-toolbar { display: none !important; }
 }
 
 /* ═══ DISCREPANCY REPORTS view ═══ */
@@ -1892,6 +1896,54 @@ body.view-sdr .pagination { display: none; }
 .sdr-doc__approval-pon { font-family: "JetBrains Mono", monospace; font-size: 13px; color: #047857; font-weight: 700; margin-top: 4px; }
 
 .sdr-doc__footer { padding: 12px 36px 20px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
+
+/* ═══ CREDIT MEMOS view ═══ */
+.cm-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-credit_memos .cm-view { display: block; }
+body.view-credit_memos .dashboard,
+body.view-credit_memos .inbox-view,
+body.view-credit_memos .inventory-view,
+body.view-credit_memos .loading-lists-view,
+body.view-credit_memos .discrepancies-view,
+body.view-credit_memos .crunchtime-view,
+body.view-credit_memos .barcoding-view,
+body.view-credit_memos .invoices-view,
+body.view-credit_memos .sdr-view,
+body.view-credit_memos .pagination { display: none; }
+
+.cm-id { font-family: var(--font-mono); font-size: 11px; color: #F87171; font-weight: 500; }
+.cm-applied-to { font-family: var(--font-mono); font-size: 10px; color: var(--text-bright); }
+.cm-amount { font-family: var(--font-mono); font-feature-settings: "tnum"; color: var(--crit); font-weight: 500; }
+
+.cm-builder-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); z-index: 100; display: none; }
+.cm-builder-overlay.open { display: block; }
+.cm-builder { position: fixed; top: 8vh; left: 50%; transform: translateX(-50%); width: 720px; max-width: 96vw; max-height: 84vh; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; z-index: 101; display: none; flex-direction: column; overflow: hidden; }
+.cm-builder.open { display: flex; }
+.cm-builder__header { display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+.cm-builder__title { font-family: var(--font-display); font-size: 16px; color: var(--text-bright); font-weight: 500; }
+.cm-builder__close { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 6px 12px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+.cm-builder__body { padding: 22px; overflow-y: auto; flex: 1; }
+.cm-builder__footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); flex-shrink: 0; }
+
+/* Credit Memo preview document */
+.cm-preview-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.85); backdrop-filter: blur(6px); z-index: 110; display: none; overflow-y: auto; padding: 24px; }
+.cm-preview-overlay.open { display: block; }
+.cm-preview-doc { max-width: 920px; margin: 0 auto; background: #FBFAF6; color: #1A1F2E; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); font-family: "Inter", -apple-system, sans-serif; position: relative; }
+.cm-preview-toolbar { display: flex; justify-content: space-between; align-items: center; max-width: 920px; margin: 0 auto 16px; padding: 0 4px; }
+.cm-preview-toolbar__left { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(251,250,246,0.7); }
+.cm-preview-toolbar__btn { background: rgba(251,250,246,0.1); border: 1px solid rgba(251,250,246,0.2); color: #FBFAF6; padding: 6px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; }
+.cm-preview-toolbar__btn:hover { background: rgba(251,250,246,0.16); border-color: rgba(251,250,246,0.4); }
+
+.cm-doc__header { padding: 28px 36px 16px; border-bottom: 2px solid #DC2626; display: flex; justify-content: space-between; }
+.cm-doc__logo { font-family: "Fraunces", serif; font-size: 20px; font-weight: 600; color: #1A1F2E; }
+.cm-doc__brand-sub { font-size: 10px; color: #555; line-height: 1.5; }
+.cm-doc__title { font-family: "Fraunces", serif; font-size: 18px; font-weight: 500; color: #DC2626; }
+.cm-doc__id { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #DC2626; font-weight: 600; }
+.cm-doc__meta { padding: 18px 36px; background: #FEF2F2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; border-bottom: 1px solid #FECACA; }
+.cm-doc__amount-block { padding: 24px 36px; text-align: center; background: #FFF7F7; border-bottom: 1px solid #FECACA; }
+.cm-doc__amount-label { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 6px; }
+.cm-doc__amount-value { font-family: "Fraunces", serif; font-size: 32px; font-weight: 600; color: #DC2626; }
+.cm-doc__footer { padding: 14px 36px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; }
 
 .inbox-stats {
   display: grid;
@@ -3181,6 +3233,46 @@ body.layout-list .pagination { display: none; }
       </table>
     </section>
 
+    <!-- CREDIT MEMOS VIEW -->
+    <section class="cm-view" id="cm-view">
+      <div class="ll-header">
+        <div>
+          <div class="ll-crumb">Billing adjustments · Per Andrés 6/10 — separate doc, applied within SOA</div>
+          <div class="ll-title">
+            <h1>Credit Memos</h1>
+            <span class="ll-title-count" id="cm-title-count">— credit memos</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <input id="cm-search" placeholder="Search CM#, applied to invoice…" style="padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; width: 260px;">
+          <button class="btn btn--accent" id="cm-new-btn">+ Issue Credit Memo</button>
+        </div>
+      </div>
+
+      <div class="ll-stats">
+        <div class="ll-stat"><div class="ll-stat__label">Total credit memos</div><div class="ll-stat__value" id="cm-stat-total">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Open (unapplied)</div><div class="ll-stat__value" id="cm-stat-open" style="color:var(--accent-bright);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Applied</div><div class="ll-stat__value" id="cm-stat-applied" style="color:var(--ok);">—</div></div>
+        <div class="ll-stat"><div class="ll-stat__label">Total credited (USD)</div><div class="ll-stat__value" id="cm-stat-amount" style="color:var(--crit);">—</div></div>
+      </div>
+
+      <table class="ll-table">
+        <thead>
+          <tr>
+            <th>CM #</th>
+            <th>Applied to invoice</th>
+            <th>Bill To</th>
+            <th>Issue date</th>
+            <th>Due date</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th style="text-align:right">Amount (USD)</th>
+          </tr>
+        </thead>
+        <tbody id="cm-tbody"></tbody>
+      </table>
+    </section>
+
     <!-- SHIPMENT DETAIL REPORT (SDR) VIEW -->
     <section class="sdr-view" id="sdr-view">
       <div class="ll-header">
@@ -3654,6 +3746,77 @@ body.layout-list .pagination { display: none; }
     <div class="dr-preview-doc" id="dr-preview-doc"></div>
   </div>
 
+  <!-- CREDIT MEMO BUILDER MODAL -->
+  <div class="cm-builder-overlay" id="cm-builder-overlay"></div>
+  <div class="cm-builder" id="cm-builder">
+    <div class="cm-builder__header">
+      <div class="cm-builder__title">Issue Credit Memo · separate document applied to existing invoice</div>
+      <button class="cm-builder__close" id="cm-builder-close">Close ✕</button>
+    </div>
+    <div class="cm-builder__body">
+      <form id="cm-form" onsubmit="return false;">
+        <div class="invc-meta-field" style="margin-bottom: 14px;">
+          <label>Apply to invoice<span class="required">*</span></label>
+          <select name="appliedToInvoiceId" required id="cm-source-invoice"></select>
+          <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-top: 4px;">Per Andrés 6/10: due date will be inherited from this invoice (not calculated)</div>
+        </div>
+        <div class="invc-meta-grid" style="margin-bottom: 14px;">
+          <div class="invc-meta-field">
+            <label>Amount (USD)<span class="required">*</span></label>
+            <input name="amount" type="number" step="0.01" required placeholder="42.00">
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-top: 4px;">Typically full amount of related invoice</div>
+          </div>
+          <div class="invc-meta-field">
+            <label>Issue date<span class="required">*</span></label>
+            <input name="issueDate" type="date" required>
+          </div>
+        </div>
+        <div class="invc-meta-field" style="margin-bottom: 14px;">
+          <label>Reason<span class="required">*</span></label>
+          <select name="reason" required>
+            <option>Damaged goods (MSC recovery invoice)</option>
+            <option>Missing items / short delivery</option>
+            <option>Service not rendered</option>
+            <option>Rate correction</option>
+            <option>Duplicate charge</option>
+            <option>Other (specify in description)</option>
+          </select>
+        </div>
+        <div class="invc-meta-field" style="margin-bottom: 14px;">
+          <label>Description / notes</label>
+          <textarea name="description" placeholder="Additional context. 'Applied to INV #XX' is auto-added.&#10;Per Andrés 6/10: MSC sends recovery invoice → we issue credit memo of entire amount."></textarea>
+        </div>
+        <div class="invc-meta-field" style="margin-bottom: 14px;">
+          <label>Issued by</label>
+          <select name="issuedBy">
+            <option>Gabriela Pita</option>
+            <option>Luis Cruz</option>
+            <option>Andrés Yeguez</option>
+          </select>
+        </div>
+      </form>
+    </div>
+    <div class="cm-builder__footer">
+      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);">Per Andrés 6/10: credit memo positioned next to related invoice in SOA</div>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn--ghost" id="cm-cancel-btn">Cancel</button>
+        <button class="btn btn--accent" id="cm-generate-btn">Issue credit memo →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREDIT MEMO PREVIEW DOCUMENT -->
+  <div class="cm-preview-overlay" id="cm-preview-overlay">
+    <div class="cm-preview-toolbar">
+      <div class="cm-preview-toolbar__left" id="cm-preview-toolbar-label">Credit Memo preview</div>
+      <div style="display: flex; gap: 8px;">
+        <button class="cm-preview-toolbar__btn" id="cm-preview-close">Close ✕</button>
+        <button class="cm-preview-toolbar__btn" id="cm-preview-print">Print / PDF</button>
+      </div>
+    </div>
+    <div class="cm-preview-doc" id="cm-preview-doc"></div>
+  </div>
+
   <!-- SDR BUILDER MODAL -->
   <div class="sdr-overlay" id="sdr-overlay"></div>
   <div class="sdr-modal" id="sdr-modal">
@@ -3701,9 +3864,9 @@ body.layout-list .pagination { display: none; }
             <div class="sdr-meta-field">
               <label>Bill To</label>
               <select name="billTo">
+                <option>MSC Procurement & Logistics</option>
+                <option>MSC Ocean Cay</option>
                 <option>MSC Cruises USA · Logistics</option>
-                <option>MSC Procurement & Logistic S.p.A.</option>
-                <option>MSC Cruise Management (UK) Ltd.</option>
               </select>
             </div>
           </div>
@@ -3762,6 +3925,7 @@ body.layout-list .pagination { display: none; }
       <div class="sdr-preview-toolbar__actions">
         <button class="sdr-preview-toolbar__btn" id="sdr-preview-close">Close ✕</button>
         <button class="sdr-preview-toolbar__btn" id="sdr-preview-print">Print / PDF</button>
+        <button class="sdr-preview-toolbar__btn" id="sdr-preview-edit-variables">Edit / add variables</button>
         <button class="sdr-preview-toolbar__btn sdr-preview-toolbar__btn--primary" id="sdr-preview-send">Send to MSC</button>
         <button class="sdr-preview-toolbar__btn" id="sdr-preview-receive-po">Record PO received</button>
         <button class="sdr-preview-toolbar__btn sdr-preview-toolbar__btn--invoice" id="sdr-preview-generate-invoice">Generate Invoice →</button>
@@ -3808,9 +3972,9 @@ body.layout-list .pagination { display: none; }
           <div class="invc-meta-field">
             <label>Bill To (MSC entity)<span class="required">*</span></label>
             <select name="billTo" required>
-              <option value="MSC Cruises USA · Logistics">MSC Cruises USA · Logistics</option>
-              <option value="MSC Procurement & Logistic S.p.A.">MSC Procurement & Logistic S.p.A.</option>
-              <option value="MSC Cruise Management (UK) Ltd.">MSC Cruise Management (UK) Ltd.</option>
+              <option value="MSC Procurement & Logistics">MSC Procurement & Logistics</option>
+              <option value="MSC Ocean Cay">MSC Ocean Cay</option>
+              <option value="MSC Cruises USA · Logistics">MSC Cruises USA · Logistics (general)</option>
             </select>
           </div>
           <div class="invc-meta-field">
@@ -3861,6 +4025,14 @@ body.layout-list .pagination { display: none; }
               <option value="15">Apply 15% (ADS-001886/001456)</option>
               <option value="0">No fuel surcharge</option>
             </select>
+          </div>
+          <div class="invc-meta-field">
+            <label>Approval routing<span class="required">*</span></label>
+            <select name="outOfScope" required>
+              <option value="false">Standard — needs Andrés approval</option>
+              <option value="true">Out-of-scope — Luis manages PO with MSC, self-approve</option>
+            </select>
+            <div style="font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); margin-top: 4px;">Per Andrés 6/10: out-of-scope POs bypass his approval (Luis-managed)</div>
           </div>
           <div class="invc-meta-field">
             <label>Notes (visible to MSC)</label>
@@ -4243,6 +4415,7 @@ const SIDEBAR_DATA = {
     { label: "Discrepancy Reports",  count: "3", view: "discrepancies" },
     { label: "Shipment Detail · MSC approval", count: "3", view: "sdr", highlight: true },
     { label: "Invoices · Billing",   count: "4", view: "invoices" },
+    { label: "Credit Memos",         count: "2", view: "credit_memos" },
     { label: "CrunchTime · Requests", count: "4", view: "crunchtime" },
     { label: "Barcoding · Scan",     count: "·", view: "barcoding" },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
@@ -7652,7 +7825,7 @@ function buildInboxDetail(email) {
    ═══════════════════════════════════════════════════════════════════ */
 
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr", "view-credit_memos");
   document.body.classList.add("view-" + view);
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
@@ -7661,6 +7834,7 @@ function switchView(view) {
   if (view === "barcoding") renderBarcoding();
   if (view === "invoices") renderInvoices();
   if (view === "sdr") renderSDRs();
+  if (view === "credit_memos") renderCreditMemos();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -10157,8 +10331,24 @@ const USER_ROLES = [
 // Default current user — first authorized (Gabriela)
 let CURRENT_USER = USER_ROLES[0];
 
-function userCanSendInvoice() {
-  return CURRENT_USER && CURRENT_USER.canSendInvoice;
+function userCanSendInvoice(inv) {
+  if (!CURRENT_USER || !CURRENT_USER.canSendInvoice) return false;
+  // Per Andrés 6/10: out-of-scope invoices route via Luis (bypass Andrés)
+  // Standard invoices need Andrés approval (Gabriela/Andrés can send; Luis cannot
+  // send standard invoices unless they're his out-of-scope ones)
+  if (!inv) return true; // generic check
+  if (inv.outOfScope) {
+    // Only Luis or Andrés can send out-of-scope (Luis-managed pattern)
+    return ["Luis Cruz", "Andrés Yeguez"].includes(CURRENT_USER.name);
+  } else {
+    // Standard: Gabriela / Andrés can send (Luis typically Luis-managed only)
+    return ["Gabriela Pita", "Andrés Yeguez"].includes(CURRENT_USER.name);
+  }
+}
+
+function getApproverForInvoice(inv) {
+  if (inv && inv.outOfScope) return "Luis Cruz (self-approve, out-of-scope)";
+  return "Andrés Yeguez (standard approval)";
 }
 
 // Seeded invoices (mock — link to real Loading Lists from earlier modules)
@@ -10170,7 +10360,7 @@ const INVOICES = [
     pon: "4597196559-OCY00018",
     invoiceDate: "2026-05-31",
     issueDate: "2026-05-31 16:08",
-    billTo: "MSC Cruises USA · Logistics",
+    billTo: "MSC Ocean Cay",
     attn: "Jorge Vega · Logistics Manager USA",
     terms: "NET 30",
     currency: "USD",
@@ -10194,7 +10384,7 @@ const INVOICES = [
     pon: "4597196559-OCY00021",
     invoiceDate: "2026-06-02",
     issueDate: "2026-06-02 11:22",
-    billTo: "MSC Cruises USA · Logistics",
+    billTo: "MSC Ocean Cay",
     attn: "Jorge Vega · Logistics Manager USA",
     terms: "NET 30",
     currency: "USD",
@@ -10218,7 +10408,7 @@ const INVOICES = [
     pon: "4597196559-OCY00019",
     invoiceDate: "2026-06-05",
     issueDate: "2026-06-05 09:30",
-    billTo: "MSC Procurement & Logistic S.p.A.",
+    billTo: "MSC Procurement & Logistics",
     attn: "Ana Sanchez · MSC Inventory Check",
     terms: "NET 45",
     currency: "USD",
@@ -10226,9 +10416,10 @@ const INVOICES = [
     gwx: "",
     cruiseId: "",
     sdrId: null,
-    issuedBy: "Gabriela Pita",
+    issuedBy: "Luis Cruz",
+    outOfScope: true,
     status: "pending_approval",
-    notes: "May warehouse storage + inventory check reconciliation services. Manual invoice — no source LL.",
+    notes: "May warehouse storage + inventory check reconciliation services. Manual invoice — no source LL. OUT-OF-SCOPE / Luis-managed PO direct with MSC.",
     lines: [
       { code: "ADS-000328", desc: "Container storage at yard (per day)", qty: 12, rate:  45.00 },
       { code: "ADS-000022", desc: "PO handling",                         qty:  4, rate:  30.00 },
@@ -10240,7 +10431,7 @@ const INVOICES = [
     pon: "4597196559-OCY00024",
     invoiceDate: "2026-06-07",
     issueDate: "2026-06-07 14:00",
-    billTo: "MSC Cruises USA · Logistics",
+    billTo: "MSC Procurement & Logistics",
     attn: "Jorge Vega · Logistics Manager USA",
     terms: "NET 30",
     currency: "USD",
@@ -10524,13 +10715,16 @@ function generateInvoice() {
     pon: meta.pon,
     invoiceDate: meta.invoiceDate,
     issueDate: new Date().toISOString().slice(0, 16).replace("T", " "),
-    billTo: meta.billTo || "MSC Cruises USA · Logistics",
+    billTo: meta.billTo || "MSC Procurement & Logistics",
     attn: meta.attn || "Jorge Vega · Logistics Manager USA",
     terms: meta.terms || "NET 30",
     currency: meta.currency || "USD",
     fuel: parseFloat(meta.fuel || "0"),
     gwx: meta.gwx || "",
     cruiseId: meta.cruiseId || (sourceLL && sourceLL.cruise) || "",
+    sdrId: null,
+    issuedBy: CURRENT_USER ? CURRENT_USER.name : "Gabriela Pita",
+    outOfScope: meta.outOfScope === "true",
     status: "draft",
     notes: meta.notes || "",
     lines: INVC_BUILDER_LINES.slice(),
@@ -10555,15 +10749,18 @@ function openInvcPreview(idx) {
   overlay.classList.add("open");
   overlay.dataset.idx = String(idx);
 
-  // Apply permission gate on Send button per Andrés 6/09 (3 authorized only)
+  // Apply permission gate on Send button — per Andrés 6/09 + 6/10 2-tier routing
   const sendBtn = document.getElementById("invc-preview-send");
   if (sendBtn) {
-    if (userCanSendInvoice()) {
+    if (userCanSendInvoice(inv)) {
       sendBtn.classList.remove("invc-disabled-send");
-      sendBtn.title = "Send invoice — you are authorized (" + CURRENT_USER.name + ")";
+      sendBtn.title = "Send invoice — you are authorized (" + CURRENT_USER.name + ", approval: " + getApproverForInvoice(inv) + ")";
     } else {
       sendBtn.classList.add("invc-disabled-send");
-      sendBtn.title = "Cannot send — " + (CURRENT_USER ? CURRENT_USER.name : "current user") + " is not authorized. Per Andrés 6/09: only Gabriela Pita / Luis Cruz / Andrés Yeguez can send invoices.";
+      const reason = inv.outOfScope
+        ? "out-of-scope invoices route via Luis Cruz or Andrés (per Andrés 6/10)"
+        : "standard invoices need Gabriela Pita or Andrés Yeguez";
+      sendBtn.title = "Cannot send — " + (CURRENT_USER ? CURRENT_USER.name : "current user") + " not authorized for this invoice type. " + reason;
     }
   }
 }
@@ -10617,6 +10814,7 @@ function buildInvcPreviewDoc(inv) {
   meta.appendChild(metaField("CURRENCY", inv.currency));
   meta.appendChild(metaField("ISSUED BY", inv.issuedBy || "—"));
   meta.appendChild(metaField("SENDER", "accounting@fasttrackgroup.us", true));
+  meta.appendChild(metaField("APPROVAL", inv.outOfScope ? "Out-of-scope (Luis-managed)" : "Standard (Andrés approves)"));
   root.appendChild(meta);
 
   // Lines table — per ops manual §3.1 two-tab structure
@@ -10829,15 +11027,19 @@ function setupInvoices() {
     if (isNaN(idx) || !INVOICES[idx]) return;
     const inv = INVOICES[idx];
 
-    // Permission gate per Andrés 6/09
-    if (!userCanSendInvoice()) {
+    // Permission gate per Andrés 6/09 + 6/10 (2-tier routing)
+    if (!userCanSendInvoice(inv)) {
+      const isOutOfScope = inv.outOfScope;
       alert("Permission denied.\n\n" + (CURRENT_USER ? CURRENT_USER.name : "Current user") + " (" +
-        (CURRENT_USER ? CURRENT_USER.role : "no role") + ") is not authorized to send invoices.\n\n" +
-        "Per Andrés (6/09): only the 3 authorized senders can issue invoices:\n" +
-        "  • Gabriela Pita (Accounting)\n" +
-        "  • Luis Cruz (Accounting)\n" +
-        "  • Andrés Yeguez (CEO)\n\n" +
-        "Switch user via the top-right user chip to demo.");
+        (CURRENT_USER ? CURRENT_USER.role : "no role") + ") is not authorized to send this invoice.\n\n" +
+        (isOutOfScope
+          ? "This is an OUT-OF-SCOPE invoice (Luis-managed). Per Andrés 6/10:\n" +
+            "  • Luis Cruz manages the PO process directly with MSC\n" +
+            "  • Only Luis Cruz or Andrés Yeguez can send these\n"
+          : "This is a STANDARD invoice. Per Andrés 6/10:\n" +
+            "  • Standard invoices need Andrés approval first\n" +
+            "  • Only Gabriela Pita or Andrés Yeguez can send these\n") +
+        "\nSwitch user via the top-right user chip to demo.");
       return;
     }
 
@@ -10850,15 +11052,45 @@ function setupInvoices() {
     const ll = inv.loadingListId ? LOADING_LISTS.find(l => l.id === inv.loadingListId) : null;
     const totals = calcInvoiceTotals(inv);
 
-    // MSC AP routing per ops manual §7 contacts — primary recipient + CC
+    // MSC AP routing per Andrés 6/10 WhatsApp answer (confirmed real recipients)
     let primaryEmail = "";
-    if (inv.billTo.includes("USA")) primaryEmail = "ap-usa@msccruisesusa.com";
-    else if (inv.billTo.includes("S.p.A.") || inv.billTo.includes("Italy")) primaryEmail = "ap@msc-procurement.it";
-    else if (inv.billTo.includes("UK")) primaryEmail = "ap@msccruises.co.uk";
-    else primaryEmail = "ap-usa@msccruisesusa.com";
+    let ccEmails = [];
+    const billToLower = (inv.billTo || "").toLowerCase();
 
-    // CC: Jorge Vega (Logistics Manager — receives Shipment Detail per §3.1)
-    const ccEmails = ["j.vega@msccruisesusa.com"];
+    if (billToLower.includes("procurement") || billToLower.includes("p&l") || billToLower.includes("logistic")) {
+      // MSC Procurement & Logistics
+      primaryEmail = "pl.invoices@msccruisespl.com";
+      ccEmails = [
+        "finance@msccruisespl.com",
+        "rita.esposito@msccruisespl.com",
+        // Internal FT CC (always)
+        "a.sultan@fasttrackgroup.us",
+        "a.yeguez@fasttrackgroup.us",
+        "gabriela@fasttrackgroup.us",
+      ];
+    } else if (billToLower.includes("ocean cay")) {
+      // MSC Ocean Cay
+      primaryEmail = "accountspayable@mscoceancay.com";
+      ccEmails = [
+        "adam.goldstein@msccruisesusa.com",
+        "jorge.vega@msccruisesusa.com",
+      ];
+      // Conditional CC: tio@mscseashore.com only when Seashore is the providing vessel
+      // (per Andrés 6/10 — should not be blanket CC, only when relevant)
+      if (ll && ll.vessel && ll.vessel.toLowerCase().includes("seashore")) {
+        ccEmails.push("tio@mscseashore.com");
+      }
+      // Internal FT CC
+      ccEmails.push("a.sultan@fasttrackgroup.us", "a.yeguez@fasttrackgroup.us", "gabriela@fasttrackgroup.us");
+    } else {
+      // Default fallback (MSC USA · Logistics or unknown entity)
+      primaryEmail = "pl.invoices@msccruisespl.com";
+      ccEmails = [
+        "jorge.vega@msccruisesusa.com",
+        "a.yeguez@fasttrackgroup.us",
+        "gabriela@fasttrackgroup.us",
+      ];
+    }
 
     const subject = "Invoice " + inv.id + " · PON " + inv.pon + " · " + (ll ? ll.vessel : inv.billTo);
 
@@ -11008,7 +11240,7 @@ const SDRS = [
     id: "SDR-2026-0048",
     gwx: "GWX-2026-0048",
     loadingListId: "LL-2026-0048",
-    billTo: "MSC Cruises USA · Logistics",
+    billTo: "MSC Procurement & Logistics",
     msContact: "MSC PL Finance + Jorge Vega CC",
     preparedBy: "Gabriela Pita",
     periodStart: "2026-05-30",
@@ -11029,7 +11261,7 @@ const SDRS = [
     id: "SDR-2026-0049",
     gwx: "GWX-2026-0049",
     loadingListId: "LL-2026-0049",
-    billTo: "MSC Cruises USA · Logistics",
+    billTo: "MSC Procurement & Logistics",
     msContact: "MSC PL Finance + Jorge Vega CC",
     preparedBy: "Luis Cruz",
     periodStart: "2026-06-02",
@@ -11050,7 +11282,7 @@ const SDRS = [
     id: "SDR-2026-0050",
     gwx: "GWX-2026-0050",
     loadingListId: "LL-2026-0050",
-    billTo: "MSC Cruises USA · Logistics",
+    billTo: "MSC Procurement & Logistics",
     msContact: "MSC PL Finance + Jorge Vega CC",
     preparedBy: "Gabriela Pita",
     periodStart: "2026-06-08",
@@ -11260,13 +11492,47 @@ function generateSDR() {
   }
 
   const variables = document.getElementById("sdr-variables-notes").value.trim();
-  const maxNum = Math.max(...SDRS.map(s => parseInt(s.id.split("-").pop(), 10) || 0));
+  const modal = document.getElementById("sdr-modal");
+  const editIdxStr = modal.dataset.editIdx;
+  const editIdx = editIdxStr ? parseInt(editIdxStr, 10) : NaN;
 
+  if (!isNaN(editIdx) && SDRS[editIdx]) {
+    // EDIT MODE — modify existing SDR + flip status to variables_added
+    const sdr = SDRS[editIdx];
+    sdr.gwx = meta.gwx;
+    sdr.loadingListId = meta.loadingListId;
+    sdr.billTo = meta.billTo || sdr.billTo;
+    sdr.msContact = meta.msContact || sdr.msContact;
+    sdr.preparedBy = meta.preparedBy || sdr.preparedBy;
+    sdr.periodStart = meta.periodStart || sdr.periodStart;
+    sdr.periodEnd = meta.periodEnd || sdr.periodEnd;
+    sdr.notes = meta.notes || sdr.notes;
+    sdr.variables = variables;
+    sdr.qtys = Object.assign({}, SDR_BUILDER_QTYS);
+    sdr.variablesAt = new Date().toISOString().slice(0, 16).replace("T", " ");
+    if (sdr.status === "sent_to_msc" || sdr.status === "variables_added") {
+      sdr.status = "variables_added";
+    }
+    // Clear edit flag + reset modal title/button
+    delete modal.dataset.editIdx;
+    const titleEl = document.querySelector(".sdr-modal__title");
+    if (titleEl) titleEl.textContent = "New Shipment Detail Report · all ADS service codes pre-loaded";
+    const genBtn = document.getElementById("sdr-generate-btn");
+    if (genBtn) genBtn.textContent = "Generate SDR →";
+
+    closeSDRBuilder();
+    renderSDRs();
+    openSDRPreview(editIdx);
+    return;
+  }
+
+  // CREATE MODE — new SDR
+  const maxNum = Math.max(...SDRS.map(s => parseInt(s.id.split("-").pop(), 10) || 0));
   const newSDR = {
     id: "SDR-2026-" + String(maxNum + 1).padStart(4, "0"),
     gwx: meta.gwx,
     loadingListId: meta.loadingListId,
-    billTo: meta.billTo || "MSC Cruises USA · Logistics",
+    billTo: meta.billTo || "MSC Procurement & Logistics",
     msContact: meta.msContact || "MSC PL Finance + Jorge Vega CC",
     preparedBy: meta.preparedBy || "Gabriela Pita",
     periodStart: meta.periodStart || "",
@@ -11305,11 +11571,21 @@ function openSDRPreview(idx) {
 
   // Show/hide action buttons based on status
   const sendBtn = document.getElementById("sdr-preview-send");
+  const editBtn = document.getElementById("sdr-preview-edit-variables");
   const poBtn = document.getElementById("sdr-preview-receive-po");
   const invBtn = document.getElementById("sdr-preview-generate-invoice");
   sendBtn.style.display = (sdr.status === "draft" || sdr.status === "variables_added") ? "inline-flex" : "none";
+  // Edit button: visible when SDR sent but not yet closed — per Andrés 6/10
+  // ("variables on Monday = same SDR Excel modified")
+  editBtn.style.display = (sdr.status === "sent_to_msc" || sdr.status === "variables_added") ? "inline-flex" : "none";
   poBtn.style.display   = (sdr.status === "sent_to_msc" || sdr.status === "variables_added") ? "inline-flex" : "none";
   invBtn.style.display  = (sdr.status === "po_received") ? "inline-flex" : "none";
+  // Send button label changes — first send vs re-send with variables
+  if (sdr.status === "variables_added") {
+    sendBtn.textContent = "Re-send with variables";
+  } else {
+    sendBtn.textContent = "Send to MSC";
+  }
 }
 
 function closeSDRPreview() {
@@ -11515,6 +11791,66 @@ function setupSDR() {
   const previewPrint = document.getElementById("sdr-preview-print");
   if (previewPrint) previewPrint.addEventListener("click", () => window.print());
 
+  // Edit / add variables — re-opens builder pre-populated with existing SDR data
+  const editVarsBtn = document.getElementById("sdr-preview-edit-variables");
+  if (editVarsBtn) editVarsBtn.addEventListener("click", () => {
+    const ovl = document.getElementById("sdr-preview-overlay");
+    const idx = parseInt(ovl.dataset.idx, 10);
+    if (isNaN(idx) || !SDRS[idx]) return;
+    const sdr = SDRS[idx];
+
+    // Pre-populate builder state from existing SDR
+    SDR_BUILDER_QTYS = Object.assign({}, sdr.qtys || {});
+    // Ensure all ADS codes have keys
+    ADS_RATES.forEach(r => { if (!(r.code in SDR_BUILDER_QTYS)) SDR_BUILDER_QTYS[r.code] = 0; });
+    SDR_BUILDER_TAB = "trucking";
+
+    document.getElementById("sdr-overlay").classList.add("open");
+    document.getElementById("sdr-modal").classList.add("open");
+
+    // Populate LL select + pre-select current
+    const select = document.getElementById("sdr-source-ll");
+    while (select.firstChild) select.removeChild(select.firstChild);
+    select.appendChild(el("option", { value: "", text: "— select source LL —" }));
+    LOADING_LISTS.forEach(ll => {
+      const opt = el("option", { value: ll.id, text: ll.id + " · " + ll.vessel + " · " + ll.truck + " · " + STATUS_LABELS_LL[ll.status] });
+      if (ll.id === sdr.loadingListId) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    // Populate metadata from existing SDR
+    const form = document.getElementById("sdr-meta-form");
+    if (form) {
+      form.querySelector('[name="loadingListId"]').value = sdr.loadingListId || "";
+      form.querySelector('[name="gwx"]').value = sdr.gwx || "";
+      form.querySelector('[name="billTo"]').value = sdr.billTo || "MSC Procurement & Logistics";
+      form.querySelector('[name="msContact"]').value = sdr.msContact || "MSC PL Finance + Jorge Vega CC";
+      form.querySelector('[name="periodStart"]').value = sdr.periodStart || "";
+      form.querySelector('[name="periodEnd"]').value = sdr.periodEnd || "";
+      form.querySelector('[name="preparedBy"]').value = sdr.preparedBy || "Gabriela Pita";
+      form.querySelector('[name="notes"]').value = sdr.notes || "";
+    }
+    // Variables textarea — pre-fill existing
+    document.getElementById("sdr-variables-notes").value = sdr.variables || "";
+
+    // Tag this builder session as EDIT mode для existing SDR
+    document.getElementById("sdr-modal").dataset.editIdx = String(idx);
+
+    // Update modal title
+    const titleEl = document.querySelector(".sdr-modal__title");
+    if (titleEl) titleEl.textContent = "Edit " + sdr.id + " · add Monday variables · re-send to MSC";
+
+    // Update generate button label
+    const genBtn = document.getElementById("sdr-generate-btn");
+    if (genBtn) genBtn.textContent = "Save changes + re-send →";
+
+    document.querySelectorAll(".sdr-services-tab").forEach(t => t.classList.toggle("sdr-services-tab--active", t.dataset.tab === SDR_BUILDER_TAB));
+    renderSDRLines();
+    updateSDRSummary();
+
+    closeSDRPreview();
+  });
+
   // Send to MSC
   const previewSend = document.getElementById("sdr-preview-send");
   if (previewSend) previewSend.addEventListener("click", () => {
@@ -11643,6 +11979,270 @@ function setupSDR() {
   });
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CREDIT MEMOS · per Andrés 6/10 clarification
+   - Separate doc with own ID (FT-CM-XXXX), NOT a negative invoice
+   - FK to related invoice (1-to-many possible)
+   - Due date inherited from related invoice (not calculated)
+   - Description auto-prefixed "Applied to INV #XX"
+   - Positioned next to related invoice in SOA
+   - Triggered when MSC sends recovery invoice (e.g. damaged goods)
+   ═══════════════════════════════════════════════════════════════════ */
+
+const CM_STATUS_LABELS = {
+  open: "Open (unapplied)",
+  applied: "Applied to invoice",
+  paid_back: "Settled",
+};
+
+// Mock credit memos linked to existing invoices
+const CREDIT_MEMOS = [
+  {
+    id: "FT-CM-0042",
+    appliedToInvoiceId: "FT-INV-46225",
+    amount: 42.00,
+    issueDate: "2026-06-02",
+    dueDate: "2026-06-30", // inherited from invoice FT-INV-46225 (NET 30 from 2026-05-31)
+    reason: "Damaged goods (MSC recovery invoice)",
+    description: "Applied to INV #FT-INV-46225. 2 boxes damaged at offload — DR-2026-0010 reference. MSC recovery invoice MSC-RI-2026-0114 received 2026-06-01.",
+    issuedBy: "Gabriela Pita",
+    status: "applied",
+    soaPosition: "below", // manually positioned per Andrés 6/10 ("directly above or below")
+  },
+  {
+    id: "FT-CM-0043",
+    appliedToInvoiceId: "FT-INV-46247",
+    amount: 89.40,
+    issueDate: "2026-06-08",
+    dueDate: "2026-07-02", // inherited from invoice FT-INV-46247 (NET 30 from 2026-06-02)
+    reason: "Missing items / short delivery",
+    description: "Applied to INV #FT-INV-46247. 1 box missing per MSC count (DR-2026-0011 investigation). Adjustment pending MSC confirmation.",
+    issuedBy: "Luis Cruz",
+    status: "open",
+    soaPosition: "above",
+  },
+];
+
+function renderCreditMemos() {
+  const tbody = document.getElementById("cm-tbody");
+  if (!tbody) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  const q = ((document.getElementById("cm-search") || {}).value || "").trim().toLowerCase();
+  const filtered = q ? CREDIT_MEMOS.filter(cm => {
+    return [cm.id, cm.appliedToInvoiceId, cm.reason, cm.issuedBy].join(" ").toLowerCase().includes(q);
+  }) : CREDIT_MEMOS;
+
+  filtered.forEach(cm => {
+    const relatedInv = INVOICES.find(i => i.id === cm.appliedToInvoiceId);
+    const tr = el("tr");
+    tr.appendChild(el("td", {}, [el("span", { class: "cm-id", text: cm.id })]));
+    tr.appendChild(el("td", {}, [el("span", { class: "cm-applied-to", text: "Applied to " + cm.appliedToInvoiceId })]));
+    tr.appendChild(el("td", { text: (relatedInv && relatedInv.billTo) || "—" }));
+    tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:11px;color:var(--text-bright);", text: cm.issueDate })]));
+    tr.appendChild(el("td", {}, [el("span", { style: "font-family:var(--font-mono);font-size:11px;color:var(--text-dim);", text: cm.dueDate })]));
+    tr.appendChild(el("td", { text: cm.reason }));
+    tr.appendChild(el("td", {}, [el("span", { class: "inv-status inv-status--" + (cm.status === "applied" ? "paid" : "pending_approval"), text: CM_STATUS_LABELS[cm.status] })]));
+    const tdAmt = el("td", { class: "td-num" });
+    tdAmt.appendChild(el("span", { class: "cm-amount", text: "-$" + cm.amount.toFixed(2) }));
+    tr.appendChild(tdAmt);
+
+    tr.style.cursor = "pointer";
+    tr.addEventListener("click", () => openCMPreview(CREDIT_MEMOS.indexOf(cm)));
+    tbody.appendChild(tr);
+  });
+
+  const openCount = CREDIT_MEMOS.filter(c => c.status === "open").length;
+  const appliedCount = CREDIT_MEMOS.filter(c => c.status === "applied").length;
+  const totalAmount = CREDIT_MEMOS.reduce((s, c) => s + c.amount, 0);
+
+  document.getElementById("cm-title-count").textContent = q
+    ? filtered.length + " matching"
+    : CREDIT_MEMOS.length + " credit memos · " + openCount + " open";
+  document.getElementById("cm-stat-total").textContent = CREDIT_MEMOS.length;
+  document.getElementById("cm-stat-open").textContent = openCount;
+  document.getElementById("cm-stat-applied").textContent = appliedCount;
+  document.getElementById("cm-stat-amount").textContent = "$" + totalAmount.toFixed(2);
+}
+
+function openCMBuilder() {
+  document.getElementById("cm-builder-overlay").classList.add("open");
+  document.getElementById("cm-builder").classList.add("open");
+
+  // Populate invoice dropdown
+  const select = document.getElementById("cm-source-invoice");
+  while (select.firstChild) select.removeChild(select.firstChild);
+  select.appendChild(el("option", { value: "", text: "— select invoice to credit —" }));
+  INVOICES.forEach(inv => {
+    const totals = calcInvoiceTotals(inv);
+    const opt = el("option", { value: inv.id, text: inv.id + " · " + inv.billTo + " · $" + totals.total.toFixed(2) + " · " + INVC_STATUS_LABELS[inv.status] });
+    select.appendChild(opt);
+  });
+
+  document.getElementById("cm-form").reset();
+  const today = new Date().toISOString().slice(0, 10);
+  document.querySelector('#cm-form [name="issueDate"]').value = today;
+  document.querySelector('#cm-form [name="issuedBy"]').value = CURRENT_USER ? CURRENT_USER.name : "Gabriela Pita";
+
+  // Auto-fill amount when invoice selected
+  select.addEventListener("change", () => {
+    const inv = INVOICES.find(i => i.id === select.value);
+    if (inv) {
+      const totals = calcInvoiceTotals(inv);
+      document.querySelector('#cm-form [name="amount"]').value = totals.total.toFixed(2);
+    }
+  }, { once: true });
+}
+
+function closeCMBuilder() {
+  document.getElementById("cm-builder-overlay").classList.remove("open");
+  document.getElementById("cm-builder").classList.remove("open");
+}
+
+function generateCM() {
+  const form = document.getElementById("cm-form");
+  const fd = new FormData(form);
+  const meta = {};
+  fd.forEach((v, k) => { meta[k] = String(v).trim(); });
+
+  if (!meta.appliedToInvoiceId) { alert("Select an invoice to credit."); return; }
+  if (!meta.amount || parseFloat(meta.amount) <= 0) { alert("Amount must be positive."); return; }
+  if (!meta.issueDate) { alert("Issue date required."); return; }
+
+  const relatedInv = INVOICES.find(i => i.id === meta.appliedToInvoiceId);
+  if (!relatedInv) { alert("Related invoice not found."); return; }
+
+  // Inherit due date from related invoice (per Andrés 6/10)
+  let inheritedDue = relatedInv.invoiceDate;
+  const termsMatch = (relatedInv.terms || "").match(/NET (\d+)/);
+  if (termsMatch) {
+    const days = parseInt(termsMatch[1], 10);
+    const d = new Date(relatedInv.invoiceDate);
+    d.setDate(d.getDate() + days);
+    inheritedDue = d.toISOString().slice(0, 10);
+  }
+
+  const maxNum = Math.max(...CREDIT_MEMOS.map(c => parseInt(c.id.split("-").pop(), 10) || 0));
+  const description = (meta.description ? meta.description + "\n\n" : "") + "Applied to INV #" + meta.appliedToInvoiceId + ".";
+
+  const newCM = {
+    id: "FT-CM-" + String(maxNum + 1).padStart(4, "0"),
+    appliedToInvoiceId: meta.appliedToInvoiceId,
+    amount: parseFloat(meta.amount),
+    issueDate: meta.issueDate,
+    dueDate: inheritedDue,
+    reason: meta.reason || "Other",
+    description: description,
+    issuedBy: meta.issuedBy || (CURRENT_USER ? CURRENT_USER.name : "Gabriela Pita"),
+    status: "open",
+    soaPosition: "below",
+  };
+  CREDIT_MEMOS.unshift(newCM);
+  closeCMBuilder();
+  renderCreditMemos();
+  openCMPreview(0);
+}
+
+function openCMPreview(idx) {
+  const cm = CREDIT_MEMOS[idx];
+  if (!cm) return;
+  const overlay = document.getElementById("cm-preview-overlay");
+  const doc = document.getElementById("cm-preview-doc");
+  while (doc.firstChild) doc.removeChild(doc.firstChild);
+  doc.appendChild(buildCMPreviewDoc(cm));
+  document.getElementById("cm-preview-toolbar-label").textContent =
+    cm.id + " · " + CM_STATUS_LABELS[cm.status].toUpperCase();
+  overlay.classList.add("open");
+  overlay.dataset.idx = String(idx);
+}
+
+function closeCMPreview() {
+  document.getElementById("cm-preview-overlay").classList.remove("open");
+}
+
+function buildCMPreviewDoc(cm) {
+  const relatedInv = INVOICES.find(i => i.id === cm.appliedToInvoiceId);
+  const root = el("div");
+
+  // Header
+  const header = el("div", { class: "cm-doc__header" });
+  const brand = el("div");
+  brand.appendChild(el("div", { class: "cm-doc__logo", text: "FAST TRACK WORLDWIDE LOGISTIC" }));
+  brand.appendChild(el("div", { class: "cm-doc__brand-sub", text: "1674 NW 215th Street · Miami Gardens, FL 33056" }));
+  brand.appendChild(el("div", { class: "cm-doc__brand-sub", text: "FIRMS LCS5 · accounting@fasttrackgroup.us" }));
+  header.appendChild(brand);
+  const titleBlock = el("div", { style: "text-align: right;" });
+  titleBlock.appendChild(el("div", { class: "cm-doc__title", text: "CREDIT MEMO" }));
+  titleBlock.appendChild(el("div", { class: "cm-doc__id", text: cm.id }));
+  titleBlock.appendChild(el("div", { style: "font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #555; margin-top: 4px;", text: "Issued " + cm.issueDate }));
+  titleBlock.appendChild(el("div", { style: "font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #555;", text: "Status: " + CM_STATUS_LABELS[cm.status].toUpperCase() }));
+  header.appendChild(titleBlock);
+  root.appendChild(header);
+
+  // Meta grid (3-col)
+  const meta = el("div", { class: "cm-doc__meta" });
+  const mkField = (label, value, mono) => {
+    const f = el("div");
+    f.appendChild(el("div", { style: "font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: #777;", text: label }));
+    f.appendChild(el("div", { style: "font-size: 12px; color: #1A1F2E; font-weight: 500;" + (mono ? " font-family: 'JetBrains Mono', monospace;" : ""), text: value || "—" }));
+    return f;
+  };
+  meta.appendChild(mkField("APPLIED TO", cm.appliedToInvoiceId, true));
+  meta.appendChild(mkField("BILL TO", (relatedInv && relatedInv.billTo) || "—"));
+  meta.appendChild(mkField("DUE DATE (inherited)", cm.dueDate, true));
+  meta.appendChild(mkField("REASON", cm.reason));
+  meta.appendChild(mkField("ISSUED BY", cm.issuedBy));
+  meta.appendChild(mkField("INVOICE PON", (relatedInv && relatedInv.pon) || "—", true));
+  root.appendChild(meta);
+
+  // Amount block — central focus
+  const amount = el("div", { class: "cm-doc__amount-block" });
+  amount.appendChild(el("div", { class: "cm-doc__amount-label", text: "Credit amount" }));
+  amount.appendChild(el("div", { class: "cm-doc__amount-value", text: "-$" + cm.amount.toFixed(2) + " USD" }));
+  amount.appendChild(el("div", { style: "font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #555; margin-top: 6px;", text: "Credit against " + cm.appliedToInvoiceId + " — reduces outstanding balance" }));
+  root.appendChild(amount);
+
+  // Description
+  if (cm.description) {
+    const notes = el("div", { style: "padding: 18px 36px; background: #FFFBEB; border-top: 1px solid #FEF3C7;" });
+    notes.appendChild(el("div", { style: "font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 6px;", text: "DESCRIPTION" }));
+    notes.appendChild(el("div", { style: "font-size: 11px; color: #1A1F2E; line-height: 1.5; white-space: pre-wrap;", text: cm.description }));
+    root.appendChild(notes);
+  }
+
+  // Footer
+  root.appendChild(el("div", { class: "cm-doc__footer", text:
+    "Credit memo per Andrés 6/10 process: separate document with own ID, applied to specific invoice. " +
+    "Due date inherited from invoice — not calculated separately. " +
+    "Positioned " + (cm.soaPosition || "below") + " related invoice in Statement of Account. " +
+    "Reference both " + cm.id + " and " + cm.appliedToInvoiceId + " on all communications." }));
+
+  return root;
+}
+
+function setupCreditMemos() {
+  const newBtn = document.getElementById("cm-new-btn");
+  if (newBtn) newBtn.addEventListener("click", openCMBuilder);
+
+  const closeBtn = document.getElementById("cm-builder-close");
+  if (closeBtn) closeBtn.addEventListener("click", closeCMBuilder);
+  const cancelBtn = document.getElementById("cm-cancel-btn");
+  if (cancelBtn) cancelBtn.addEventListener("click", closeCMBuilder);
+  const overlay = document.getElementById("cm-builder-overlay");
+  if (overlay) overlay.addEventListener("click", closeCMBuilder);
+
+  const genBtn = document.getElementById("cm-generate-btn");
+  if (genBtn) genBtn.addEventListener("click", generateCM);
+
+  const cmSearch = document.getElementById("cm-search");
+  if (cmSearch) cmSearch.addEventListener("input", renderCreditMemos);
+
+  const previewClose = document.getElementById("cm-preview-close");
+  if (previewClose) previewClose.addEventListener("click", closeCMPreview);
+  const previewPrint = document.getElementById("cm-preview-print");
+  if (previewPrint) previewPrint.addEventListener("click", () => window.print());
+}
+
 function setupBarcoding() {
   // Mode tabs
   document.querySelectorAll(".bc-mode-tab").forEach(tab => {
@@ -11726,6 +12326,7 @@ setupCrunchTime();
 setupBarcoding();
 setupInvoices();
 setupSDR();
+setupCreditMemos();
 setupUserSwitcher();
 setupInbox();
 buildMailboxSwitcher();
@@ -11777,6 +12378,12 @@ setInterval(tickClock, 1000);
       switchView("sdr");
       const sdrIdx = parseInt(h.replace("sdr-", ""), 10);
       if (!isNaN(sdrIdx) && SDRS[sdrIdx]) openSDRPreview(sdrIdx);
+    } else if (h === "credit-memos" || h === "cm" || h === "credits") {
+      switchView("credit_memos");
+    } else if (h.startsWith("cm-")) {
+      switchView("credit_memos");
+      const cmIdx = parseInt(h.replace("cm-", ""), 10);
+      if (!isNaN(cmIdx) && CREDIT_MEMOS[cmIdx]) openCMPreview(cmIdx);
     } else if (h.startsWith("email-")) {
       switchView("inbox");
       const idx = parseInt(h.replace("email-", ""), 10);
