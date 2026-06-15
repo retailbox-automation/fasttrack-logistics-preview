@@ -1125,7 +1125,7 @@ body.view-loading_lists .pagination { display: none; }
 .ll-builder__section-title { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
 
 .ll-pick-list { display: flex; flex-direction: column; gap: 6px; }
-.ll-pick-row { display: grid; grid-template-columns: 26px 90px 110px 1fr 110px 70px 80px 90px; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-deep); align-items: center; cursor: pointer; transition: border-color 120ms, background 120ms; font-size: 11px; }
+.ll-pick-row { display: grid; grid-template-columns: 26px 90px 110px 1fr 110px 70px 80px 80px 50px; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-deep); align-items: center; cursor: pointer; transition: border-color 120ms, background 120ms; font-size: 11px; }
 .ll-pick-row:hover { border-color: var(--border-bright); }
 .ll-pick-row.selected { border-color: var(--accent); background: var(--bg-glow); }
 .ll-pick-row input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
@@ -1137,7 +1137,11 @@ body.view-loading_lists .pagination { display: none; }
 .ll-pick-row__loc { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
 .ll-pick-row__pkg { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; color: var(--info); }
 
-.ll-pick-head { display: grid; grid-template-columns: 26px 90px 110px 1fr 110px 70px 80px 90px; gap: 8px; padding: 4px 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.ll-pick-head { display: grid; grid-template-columns: 26px 90px 110px 1fr 110px 70px 80px 80px 50px; gap: 8px; padding: 4px 10px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+.ll-pick-row__crossdock-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 3px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 9px; cursor: pointer; transition: all 120ms; letter-spacing: 0.04em; text-align: center; }
+.ll-pick-row__crossdock-btn:hover { color: var(--accent-bright); border-color: var(--border-accent); }
+.ll-pick-row__crossdock-btn.active { background: rgba(245,158,11,0.15); color: #FCD34D; border-color: rgba(245,158,11,0.4); font-weight: 600; }
+.ll-pick-row.is-crossdock { border-color: rgba(245,158,11,0.4); }
 .ll-pick-search { width: 100%; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; margin-bottom: 12px; }
 .ll-pick-search:focus { outline: none; border-color: var(--accent); }
 
@@ -3734,7 +3738,7 @@ body.layout-list .pagination { display: none; }
         <div class="ll-builder__section-title">Step 1 · Pick inventory items</div>
         <input class="ll-pick-search" id="ll-pick-search" placeholder="Filter inventory by WR, part, description, department…">
         <div class="ll-pick-head">
-          <span></span><span>WR</span><span>Part</span><span>Description</span><span>Dept</span><span style="text-align:right">Pcs</span><span style="text-align:right">Qty</span><span>Location</span>
+          <span></span><span>WR</span><span>Part</span><span>Description</span><span>Dept</span><span style="text-align:right">Pcs</span><span style="text-align:right">Qty</span><span>Location</span><span title="Cross-dock — cargo just received, ships in 1-2 days">X-dock</span>
         </div>
         <div class="ll-pick-list" id="ll-pick-list"></div>
       </div>
@@ -8927,9 +8931,11 @@ function renderLoadingLists() {
 /* ─── Builder ─── */
 
 let LL_BUILDER_SELECTED = new Set();
+let LL_BUILDER_CROSSDOCK = new Set(); // items marked as cross-dock for this LL
 
 function openLLBuilder() {
   LL_BUILDER_SELECTED = new Set();
+  LL_BUILDER_CROSSDOCK = new Set();
   document.getElementById("ll-builder-overlay").classList.add("open");
   document.getElementById("ll-builder").classList.add("open");
   const form = document.getElementById("ll-meta-form");
@@ -8961,16 +8967,24 @@ function renderPickList() {
   });
 
   filtered.forEach(({ item, idx }) => {
-    const row = el("div", { class: "ll-pick-row" + (LL_BUILDER_SELECTED.has(idx) ? " selected" : "") });
+    const isSelected = LL_BUILDER_SELECTED.has(idx);
+    const isCrossDock = LL_BUILDER_CROSSDOCK.has(idx);
+    const row = el("div", { class: "ll-pick-row" + (isSelected ? " selected" : "") + (isCrossDock ? " is-crossdock" : "") });
+
     const cb = el("input", { type: "checkbox" });
-    cb.checked = LL_BUILDER_SELECTED.has(idx);
+    cb.checked = isSelected;
     cb.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (cb.checked) LL_BUILDER_SELECTED.add(idx); else LL_BUILDER_SELECTED.delete(idx);
+      if (cb.checked) LL_BUILDER_SELECTED.add(idx); else {
+        LL_BUILDER_SELECTED.delete(idx);
+        LL_BUILDER_CROSSDOCK.delete(idx); // unselect also removes cross-dock flag
+      }
       row.classList.toggle("selected", cb.checked);
+      if (!cb.checked) row.classList.remove("is-crossdock");
       updateBuilderSummary();
     });
-    row.addEventListener("click", () => {
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".ll-pick-row__crossdock-btn")) return; // don't toggle select на crossdock click
       cb.checked = !cb.checked;
       cb.dispatchEvent(new Event("click"));
     });
@@ -8983,6 +8997,38 @@ function renderPickList() {
     row.appendChild(el("span", { class: "ll-pick-row__num", text: String(item.pieces) }));
     row.appendChild(el("span", { class: "ll-pick-row__num", text: (item.quantity || 0).toLocaleString() }));
     row.appendChild(el("span", { class: "ll-pick-row__loc", text: item.locationCode }));
+
+    // Cross-dock toggle button (per Andrés 6/10 cross-dock vs stock distinction)
+    const xdockBtn = el("button", {
+      class: "ll-pick-row__crossdock-btn" + (isCrossDock ? " active" : ""),
+      title: isCrossDock
+        ? "Cross-dock — cargo received, ships in 1-2 days. Click to toggle off."
+        : "Mark as cross-dock (cargo received, not long-term stock). Click to toggle on.",
+      text: isCrossDock ? "✓" : "○"
+    });
+    xdockBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (LL_BUILDER_CROSSDOCK.has(idx)) {
+        LL_BUILDER_CROSSDOCK.delete(idx);
+        xdockBtn.classList.remove("active");
+        xdockBtn.textContent = "○";
+        row.classList.remove("is-crossdock");
+      } else {
+        LL_BUILDER_CROSSDOCK.add(idx);
+        // Auto-select item when marked cross-dock
+        if (!LL_BUILDER_SELECTED.has(idx)) {
+          LL_BUILDER_SELECTED.add(idx);
+          cb.checked = true;
+          row.classList.add("selected");
+        }
+        xdockBtn.classList.add("active");
+        xdockBtn.textContent = "✓";
+        row.classList.add("is-crossdock");
+      }
+      updateBuilderSummary();
+    });
+    row.appendChild(xdockBtn);
+
     list.appendChild(row);
   });
 }
@@ -9068,7 +9114,7 @@ function generateLoadingList() {
     customsDocs: "Pending entry assignment",
     notes: "Generated via prototype builder",
     // Shipment-level fields per Andrés 6/10 (mimic Magaya)
-    crossDockItemIdxs: [],
+    crossDockItemIdxs: [...LL_BUILDER_CROSSDOCK],
     truckDimensions: { length: 53, width: 8.5, height: 9, unit: "ft" },
     deliveryAddress: meta.vessel + " · " + meta.port + " (address pending)",
   };
@@ -9182,17 +9228,25 @@ function buildLLPreviewDoc(ll) {
 
   const tbody = el("tbody");
   agg.items.forEach((it, i) => {
+    const realIdx = ll.itemIdxs[i];
+    const isCrossDock = (ll.crossDockItemIdxs || []).includes(realIdx);
     const tr = el("tr");
+    if (isCrossDock) tr.style.background = "#FFFBEB"; // light yellow for cross-dock rows
     tr.appendChild(el("td", { class: "num mono", text: String(i + 1) }));
     tr.appendChild(el("td", { class: "mono", text: it.warehouseReceipt }));
     tr.appendChild(el("td", { class: "mono", text: ll.poNumber || "—" }));
     tr.appendChild(el("td", { text: it.department || "—" }));
     tr.appendChild(el("td", { class: "mono", text: ll.invoiceNumber || "—" }));
     tr.appendChild(el("td", { text: ll.vendor }));
-    tr.appendChild(el("td", {}, [
+    const descCell = el("td", {}, [
       el("div", { style: "font-size:9px;font-family:'JetBrains Mono',monospace;color:#666;", text: it.entryNumber || ll.customsDocs }),
       el("div", { text: it.description }),
-    ]));
+    ]);
+    if (isCrossDock) {
+      const badge = el("span", { style: "display: inline-block; padding: 1px 6px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; margin-left: 6px;", text: "Cross-dock" });
+      descCell.querySelector("div:last-child").appendChild(badge);
+    }
+    tr.appendChild(descCell);
     tr.appendChild(el("td", { text: ll.vessel }));
     tr.appendChild(el("td", { class: "num", text: it.packageUnit === "Pallet" ? String(it.pieces) : "0" }));
     tr.appendChild(el("td", { class: "num", text: it.packageUnit === "Box" ? String(it.pieces) : "0" }));
