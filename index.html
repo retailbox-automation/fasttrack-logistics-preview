@@ -1945,6 +1945,65 @@ body.view-credit_memos .pagination { display: none; }
 .cm-doc__amount-value { font-family: "Fraunces", serif; font-size: 32px; font-weight: 600; color: #DC2626; }
 .cm-doc__footer { padding: 14px 36px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; }
 
+/* ═══ CARGO RELEASE + DELIVERY ORDER preview docs (sub-tabs of LL Shipment) ═══ */
+.ll-doc-tabs { display: flex; gap: 6px; max-width: 920px; margin: -8px auto 12px; padding: 6px; background: rgba(10,15,28,0.6); border-radius: 8px; border: 1px solid var(--border); }
+.ll-doc-tab { flex: 1; padding: 9px 12px; background: transparent; border: none; color: rgba(251,250,246,0.6); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-radius: 5px; transition: all 120ms; }
+.ll-doc-tab:hover { color: #FBFAF6; background: rgba(251,250,246,0.05); }
+.ll-doc-tab--active { background: #FBFAF6; color: #1A1F2E; font-weight: 600; }
+
+/* Cargo Release — green accent */
+.cr-doc__header { padding: 28px 36px 16px; border-bottom: 2px solid #10B981; display: flex; justify-content: space-between; }
+.cr-doc__title { font-family: "Fraunces", serif; font-size: 18px; font-weight: 500; color: #10B981; }
+.cr-doc__id { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #10B981; font-weight: 600; }
+.cr-doc__meta { padding: 16px 36px; background: #F0FDF4; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; border-bottom: 1px solid #BBF7D0; }
+.cr-doc__dept-section { padding: 14px 36px; border-top: 1px solid #E5E7EB; }
+.cr-doc__dept-section:first-of-type { border-top: none; }
+.cr-doc__dept-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #1A1F2E; color: #FBFAF6; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; border-radius: 4px; }
+.cr-doc__dept-name { color: #34D399; font-weight: 600; }
+.cr-doc__dept-totals { font-family: "JetBrains Mono", monospace; font-size: 10px; }
+.cr-doc__items-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px; }
+.cr-doc__items-table th { padding: 7px 8px; text-align: left; font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: #555; border-bottom: 1px solid #E5E7EB; background: #F8F6F0; }
+.cr-doc__items-table th.num { text-align: right; }
+.cr-doc__items-table td { padding: 6px 8px; border-bottom: 1px solid #F0F0F0; vertical-align: top; }
+.cr-doc__items-table td.num { text-align: right; font-family: "JetBrains Mono", monospace; font-feature-settings: "tnum"; }
+.cr-doc__items-table td.mono { font-family: "JetBrains Mono", monospace; font-size: 10px; }
+.cr-doc__customs-block { padding: 14px 36px; background: #FFFBEB; border-top: 1px solid #FEF3C7; }
+
+/* Delivery Order — orange accent (driver instruction document) */
+.do-doc__header { padding: 28px 36px 16px; border-bottom: 2px solid #D97706; display: flex; justify-content: space-between; }
+.do-doc__title { font-family: "Fraunces", serif; font-size: 18px; font-weight: 500; color: #D97706; }
+.do-doc__id { font-family: "JetBrains Mono", monospace; font-size: 12px; color: #D97706; font-weight: 600; }
+.do-doc__big-address-block { padding: 22px 36px; background: #FFF7ED; border-bottom: 1px solid #FED7AA; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+.do-doc__address-block-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #92400E; margin-bottom: 6px; }
+.do-doc__address-block-body { font-size: 13px; color: #1A1F2E; line-height: 1.55; font-weight: 500; }
+.do-doc__driver-block { padding: 18px 36px; background: #F4F1EA; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; border-bottom: 1px solid #D5CFC2; }
+.do-doc__cargo-summary { padding: 16px 36px; background: #FBFAF6; border-bottom: 1px solid #E5E7EB; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.do-doc__cargo-summary-cell { display: flex; flex-direction: column; gap: 2px; text-align: center; }
+.do-doc__cargo-summary-value { font-family: "JetBrains Mono", monospace; font-size: 18px; font-weight: 700; color: #D97706; }
+.do-doc__cargo-summary-label { font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; color: #555; }
+.do-doc__instructions { padding: 18px 36px; }
+.do-doc__instructions-title { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #555; margin-bottom: 8px; }
+.do-doc__instructions-body { font-size: 11px; color: #1A1F2E; line-height: 1.6; }
+.do-doc__instructions-list { margin: 8px 0 0; padding-left: 20px; }
+.do-doc__instructions-list li { margin-bottom: 4px; font-size: 11px; color: #1A1F2E; line-height: 1.5; }
+.do-doc__sigs { padding: 28px 36px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; border-top: 1px solid #D5CFC2; }
+.do-doc__sig { border-top: 1px solid #1A1F2E; padding-top: 8px; }
+.do-doc__sig-label { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #555; margin-bottom: 2px; }
+.do-doc__sig-name { font-size: 11px; color: #1A1F2E; }
+
+/* Cross-dock badge for items */
+.cross-dock-badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; background: rgba(245,158,11,0.15); color: #FCD34D; border: 1px solid rgba(245,158,11,0.3); margin-left: 6px; }
+
+/* Truck loading metrics — running totals in LL builder */
+.ll-truck-metrics { padding: 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; margin-top: 16px; }
+.ll-truck-metrics__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px; }
+.ll-truck-metrics__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+.ll-truck-metrics__cell { display: flex; flex-direction: column; gap: 2px; }
+.ll-truck-metrics__label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+.ll-truck-metrics__value { font-family: var(--font-mono); font-size: 14px; font-weight: 500; color: var(--text-bright); font-feature-settings: "tnum"; }
+.ll-truck-metrics__progress-bar { margin-top: 4px; height: 6px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
+.ll-truck-metrics__progress-fill { height: 100%; background: linear-gradient(90deg, var(--ok) 0%, var(--accent) 80%, var(--crit) 100%); transition: width 220ms ease; }
+
 /* ═══ STATEMENT OF ACCOUNT (SOA) view ═══ */
 .soa-view { overflow-y: auto; padding: 28px 32px; display: none; }
 body.view-soa .soa-view { display: block; }
@@ -3748,6 +3807,30 @@ body.layout-list .pagination { display: none; }
           <div class="ll-selected-summary__row"><span>Est. weight</span><strong id="ll-sum-weight">0 lb</strong></div>
           <div class="ll-selected-summary__warn" id="ll-sum-warn" style="display:none;"></div>
         </div>
+
+        <!-- Truck loading metrics per Andrés 6/10 — mimic Magaya weight/dimensions tracking -->
+        <div class="ll-truck-metrics">
+          <div class="ll-truck-metrics__title">Truck loading · per Andrés 6/10 (Magaya-style)</div>
+          <div class="ll-truck-metrics__grid">
+            <div class="ll-truck-metrics__cell">
+              <div class="ll-truck-metrics__label">Truck length</div>
+              <div class="ll-truck-metrics__value">53 ft (dry)</div>
+            </div>
+            <div class="ll-truck-metrics__cell">
+              <div class="ll-truck-metrics__label">Max payload</div>
+              <div class="ll-truck-metrics__value">45,000 lb</div>
+            </div>
+            <div class="ll-truck-metrics__cell">
+              <div class="ll-truck-metrics__label">Current weight</div>
+              <div class="ll-truck-metrics__value" id="ll-truck-current">0 lb</div>
+            </div>
+            <div class="ll-truck-metrics__cell">
+              <div class="ll-truck-metrics__label">Capacity used</div>
+              <div class="ll-truck-metrics__value" id="ll-truck-capacity">0%</div>
+            </div>
+          </div>
+          <div class="ll-truck-metrics__progress-bar"><div class="ll-truck-metrics__progress-fill" id="ll-truck-progress" style="width:0%;"></div></div>
+        </div>
       </div>
     </div>
     <div class="ll-builder__footer">
@@ -3759,15 +3842,21 @@ body.layout-list .pagination { display: none; }
     </div>
   </div>
 
-  <!-- LOADING LIST PREVIEW DOCUMENT (MSC format) -->
+  <!-- SHIPMENT PREVIEW (LL + CR + DO docs as tabs) -->
   <div class="ll-preview-overlay" id="ll-preview-overlay">
     <div class="ll-preview-toolbar">
-      <div class="ll-preview-toolbar__left" id="ll-preview-toolbar-label">Loading List preview · MSC format</div>
+      <div class="ll-preview-toolbar__left" id="ll-preview-toolbar-label">Shipment · 3 documents (Loading List + Cargo Release + Delivery Order)</div>
       <div class="ll-preview-toolbar__actions">
         <button class="ll-preview-toolbar__btn" id="ll-preview-close">Close ✕</button>
         <button class="ll-preview-toolbar__btn" id="ll-preview-print">Print / PDF</button>
         <button class="ll-preview-toolbar__btn ll-preview-toolbar__btn--primary" id="ll-preview-send">Send to MSC</button>
       </div>
+    </div>
+    <!-- Document type tabs (3 documents per shipment per Andrés 6/10) -->
+    <div class="ll-doc-tabs" id="ll-doc-tabs">
+      <button class="ll-doc-tab ll-doc-tab--active" data-doc="ll">1 · Loading List (manifest)</button>
+      <button class="ll-doc-tab" data-doc="cr">2 · Cargo Release (by department)</button>
+      <button class="ll-doc-tab" data-doc="do">3 · Delivery Order (driver instructions)</button>
     </div>
     <div class="ll-preview-doc" id="ll-preview-doc"></div>
   </div>
@@ -4519,7 +4608,7 @@ const SIDEBAR_DATA = {
   views: [
     { label: "All Shipments",        count: "5,102", active: true, view: "dashboard" },
     { label: "Inventory · Warehouse", count: "29", view: "inventory" },
-    { label: "Loading Lists · Dispatch", count: "3", view: "loading_lists" },
+    { label: "Shipments · LL + CR + DO", count: "3", view: "loading_lists" },
     { label: "Discrepancy Reports",  count: "3", view: "discrepancies" },
     { label: "Shipment Detail · MSC approval", count: "3", view: "sdr", highlight: true },
     { label: "Invoices · Billing",   count: "4", view: "invoices" },
@@ -8715,6 +8804,9 @@ const LOADING_LISTS = [
     vendor: "FAST TRACK WORLDWIDE LOGISTIC",
     customsDocs: "9Q4-0006095-4 · CBP cleared",
     notes: "Standard run, MSC Goldstein sign-off at gangway",
+    crossDockItemIdxs: [],
+    truckDimensions: { length: 53, width: 8.5, height: 9, unit: "ft" },
+    deliveryAddress: "MSC Seashore · Port of Miami · Terminal F · 2024 NW 25th St, Miami FL 33125",
   },
   {
     id: "LL-2026-0049",
@@ -8734,6 +8826,9 @@ const LOADING_LISTS = [
     vendor: "FAST TRACK WORLDWIDE LOGISTIC",
     customsDocs: "9Q4-0006155-2 · Bond active",
     notes: "MSC Foundation merch run · sign-off Vega",
+    crossDockItemIdxs: [4],
+    truckDimensions: { length: 53, width: 8.5, height: 9, unit: "ft" },
+    deliveryAddress: "MSC Seascape · Ocean Cay MSC Marine Reserve · Berry Islands, Bahamas",
   },
   {
     id: "LL-2026-0050",
@@ -8753,6 +8848,9 @@ const LOADING_LISTS = [
     vendor: "FAST TRACK WORLDWIDE LOGISTIC",
     customsDocs: "9Q4-0006006-1 · entry filed",
     notes: "Draft — pending seal + driver assignment before Friday cutoff",
+    crossDockItemIdxs: [],
+    truckDimensions: { length: 53, width: 8.5, height: 9, unit: "ft" },
+    deliveryAddress: "MSC Meraviglia · Port Canaveral · Cruise Terminal 10 · 9155 Charles M Rowland Dr, Port Canaveral FL 32920",
   },
 ];
 
@@ -8901,6 +8999,19 @@ function updateBuilderSummary() {
   document.getElementById("ll-sum-qty").textContent = totalQty.toLocaleString();
   document.getElementById("ll-sum-weight").textContent = Math.round(weight).toLocaleString() + " lb";
 
+  // Truck loading metrics (per Andrés 6/10 — Magaya-style weight/dims tracking)
+  const TRUCK_MAX_PAYLOAD = 45000; // lb — standard 53ft dry truck cap
+  const capacityPct = Math.min(100, Math.round((weight / TRUCK_MAX_PAYLOAD) * 100));
+  const truckCurrentEl = document.getElementById("ll-truck-current");
+  const truckCapacityEl = document.getElementById("ll-truck-capacity");
+  const truckProgressEl = document.getElementById("ll-truck-progress");
+  if (truckCurrentEl) truckCurrentEl.textContent = Math.round(weight).toLocaleString() + " lb";
+  if (truckCapacityEl) {
+    truckCapacityEl.textContent = capacityPct + "%";
+    truckCapacityEl.style.color = capacityPct > 90 ? "var(--crit)" : capacityPct > 70 ? "var(--accent-bright)" : "var(--ok)";
+  }
+  if (truckProgressEl) truckProgressEl.style.width = capacityPct + "%";
+
   // Validation
   const warn = document.getElementById("ll-sum-warn");
   const warnings = [];
@@ -8956,6 +9067,10 @@ function generateLoadingList() {
     vendor: "FAST TRACK WORLDWIDE LOGISTIC",
     customsDocs: "Pending entry assignment",
     notes: "Generated via prototype builder",
+    // Shipment-level fields per Andrés 6/10 (mimic Magaya)
+    crossDockItemIdxs: [],
+    truckDimensions: { length: 53, width: 8.5, height: 9, unit: "ft" },
+    deliveryAddress: meta.vessel + " · " + meta.port + " (address pending)",
   };
   LOADING_LISTS.unshift(newLL);
   closeLLBuilder();
@@ -8966,18 +9081,45 @@ function generateLoadingList() {
 
 /* ─── Preview (MSC format document) ─── */
 
+let LL_PREVIEW_DOC_TAB = "ll"; // "ll" | "cr" | "do" — per Andrés 6/10 shipment = 3 docs
+
 function openLLPreview(llIndex) {
   const ll = LOADING_LISTS[llIndex];
   if (!ll) return;
   const overlay = document.getElementById("ll-preview-overlay");
+  overlay.dataset.idx = String(llIndex);
+  // Reset to LL tab on each open
+  LL_PREVIEW_DOC_TAB = "ll";
+  renderLLPreviewActiveDoc();
+  overlay.classList.add("open");
+}
+
+function renderLLPreviewActiveDoc() {
+  const overlay = document.getElementById("ll-preview-overlay");
+  const idx = parseInt(overlay.dataset.idx, 10);
+  if (isNaN(idx) || !LOADING_LISTS[idx]) return;
+  const ll = LOADING_LISTS[idx];
   const doc = document.getElementById("ll-preview-doc");
   while (doc.firstChild) doc.removeChild(doc.firstChild);
-  doc.appendChild(buildLLPreviewDoc(ll));
-  document.getElementById("ll-preview-toolbar-label").textContent =
-    ll.id + " · " + ll.vessel + " · " + STATUS_LABELS_LL[ll.status].toUpperCase();
-  overlay.classList.add("open");
-  // Stash current for send-to-msc action
-  overlay.dataset.idx = String(llIndex);
+
+  let docNode, docLabel;
+  if (LL_PREVIEW_DOC_TAB === "cr") {
+    docNode = buildCargoReleaseDoc(ll);
+    docLabel = "Cargo Release · CR-" + ll.id.replace("LL-", "") + " · " + ll.vessel;
+  } else if (LL_PREVIEW_DOC_TAB === "do") {
+    docNode = buildDeliveryOrderDoc(ll);
+    docLabel = "Delivery Order · DO-" + ll.id.replace("LL-", "") + " · " + (ll.driver || "driver TBD");
+  } else {
+    docNode = buildLLPreviewDoc(ll);
+    docLabel = "Loading List · " + ll.id + " · " + ll.vessel + " · " + STATUS_LABELS_LL[ll.status].toUpperCase();
+  }
+  doc.appendChild(docNode);
+  document.getElementById("ll-preview-toolbar-label").textContent = docLabel;
+
+  // Update tabs active state
+  document.querySelectorAll(".ll-doc-tab").forEach(t => {
+    t.classList.toggle("ll-doc-tab--active", t.dataset.doc === LL_PREVIEW_DOC_TAB);
+  });
 }
 
 function closeLLPreview() {
@@ -9109,6 +9251,256 @@ function buildLLPreviewDoc(ll) {
   return root;
 }
 
+/* ─── Cargo Release document (per ops manual §3.3 — same info as LL but BY DEPARTMENT) ─── */
+
+function buildCargoReleaseDoc(ll) {
+  const agg = aggregateLL(ll);
+  const root = el("div");
+
+  // Header — green accent
+  const header = el("div", { class: "cr-doc__header" });
+  const brand = el("div", { class: "ll-doc__brand" }, [
+    el("div", { class: "ll-doc__logo", text: "FAST TRACK WORLDWIDE LOGISTIC" }),
+    el("div", { class: "ll-doc__brand-sub", text: "1674 NW 215th Street · Miami Gardens, FL 33056" }),
+    el("div", { class: "ll-doc__brand-sub", text: "FIRMS LCS5 · Bonded Warehouse · CBP-Certified" }),
+    el("div", { class: "ll-doc__brand-sub", text: "+1 (941) 216-5279 · ops@fasttrackgroup.us" }),
+  ]);
+  const titleBlock = el("div", { class: "ll-doc__title-block" }, [
+    el("div", { class: "cr-doc__title", text: "CARGO RELEASE" }),
+    el("div", { class: "cr-doc__id", text: "CR-" + ll.id.replace("LL-", "") }),
+    el("div", { class: "ll-doc__date", text: "Companion to " + ll.id }),
+    el("div", { class: "ll-doc__date", text: "Status · " + STATUS_LABELS_LL[ll.status].toUpperCase() }),
+  ]);
+  header.appendChild(brand);
+  header.appendChild(titleBlock);
+  root.appendChild(header);
+
+  // Meta (cream green)
+  const meta = el("div", { class: "cr-doc__meta" });
+  const metaField = (label, value, mono) => {
+    const f = el("div", { class: "ll-doc__meta-field" });
+    f.appendChild(el("div", { class: "ll-doc__meta-label", text: label }));
+    f.appendChild(el("div", { class: "ll-doc__meta-value" + (mono ? " ll-doc__meta-value--mono" : ""), text: value || "—" }));
+    return f;
+  };
+  meta.appendChild(metaField("VESSEL", ll.vessel));
+  meta.appendChild(metaField("CRUISE / TRIP", ll.cruise, true));
+  meta.appendChild(metaField("PORT OF LOAD", ll.port));
+  meta.appendChild(metaField("DEPARTURE", ll.departure, true));
+  meta.appendChild(metaField("TRUCK #", ll.truck, true));
+  meta.appendChild(metaField("SEAL #", ll.seal, true));
+  meta.appendChild(metaField("DRIVER", ll.driver));
+  meta.appendChild(metaField("PON", ll.poNumber, true));
+  root.appendChild(meta);
+
+  // Group items by department (per ops manual §3.3: "categorized by department")
+  const itemsByDept = {};
+  agg.items.forEach((it, i) => {
+    const realIdx = ll.itemIdxs[i];
+    const dept = it.department || "Unspecified";
+    if (!itemsByDept[dept]) itemsByDept[dept] = [];
+    itemsByDept[dept].push({ item: it, realIdx, isCrossDock: (ll.crossDockItemIdxs || []).includes(realIdx) });
+  });
+
+  // Department sections
+  Object.entries(itemsByDept).forEach(([dept, group]) => {
+    const sec = el("div", { class: "cr-doc__dept-section" });
+
+    // Dept header
+    const deptHdr = el("div", { class: "cr-doc__dept-header" });
+    const deptName = el("div", { class: "cr-doc__dept-name", text: dept });
+    deptHdr.appendChild(deptName);
+    const deptTotals = el("div", { class: "cr-doc__dept-totals" });
+    const deptPallets = group.filter(g => g.item.packageUnit === "Pallet").reduce((s, g) => s + (g.item.pieces || 0), 0);
+    const deptBoxes = group.filter(g => g.item.packageUnit === "Box").reduce((s, g) => s + (g.item.pieces || 0), 0);
+    const deptWeight = group.reduce((s, g) => s + estimateItemWeight(g.item), 0);
+    deptTotals.textContent = group.length + " items · " + deptPallets + "P / " + deptBoxes + "B · " + Math.round(deptWeight).toLocaleString() + " lb";
+    deptHdr.appendChild(deptTotals);
+    sec.appendChild(deptHdr);
+
+    // Items table for this dept
+    const tbl = el("table", { class: "cr-doc__items-table" });
+    const thead = el("thead");
+    const trh = el("tr");
+    ["#", "WR", "Part", "Description", "Customs / Entry", "Pcs", "Pkg", "Weight (lb)"].forEach((h, i) => {
+      const th = el("th", { text: h });
+      if (i >= 5) th.className = "num";
+      trh.appendChild(th);
+    });
+    thead.appendChild(trh);
+    tbl.appendChild(thead);
+
+    const tbody = el("tbody");
+    group.forEach((g, i) => {
+      const tr = el("tr");
+      tr.appendChild(el("td", { class: "num mono", text: String(i + 1) }));
+      tr.appendChild(el("td", { class: "mono", text: g.item.warehouseReceipt }));
+      tr.appendChild(el("td", { class: "mono", text: g.item.partNumber }));
+      const descCell = el("td");
+      descCell.appendChild(el("span", { text: g.item.description }));
+      if (g.isCrossDock) {
+        descCell.appendChild(el("span", { class: "cross-dock-badge", text: "Cross-dock", style: "color: #92400E; background: #FEF3C7; border-color: #FDE68A;" }));
+      }
+      tr.appendChild(descCell);
+      tr.appendChild(el("td", { class: "mono", text: g.item.entryNumber || ll.customsDocs }));
+      tr.appendChild(el("td", { class: "num", text: String(g.item.pieces) }));
+      tr.appendChild(el("td", { text: g.item.packageUnit }));
+      tr.appendChild(el("td", { class: "num", text: Math.round(estimateItemWeight(g.item)).toLocaleString() }));
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    sec.appendChild(tbl);
+
+    root.appendChild(sec);
+  });
+
+  // Customs block
+  const customs = el("div", { class: "cr-doc__customs-block" });
+  customs.appendChild(el("div", { class: "ll-doc__items-title", text: "CUSTOMS RELEASE INFORMATION", style: "color: #92400E;" }));
+  customs.appendChild(el("div", { style: "font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #1A1F2E; line-height: 1.6;",
+    text: "Customs documents: " + (ll.customsDocs || "—") + "\n" +
+          "Bonded warehouse: FIRMS code LCS5\n" +
+          "Vendor: " + (ll.vendor || "FAST TRACK WORLDWIDE LOGISTIC") + "\n" +
+          "Per CBP 19 CFR 163.4 — retention 5 years." }));
+  root.appendChild(customs);
+
+  // Signatures
+  const sigs = el("div", { class: "ll-doc__signatures" });
+  const sig = (label, name) => {
+    const s = el("div", { class: "ll-doc__sig" });
+    s.appendChild(el("div", { class: "ll-doc__sig-label", text: label }));
+    s.appendChild(el("div", { class: "ll-doc__sig-name", text: name }));
+    return s;
+  };
+  sigs.appendChild(sig("FT CUSTOMS BROKER", "Released by " + (ll.createdBy || "FT Customs")));
+  sigs.appendChild(sig("MSC RECEIVING (BY DEPT)", "_______________________  (per-dept sign-off)"));
+  root.appendChild(sigs);
+
+  // Footer
+  root.appendChild(el("div", { class: "ll-doc__footer", text:
+    "Cargo Release — companion document to " + ll.id + " (Loading List). " +
+    "Per ops manual §3.3: same cargo manifest categorized by department for MSC departmental sign-off. " +
+    "Routing: F&B issues → MSC F&B Manager · non-F&B → MSC Procurement Specialist · Logistics Manager + Director always CC." }));
+
+  return root;
+}
+
+/* ─── Delivery Order document (driver instructions per Andrés 6/10) ─── */
+
+function buildDeliveryOrderDoc(ll) {
+  const agg = aggregateLL(ll);
+  const root = el("div");
+
+  // Header — orange accent
+  const header = el("div", { class: "do-doc__header" });
+  const brand = el("div", { class: "ll-doc__brand" }, [
+    el("div", { class: "ll-doc__logo", text: "FAST TRACK WORLDWIDE LOGISTIC" }),
+    el("div", { class: "ll-doc__brand-sub", text: "1674 NW 215th Street · Miami Gardens, FL 33056" }),
+    el("div", { class: "ll-doc__brand-sub", text: "Dispatch: +1 (941) 216-5279" }),
+  ]);
+  const titleBlock = el("div", { class: "ll-doc__title-block" }, [
+    el("div", { class: "do-doc__title", text: "DELIVERY ORDER" }),
+    el("div", { class: "do-doc__id", text: "DO-" + ll.id.replace("LL-", "") }),
+    el("div", { class: "ll-doc__date", text: "For " + ll.id }),
+    el("div", { class: "ll-doc__date", text: "Generated " + (ll.createdAt || "—") }),
+  ]);
+  header.appendChild(brand);
+  header.appendChild(titleBlock);
+  root.appendChild(header);
+
+  // Big address block — pickup + delivery
+  const addr = el("div", { class: "do-doc__big-address-block" });
+  const pickup = el("div");
+  pickup.appendChild(el("div", { class: "do-doc__address-block-title", text: "PICKUP FROM" }));
+  pickup.appendChild(el("div", { class: "do-doc__address-block-body",
+    text: "Fast Track Worldwide Logistic\nWarehouse 1674\n1674 NW 215th Street\nMiami Gardens, FL 33056\nUSA" }));
+  addr.appendChild(pickup);
+
+  const delivery = el("div");
+  delivery.appendChild(el("div", { class: "do-doc__address-block-title", text: "DELIVER TO" }));
+  delivery.appendChild(el("div", { class: "do-doc__address-block-body",
+    text: ll.deliveryAddress || (ll.vessel + " · " + ll.port + "\n(address pending)") }));
+  addr.appendChild(delivery);
+  root.appendChild(addr);
+
+  // Driver + truck block
+  const driver = el("div", { class: "do-doc__driver-block" });
+  const dField = (label, value) => {
+    const f = el("div", { class: "ll-doc__meta-field" });
+    f.appendChild(el("div", { class: "ll-doc__meta-label", text: label }));
+    f.appendChild(el("div", { class: "ll-doc__meta-value", text: value || "—" }));
+    return f;
+  };
+  driver.appendChild(dField("DRIVER", ll.driver));
+  driver.appendChild(dField("TRUCK #", ll.truck));
+  driver.appendChild(dField("SEAL #", ll.seal));
+  driver.appendChild(dField("DEPARTURE", ll.departure));
+  root.appendChild(driver);
+
+  // Cargo summary (big numbers)
+  const summary = el("div", { class: "do-doc__cargo-summary" });
+  const sumCell = (label, value) => {
+    const c = el("div", { class: "do-doc__cargo-summary-cell" });
+    c.appendChild(el("div", { class: "do-doc__cargo-summary-value", text: value }));
+    c.appendChild(el("div", { class: "do-doc__cargo-summary-label", text: label }));
+    return c;
+  };
+  summary.appendChild(sumCell("Items", String(agg.items.length)));
+  summary.appendChild(sumCell("Pallets", String(agg.pallets)));
+  summary.appendChild(sumCell("Boxes", String(agg.boxes)));
+  summary.appendChild(sumCell("Total weight (lb)", Math.round(agg.weight).toLocaleString()));
+  root.appendChild(summary);
+
+  // Driver instructions
+  const inst = el("div", { class: "do-doc__instructions" });
+  inst.appendChild(el("div", { class: "do-doc__instructions-title", text: "DRIVER INSTRUCTIONS" }));
+  const instBody = el("div", { class: "do-doc__instructions-body" });
+  instBody.appendChild(el("p", { style: "margin: 0;", text: "Cargo is bonded / under customs supervision. Follow these procedures:" }));
+  const ul = el("ul", { class: "do-doc__instructions-list" });
+  const steps = [
+    "Confirm Loading List manifest matches truck cargo before departure.",
+    "Verify seal #" + (ll.seal || "TBD") + " is intact prior to leaving FT warehouse.",
+    "Transport directly to delivery address. No intermediate stops without dispatch authorization.",
+    "Present this Delivery Order + Cargo Release + Loading List at vessel gangway.",
+    "Wait for MSC gangway receiving sign-off. Capture signed copies as proof of delivery (POD).",
+    "Photograph any visible cargo damage before unloading. Notify FT dispatch immediately if discrepancies.",
+    "Return signed POD copies + this Delivery Order to FT within 24 hours of delivery.",
+  ];
+  steps.forEach(s => ul.appendChild(el("li", { text: s })));
+  instBody.appendChild(ul);
+  inst.appendChild(instBody);
+
+  if (ll.notes) {
+    const notes = el("div", { style: "margin-top: 12px; padding: 10px 12px; background: #FFFBEB; border-left: 3px solid #D97706; border-radius: 0 4px 4px 0;" });
+    notes.appendChild(el("div", { class: "do-doc__instructions-title", text: "ADDITIONAL NOTES" }));
+    notes.appendChild(el("div", { style: "font-size: 11px; color: #1A1F2E; line-height: 1.5;", text: ll.notes }));
+    inst.appendChild(notes);
+  }
+  root.appendChild(inst);
+
+  // Signature block — 3 columns (FT dispatcher / Driver / MSC receiving)
+  const sigs = el("div", { class: "do-doc__sigs" });
+  const sig = (label, name) => {
+    const s = el("div", { class: "do-doc__sig" });
+    s.appendChild(el("div", { class: "do-doc__sig-label", text: label }));
+    s.appendChild(el("div", { class: "do-doc__sig-name", text: name }));
+    return s;
+  };
+  sigs.appendChild(sig("FT DISPATCHER", ll.createdBy || "—"));
+  sigs.appendChild(sig("DRIVER (acknowledged)", "_______________________"));
+  sigs.appendChild(sig("MSC GANGWAY (received)", "_______________________"));
+  root.appendChild(sigs);
+
+  // Footer
+  root.appendChild(el("div", { class: "ll-doc__footer", text:
+    "Delivery Order — driver instruction document for " + ll.id + " dispatch. " +
+    "Driver must carry all 3 documents (LL + CR + DO) at all times. " +
+    "Truck dimensions: " + ((ll.truckDimensions && (ll.truckDimensions.length + "ft × " + ll.truckDimensions.width + "ft × " + ll.truckDimensions.height + "ft")) || "—") + ". " +
+    "Per FT operations manual §1 (Trucking)." }));
+
+  return root;
+}
+
 function setupLoadingLists() {
   const newBtn = document.getElementById("ll-new-btn");
   if (newBtn) newBtn.addEventListener("click", openLLBuilder);
@@ -9136,6 +9528,14 @@ function setupLoadingLists() {
 
   const previewPrint = document.getElementById("ll-preview-print");
   if (previewPrint) previewPrint.addEventListener("click", () => window.print());
+
+  // Doc type tabs (3 documents per shipment per Andrés 6/10)
+  document.querySelectorAll(".ll-doc-tab").forEach(t => {
+    t.addEventListener("click", () => {
+      LL_PREVIEW_DOC_TAB = t.dataset.doc;
+      renderLLPreviewActiveDoc();
+    });
+  });
 
   const previewSend = document.getElementById("ll-preview-send");
   if (previewSend) previewSend.addEventListener("click", () => {
