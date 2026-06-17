@@ -3409,7 +3409,31 @@ body.layout-list .pagination { display: none; }
         body: JSON.stringify(items.map(toBackend)),
       }),
     },
+    docs: {
+      list: (kind) => fetchJSON('/api/docs/' + kind),
+      replaceAll: (kind, items) => fetchJSON('/api/docs/' + kind, {
+        method: 'PUT',
+        body: JSON.stringify({ items }),
+      }),
+    },
     fromBackend, toBackend,
+  };
+
+  // Debounced array persist — call after every mutation site.
+  // Coalesces rapid edits into 1 PUT 600ms after the last change.
+  window._ftPersistTimers = {};
+  window.persistDocs = function(kind, getArray) {
+    clearTimeout(window._ftPersistTimers[kind]);
+    window._ftPersistTimers[kind] = setTimeout(() => {
+      try {
+        const arr = getArray();
+        if (!Array.isArray(arr)) return;
+        window.FT_API.docs.replaceAll(kind, arr).catch(err => {
+          console.error('Persist failed', kind, err);
+          ftToast('Save failed (' + kind + '): ' + err.message);
+        });
+      } catch (e) { console.error('persistDocs threw', e); }
+    }, 600);
   };
 
   // Toast for non-fatal sync errors so users see when backend is unreachable.
@@ -9170,6 +9194,7 @@ function addNotification(kind, title, sub) {
     kind: kind, title: title, sub: sub, unread: true,
   });
   if (NOTIFICATIONS.length > 20) NOTIFICATIONS.pop();
+  if (typeof persistDocs === 'function') persistDocs('notifications', () => NOTIFICATIONS);
   updateNotifBadge();
   renderNotifPanel();
 }
@@ -9755,6 +9780,7 @@ function generateLoadingList() {
     deliveryAddress: meta.vessel + " · " + meta.port + " (address pending)",
   };
   LOADING_LISTS.unshift(newLL);
+  persistDocs('loading_lists', () => LOADING_LISTS);
   closeLLBuilder();
   renderLoadingLists();
   // Open preview right away — user sees the document immediately
@@ -10234,6 +10260,7 @@ function setupLoadingLists() {
     if (!isNaN(idx) && LOADING_LISTS[idx]) {
       if (LOADING_LISTS[idx].status === "draft") {
         LOADING_LISTS[idx].status = "dispatched";
+        persistDocs('loading_lists', () => LOADING_LISTS);
       }
       renderLoadingLists();
       alert("Loading List " + LOADING_LISTS[idx].id + " sent to MSC.\n\n(Phase 2: routes to MSC's CrunchTime + INFOSHIP automatically.)");
@@ -10613,6 +10640,7 @@ function generateDiscrepancyReport() {
     lines: lines,
   };
   DISCREPANCY_REPORTS.unshift(newDR);
+  persistDocs('discrepancy_reports', () => DISCREPANCY_REPORTS);
   closeDRBuilder();
   renderDiscrepancyReports();
   openDRPreview(0);
@@ -10830,6 +10858,7 @@ function setupDiscrepancyReports() {
       const impact = computeDRImpact(dr);
       dr.status = impact.financial > 0 ? "credit_issued" : "resolved";
       dr.resolutionNotes = "Closed via prototype · " + new Date().toISOString().slice(0, 10) + ". Auto-routed to billing for credit reconciliation.";
+      persistDocs('discrepancy_reports', () => DISCREPANCY_REPORTS);
       renderDiscrepancyReports();
       alert("Report " + dr.id + " marked " + DR_STATUS_LABELS[dr.status] + ".\n\n(Phase 2: auto-creates credit memo in Magaya invoicing.)");
       closeDRPreview();
@@ -11930,6 +11959,7 @@ function generateInvoice() {
     lines: INVC_BUILDER_LINES.slice(),
   };
   INVOICES.unshift(newInv);
+  persistDocs('invoices', () => INVOICES);
   closeInvcBuilder();
   renderInvoices();
   openInvcPreview(0);
@@ -12213,6 +12243,7 @@ function setupInvoices() {
     const inv = INVOICES[idx];
     if (inv.status === "draft" || inv.status === "pending_approval") {
       inv.status = "approved";
+      persistDocs('invoices', () => INVOICES);
       renderInvoices();
       alert("Invoice " + inv.id + " marked APPROVED.\nReady to send to MSC.");
       openInvcPreview(idx);
@@ -12346,6 +12377,7 @@ function setupInvoices() {
     setTimeout(() => {
       inv.status = "sent";
       inv.issuedBy = CURRENT_USER ? CURRENT_USER.name : inv.issuedBy;
+      persistDocs('invoices', () => INVOICES);
       renderInvoices();
       if (confirm("Invoice " + inv.id + " marked SENT (by " + (CURRENT_USER ? CURRENT_USER.name : "—") + ").\n\n" +
         "Your mail client should have opened with a pre-filled draft to:\n" +
@@ -12786,6 +12818,7 @@ function generateSDR() {
     if (sdr.status === "sent_to_msc" || sdr.status === "variables_added") {
       sdr.status = "variables_added";
     }
+    persistDocs('sdrs', () => SDRS);
     // Clear edit flag + reset modal title/button
     delete modal.dataset.editIdx;
     const titleEl = document.querySelector(".sdr-modal__title");
@@ -12823,6 +12856,7 @@ function generateSDR() {
     qtys: Object.assign({}, SDR_BUILDER_QTYS),
   };
   SDRS.unshift(newSDR);
+  persistDocs('sdrs', () => SDRS);
   closeSDRBuilder();
   renderSDRs();
   openSDRPreview(0);
@@ -13168,6 +13202,7 @@ function setupSDR() {
     setTimeout(() => {
       sdr.status = "sent_to_msc";
       sdr.sentAt = new Date().toISOString().slice(0, 16).replace("T", " ");
+      persistDocs('sdrs', () => SDRS);
       renderSDRs();
       if (confirm("SDR " + sdr.id + " marked SENT TO MSC.\n\n" +
         "Your mail client should have opened with a pre-filled draft to:\n" +
@@ -13192,6 +13227,7 @@ function setupSDR() {
     sdr.pon = pon.trim();
     sdr.poReceivedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
     sdr.status = "po_received";
+    persistDocs('sdrs', () => SDRS);
     renderSDRs();
     openSDRPreview(idx);
   });
@@ -13244,6 +13280,8 @@ function setupSDR() {
     sdr.status = "closed";
     sdr.closedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
     sdr.invoiceId = newInv.id;
+    persistDocs('invoices', () => INVOICES);
+    persistDocs('sdrs', () => SDRS);
 
     renderSDRs();
     closeSDRPreview();
@@ -13411,6 +13449,7 @@ function generateCM() {
     soaPosition: "below",
   };
   CREDIT_MEMOS.unshift(newCM);
+  persistDocs('credit_memos', () => CREDIT_MEMOS);
   closeCMBuilder();
   renderCreditMemos();
   openCMPreview(0);
@@ -13859,33 +13898,66 @@ setLayout("cards");
 tickClock();
 setInterval(tickClock, 1000);
 
-/* ── Hydrate inventory from backend on auth-ready ──
-   If backend has items, replace mock seed in-place. Otherwise keep seed
-   so the demo still has data, and future mutations will start populating
-   the empty DB. */
-(function hydrateInventoryFromBackend(){
-  function loadOnce() {
+/* ── Hydrate all backend-persisted modules on auth-ready ──
+   For each module: GET backend list, if non-empty REPLACE local array
+   in-place + re-render. If empty, keep mock seed (future mutations sync). */
+(function hydrateAllFromBackend(){
+  function hydrateArray(globalName, fetchPromise, renderFn, label) {
+    return fetchPromise.then(rows => {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      const target = window[globalName];
+      if (!Array.isArray(target)) return null;
+      target.splice(0, target.length, ...rows);
+      if (typeof renderFn === 'function') { try { renderFn(); } catch(e) {} }
+      return rows.length;
+    }).catch(err => {
+      console.error('Hydrate failed', label, err);
+      ftToast('Could not load ' + label + ': ' + err.message);
+      return null;
+    });
+  }
+
+  function loadAll() {
     if (!window.FT_API) return;
-    window.FT_API.inventory.list().then(rows => {
-      if (!Array.isArray(rows) || rows.length === 0) {
-        ftToast('Backend inventory is empty. Mock seed shown — your changes will sync to DB.', 'info');
-        return;
-      }
+    const tasks = [];
+    // Inventory uses its dedicated endpoint + camelCase mapping
+    tasks.push(window.FT_API.inventory.list().then(rows => {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
       const items = rows.map(window.FT_API.fromBackend);
       INVENTORY.splice(0, INVENTORY.length, ...items);
       try { renderInventory(); } catch(e) {}
-      ftToast('Loaded ' + items.length + ' item(s) from backend', 'ok');
+      return items.length;
     }).catch(err => {
-      console.error('Inventory hydrate failed', err);
-      ftToast('Could not load inventory from backend: ' + err.message);
+      ftToast('Could not load inventory: ' + err.message);
+      return null;
+    }));
+    // Generic docs for the rest — each module's frontend uses these globals
+    const generic = [
+      ['LOADING_LISTS', 'loading_lists', () => typeof renderLoadingLists === 'function' && renderLoadingLists()],
+      ['SDRS',          'sdrs',          () => typeof renderSDRs === 'function' && renderSDRs()],
+      ['INVOICES',      'invoices',      () => typeof renderInvoices === 'function' && renderInvoices()],
+      ['CREDIT_MEMOS',  'credit_memos',  () => typeof renderCreditMemos === 'function' && renderCreditMemos()],
+      ['DISCREPANCY_REPORTS', 'discrepancy_reports', () => typeof renderDiscrepancyReports === 'function' && renderDiscrepancyReports()],
+      ['NOTIFICATIONS', 'notifications', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
+    ];
+    for (const [global, kind, renderFn] of generic) {
+      tasks.push(hydrateArray(global, window.FT_API.docs.list(kind), renderFn, kind));
+    }
+    Promise.all(tasks).then(results => {
+      const loaded = results.filter(n => typeof n === 'number' && n > 0).length;
+      const empty = results.filter(n => n === null).length;
+      if (loaded > 0) {
+        ftToast('Loaded ' + loaded + ' module(s) from backend. ' + empty + ' empty/skipped — mock seed kept.', 'ok');
+      } else {
+        ftToast('Backend is empty — using mock seed. Your changes will sync to DB.', 'info');
+      }
     });
   }
-  // Run after auth gate unlocks (event from gate IIFE)
+
   if (localStorage.getItem('ft_jwt')) {
-    // Already authed — defer to next tick so renderInventory binds first
-    setTimeout(loadOnce, 50);
+    setTimeout(loadAll, 80);
   } else {
-    document.addEventListener('ft-auth-ready', () => setTimeout(loadOnce, 50), { once: true });
+    document.addEventListener('ft-auth-ready', () => setTimeout(loadAll, 80), { once: true });
   }
 })();
 

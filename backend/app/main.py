@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import init_db, get_db
-from app.routers import inventory
+from app.routers import inventory, docs
 from app.schemas import HealthOut
 from app.auth import router as auth_router
 
@@ -67,6 +67,7 @@ def health(db: Session = Depends(get_db)):
 # Register routers
 app.include_router(auth_router)
 app.include_router(inventory.router)
+app.include_router(docs.router)
 
 
 # Serve frontend index.html bundled into the image

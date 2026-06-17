@@ -141,3 +141,20 @@ class DiscrepancyReport(Base):
     resolution_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     lines: Mapped[list] = mapped_column(JSON, default=list)  # variance line items
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Document(Base):
+    """Generic document storage for Phase 1A modules.
+
+    Each module (loading_lists, sdrs, invoices, credit_memos, discrepancy_reports)
+    stores its array as Documents keyed by kind. PUT /api/docs/{kind} replaces
+    all documents of that kind in order. Avoids per-module schema overhead.
+    """
+    __tablename__ = "documents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    seq: Mapped[int] = mapped_column(Integer)  # ordering within kind
+    data: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
