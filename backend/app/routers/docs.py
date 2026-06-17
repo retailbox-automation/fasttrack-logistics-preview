@@ -23,6 +23,11 @@ ALLOWED_KINDS = {
     "credit_memos",
     "discrepancy_reports",
     "notifications",
+    "emails",
+    "barcode_history",
+    "ct_requests",
+    "ct_audit_trail",
+    "shipments",
 }
 
 

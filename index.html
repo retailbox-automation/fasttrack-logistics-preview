@@ -1269,6 +1269,115 @@ body.view-loading_lists .pagination { display: none; }
 
 .ll-doc__footer { padding: 14px 40px 24px; background: #F4F1EA; font-size: 9px; color: #666; font-family: "JetBrains Mono", monospace; letter-spacing: 0.04em; line-height: 1.5; border-top: 1px solid #D5CFC2; }
 
+/* ════════════════════════════════════════════════════════════════════
+   RESPONSIVE  ·  tablet + mobile breakpoints
+   Original layout assumed ≥ 1280px. These shrink it down gracefully:
+     ≤ 1200px:  compact KPIs, narrower sidebar
+     ≤ 980px:   header wraps to 2 rows, sidebar overlay, stats 3-col
+     ≤ 700px:   single-column main, stats 2-col, slim header
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── ≤ 1200px ── */
+@media (max-width: 1200px) {
+  .header { grid-template-columns: 220px 1fr auto; padding: 0 16px; }
+  .search { width: 240px; }
+  .stats { gap: 18px; padding: 14px 18px; }
+  .stat__value { font-size: 26px; }
+  .clock { padding-left: 18px; }
+  .clock__time { font-size: 18px; }
+  .main { grid-template-columns: 220px 1fr; }
+}
+
+/* ── ≤ 980px ── tablet ── */
+@media (max-width: 980px) {
+  .header {
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "brand title actions"
+      "search search search";
+    height: auto;
+    padding: 8px 14px;
+    gap: 6px 12px;
+  }
+  .brand { grid-area: brand; gap: 8px; }
+  .brand__mark { width: 28px; height: 28px; font-size: 15px; }
+  .brand__name { font-size: 13px; }
+  .brand__sub { font-size: 8px; }
+  .header__title { grid-area: title; align-items: flex-start; }
+  .header__title-main { font-size: 12px; letter-spacing: 0.04em; white-space: nowrap; }
+  .header__title-sub { font-size: 8px; letter-spacing: 0.06em; }
+  .header__actions { grid-area: actions; gap: 8px; }
+  .search { grid-area: search; width: 100%; padding: 6px 10px; }
+  .user-chip__name { display: none; }
+  .stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 12px 14px;
+  }
+  .stats .clock { display: none; }
+  .stat__value { font-size: 22px; }
+  .stat__label { font-size: 8px; }
+  .stat__delta { font-size: 9px; }
+  .main { grid-template-columns: 200px 1fr; }
+  .sidebar { padding: 12px 0; }
+  .sidebar-section { margin-bottom: 16px; }
+}
+
+/* ── ≤ 700px ── mobile ── */
+@media (max-width: 700px) {
+  .header {
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+      "brand actions"
+      "title title"
+      "search search";
+    padding: 6px 10px;
+  }
+  .header__title { display: none; }
+  .header__title.show-mobile { display: flex; }
+  .brand__text { display: none; }
+  .signout-btn { font-size: 10px; padding: 4px 8px; }
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .stat__value { font-size: 18px; }
+  .stat__label { font-size: 7px; letter-spacing: 0.12em; }
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+  .sidebar {
+    max-height: 38vh;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 0;
+  }
+  .sidebar-section { margin-bottom: 10px; }
+  .sidebar-section__title { font-size: 8px; padding: 0 12px; }
+  .footer-bar { font-size: 9px; padding: 6px 10px; gap: 12px; flex-wrap: wrap; }
+  /* Card grid: switch to single column */
+  .cards-grid { grid-template-columns: 1fr !important; gap: 10px !important; padding: 12px !important; }
+  .card { padding: 12px !important; }
+  /* Drawer/modal: full screen on mobile */
+  .drawer, .modal { width: 100% !important; max-width: 100vw !important; }
+  /* Tables: horizontal scroll wrapper */
+  .table-scroll, .inv-table-wrap, .ll-table-wrap, .invc-table-wrap, .sdr-table-wrap, .cm-table-wrap, .dr-table-wrap, .soa-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Auth gate ── shrink on tiny screens ── */
+@media (max-width: 480px) {
+  #auth-gate .gate-card { padding: 24px 18px 20px; width: calc(100vw - 24px); }
+  #auth-gate h1 { font-size: 16px; }
+}
+
 @media print {
   body * { visibility: hidden; }
   .ll-preview-doc, .ll-preview-doc *,
@@ -11163,6 +11272,7 @@ function renderCTDetail(req) {
     startBtn.textContent = "Start pick →";
     startBtn.addEventListener("click", () => {
       req.status = "in_progress";
+      persistDocs('ct_requests', () => CT_REQUESTS);
       addCTAudit("Status push: " + req.id + " → in_progress (pick initiated by Andrea)", "push");
       renderCrunchTime();
     });
@@ -11176,6 +11286,7 @@ function renderCTDetail(req) {
         if (!confirm("Some items have 0 confirmed qty. Partial pick? Click OK to continue, Cancel to revise.")) return;
       }
       req.status = "picked";
+      persistDocs('ct_requests', () => CT_REQUESTS);
       addCTAudit("Pick confirmed: " + req.id + " → status picked, " + req.items.length + " items at " +
         Math.round(req.items.reduce((s, i) => s + ((i.qtyConfirmed || 0) / i.qtyRequested), 0) / req.items.length * 100) + "% avg fulfillment", "push");
       renderCrunchTime();
@@ -11186,6 +11297,7 @@ function renderCTDetail(req) {
     llBtn.textContent = "Generate Loading List →";
     llBtn.addEventListener("click", () => {
       req.status = "sent";
+      persistDocs('ct_requests', () => CT_REQUESTS);
       addCTAudit("Dispatch confirmed: " + req.id + " → status sent, Loading List generated", "push");
       renderCrunchTime();
       alert("Mock: would route to Loading List builder pre-populated with picked items.\n\nIn live integration: auto-creates LL + posts dispatch confirmation to CrunchTime.");
@@ -11198,6 +11310,7 @@ function addCTAudit(action, kind) {
   const now = new Date().toISOString().slice(0, 16).replace("T", " ");
   CT_AUDIT_TRAIL.unshift({ time: now, action, user: "FT_API · " + (kind || "push") });
   if (CT_AUDIT_TRAIL.length > 12) CT_AUDIT_TRAIL.pop();
+  if (typeof persistDocs === 'function') persistDocs('ct_audit_trail', () => CT_AUDIT_TRAIL);
   renderCTAudit();
 }
 
@@ -11464,6 +11577,7 @@ function processScan(barcode) {
   // Add to history
   BC_HISTORY.push({ barcode, result, message, time });
   if (BC_HISTORY.length > 50) BC_HISTORY.shift();
+  if (typeof persistDocs === 'function') persistDocs('barcode_history', () => BC_HISTORY);
 
   // Refresh dependent panels
   renderBCProgress();
@@ -13939,6 +14053,11 @@ setInterval(tickClock, 1000);
       ['CREDIT_MEMOS',  'credit_memos',  () => typeof renderCreditMemos === 'function' && renderCreditMemos()],
       ['DISCREPANCY_REPORTS', 'discrepancy_reports', () => typeof renderDiscrepancyReports === 'function' && renderDiscrepancyReports()],
       ['NOTIFICATIONS', 'notifications', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
+      ['EMAILS',        'emails',        () => { try { if (typeof buildInboxList === 'function') buildInboxList(); } catch(e){} }],
+      ['BC_HISTORY',    'barcode_history', () => typeof renderBarcoding === 'function' && renderBarcoding()],
+      ['CT_REQUESTS',   'ct_requests',   () => typeof renderCrunchTime === 'function' && renderCrunchTime()],
+      ['CT_AUDIT_TRAIL','ct_audit_trail',() => typeof renderCrunchTime === 'function' && renderCrunchTime()],
+      ['SHIPMENTS',     'shipments',     () => { try { if (typeof renderCards === 'function') renderCards(); if (typeof renderList === 'function') renderList(); } catch(e){} }],
     ];
     for (const [global, kind, renderFn] of generic) {
       tasks.push(hydrateArray(global, window.FT_API.docs.list(kind), renderFn, kind));
