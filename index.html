@@ -3322,6 +3322,114 @@ body.layout-list .pagination { display: none; }
 })();
 </script>
 
+<script>
+/* ========== Backend integration helpers ==========
+   Bridges in-memory INVENTORY array ↔ FastAPI /api/inventory.
+   Maps camelCase frontend ↔ snake_case backend. Attaches backendId to
+   each item once persisted. */
+(function(){
+  // Field mapping — only fields the backend persists.
+  const F2B = {
+    warehouseReceipt: 'warehouse_receipt',
+    partNumber: 'part_number',
+    description: 'description',
+    department: 'department',
+    vessel: 'vessel',
+    packageUnit: 'package_unit',
+    pieces: 'pieces',
+    quantity: 'quantity',
+    locationCode: 'location_code',
+    entryNumber: 'entry_number',
+    poNumber: 'po_number',
+    weightLb: 'weight_lb',
+    receivedDate: 'received_date',
+    receivedBy: 'received_by',
+    status: 'status',
+    notes: 'notes',
+  };
+  const B2F = Object.fromEntries(Object.entries(F2B).map(([k,v]) => [v,k]));
+
+  function toBackend(item) {
+    const out = {};
+    for (const [fk, bk] of Object.entries(F2B)) {
+      if (item[fk] !== undefined && item[fk] !== null && item[fk] !== '') {
+        out[bk] = item[fk];
+      }
+    }
+    // Required-by-backend defaults
+    if (!out.warehouse_receipt) out.warehouse_receipt = '';
+    if (!out.part_number) out.part_number = '';
+    if (!out.description) out.description = '';
+    if (out.pieces === undefined) out.pieces = 0;
+    if (out.quantity === undefined) out.quantity = 0;
+    if (!out.location_code) out.location_code = '';
+    if (!out.package_unit) out.package_unit = 'Box';
+    if (!out.status) out.status = 'in_stock';
+    return out;
+  }
+  function fromBackend(row) {
+    const out = {};
+    for (const [bk, val] of Object.entries(row)) {
+      const fk = B2F[bk];
+      if (fk) out[fk] = val;
+    }
+    if (row.id !== undefined) out.backendId = row.id;
+    if (row.movements) out.movements = row.movements;
+    return out;
+  }
+
+  async function fetchJSON(path, opts) {
+    const resp = await window.fetchAuthed(path, opts || {});
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error('API ' + resp.status + ': ' + text);
+    }
+    if (resp.status === 204) return null;
+    return resp.json();
+  }
+
+  window.FT_API = {
+    inventory: {
+      list: () => fetchJSON('/api/inventory'),
+      create: (item) => fetchJSON('/api/inventory', {
+        method: 'POST',
+        body: JSON.stringify(toBackend(item)),
+      }),
+      update: (id, patch) => fetchJSON('/api/inventory/' + id, {
+        method: 'PATCH',
+        body: JSON.stringify(toBackend(patch)),
+      }),
+      remove: (id) => fetchJSON('/api/inventory/' + id, { method: 'DELETE' }),
+      move: (id, payload) => fetchJSON('/api/inventory/' + id + '/move', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+      bulkImport: (items) => fetchJSON('/api/inventory/bulk-import', {
+        method: 'POST',
+        body: JSON.stringify(items.map(toBackend)),
+      }),
+    },
+    fromBackend, toBackend,
+  };
+
+  // Toast for non-fatal sync errors so users see when backend is unreachable.
+  window.ftToast = function(msg, kind) {
+    let t = document.getElementById('ft-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'ft-toast';
+      t.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:6px;font:13px/-apple-system,sans-serif;color:#fff;background:#dc2626;box-shadow:0 4px 14px rgba(0,0,0,.2);z-index:99998;max-width:340px;';
+      document.body.appendChild(t);
+    }
+    t.style.background = (kind === 'ok') ? '#16a34a' : (kind === 'info') ? '#2563eb' : '#dc2626';
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(window._ftToastTimer);
+    window._ftToastTimer = setTimeout(() => { t.style.display = 'none'; }, 4500);
+  };
+})();
+</script>
+
 <div class="app">
 
   <!-- HEADER -->
@@ -8690,6 +8798,9 @@ function setupInventory() {
     const item = INVENTORY[INVENTORY_EDIT_IDX];
     if (!item) return;
     if (!confirm("Delete " + item.warehouseReceipt + " / " + item.partNumber + "?\n\n" + item.description + "\n\nThis cannot be undone.")) return;
+    if (window.FT_API && item.backendId) {
+      window.FT_API.inventory.remove(item.backendId).catch(err => ftToast('Backend delete failed: ' + err.message));
+    }
     INVENTORY.splice(INVENTORY_EDIT_IDX, 1);
     closeInventoryForm();
     renderInventory();
@@ -8713,9 +8824,27 @@ function setupInventory() {
       }
       if (INVENTORY_EDIT_IDX !== null) {
         // Preserve any fields not in form (e.g. status if not in form)
-        INVENTORY[INVENTORY_EDIT_IDX] = Object.assign({}, INVENTORY[INVENTORY_EDIT_IDX], obj);
+        const merged = Object.assign({}, INVENTORY[INVENTORY_EDIT_IDX], obj);
+        INVENTORY[INVENTORY_EDIT_IDX] = merged;
+        // Sync to backend if this item is persisted
+        if (window.FT_API && merged.backendId) {
+          window.FT_API.inventory.update(merged.backendId, obj)
+            .then(row => { Object.assign(INVENTORY[INVENTORY_EDIT_IDX], window.FT_API.fromBackend(row)); renderInventory(); })
+            .catch(err => ftToast('Edit not saved: ' + err.message));
+        } else if (window.FT_API) {
+          // Mock item being edited for the first time → create in backend
+          window.FT_API.inventory.create(merged)
+            .then(row => { Object.assign(INVENTORY[INVENTORY_EDIT_IDX], window.FT_API.fromBackend(row)); renderInventory(); })
+            .catch(err => ftToast('Backend create failed: ' + err.message));
+        }
       } else {
         INVENTORY.unshift(obj);
+        // POST to backend, capture backendId
+        if (window.FT_API) {
+          window.FT_API.inventory.create(obj)
+            .then(row => { Object.assign(INVENTORY[0], window.FT_API.fromBackend(row)); renderInventory(); })
+            .catch(err => ftToast('Backend save failed: ' + err.message));
+        }
       }
       closeInventoryForm();
       renderInventory();
@@ -8936,11 +9065,27 @@ function commitInvImport() {
     alert("Nothing to import.");
     return;
   }
-  // Unshift so newest at top
+  // Insert locally first so UI updates immediately
   toImport.reverse().forEach(item => INVENTORY.unshift(item));
   alert("Imported " + toImport.length + " item(s) into FT inventory.");
   closeInvImport();
   renderInventory();
+  // Then bulk-sync to backend
+  if (window.FT_API) {
+    window.FT_API.inventory.bulkImport(toImport)
+      .then(res => {
+        // Reload from backend to get ids; safer than re-creating them by hand
+        return window.FT_API.inventory.list();
+      })
+      .then(rows => {
+        if (!Array.isArray(rows)) return;
+        const items = rows.map(window.FT_API.fromBackend);
+        INVENTORY.splice(0, INVENTORY.length, ...items);
+        renderInventory();
+        ftToast('Synced ' + toImport.length + ' imported item(s) to backend', 'ok');
+      })
+      .catch(err => ftToast('Backend bulk-import failed: ' + err.message));
+  }
 }
 
 function loadInvImportSample() {
@@ -9197,6 +9342,9 @@ function setupInvDrawer() {
     const item = INVENTORY[INV_DRAWER_IDX];
     if (!item) return;
     if (!confirm("Delete " + item.warehouseReceipt + " / " + item.partNumber + "?\n\n" + item.description + "\n\nThis cannot be undone.")) return;
+    if (window.FT_API && item.backendId) {
+      window.FT_API.inventory.remove(item.backendId).catch(err => ftToast('Backend delete failed: ' + err.message));
+    }
     INVENTORY.splice(INV_DRAWER_IDX, 1);
     closeInvDrawer();
     renderInventory();
@@ -9252,6 +9400,14 @@ function setupInvDrawer() {
       reason: reason || "—",
     });
     addNotification("move", "Item relocated", item.warehouseReceipt + " · " + item.partNumber + " moved from " + oldLoc + " → " + newLoc + (reason ? " (" + reason + ")" : ""));
+    // Backend sync — POST /move (creates audit entry server-side too)
+    if (window.FT_API && item.backendId) {
+      window.FT_API.inventory.move(item.backendId, {
+        new_location: newLoc,
+        reason: reason || "",
+        by: CURRENT_USER ? CURRENT_USER.name : "system",
+      }).then(row => { Object.assign(item, window.FT_API.fromBackend(row)); }).catch(err => ftToast('Move not saved: ' + err.message));
+    }
     closeMoveModal();
     renderInventory();
     openInvDrawer(INV_DRAWER_IDX); // refresh drawer to show new location + audit entry
@@ -13702,6 +13858,36 @@ switchView("dashboard");
 setLayout("cards");
 tickClock();
 setInterval(tickClock, 1000);
+
+/* ── Hydrate inventory from backend on auth-ready ──
+   If backend has items, replace mock seed in-place. Otherwise keep seed
+   so the demo still has data, and future mutations will start populating
+   the empty DB. */
+(function hydrateInventoryFromBackend(){
+  function loadOnce() {
+    if (!window.FT_API) return;
+    window.FT_API.inventory.list().then(rows => {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        ftToast('Backend inventory is empty. Mock seed shown — your changes will sync to DB.', 'info');
+        return;
+      }
+      const items = rows.map(window.FT_API.fromBackend);
+      INVENTORY.splice(0, INVENTORY.length, ...items);
+      try { renderInventory(); } catch(e) {}
+      ftToast('Loaded ' + items.length + ' item(s) from backend', 'ok');
+    }).catch(err => {
+      console.error('Inventory hydrate failed', err);
+      ftToast('Could not load inventory from backend: ' + err.message);
+    });
+  }
+  // Run after auth gate unlocks (event from gate IIFE)
+  if (localStorage.getItem('ft_jwt')) {
+    // Already authed — defer to next tick so renderInventory binds first
+    setTimeout(loadOnce, 50);
+  } else {
+    document.addEventListener('ft-auth-ready', () => setTimeout(loadOnce, 50), { once: true });
+  }
+})();
 
 // URL hash → auto-open state for screenshots / deep links / auto-demo
 (function autoOpen() {
