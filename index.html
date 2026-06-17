@@ -3285,7 +3285,7 @@ body.layout-list .pagination { display: none; }
 </head>
 <body>
 
-<!-- Phase 1 auth gate — shared-password overlay -->
+<!-- Auth gate — per-user accounts (email + password) ; legacy shared-password also accepted -->
 <div id="auth-gate">
   <form class="gate-card" id="auth-gate-form" autocomplete="off">
     <div class="gate-brand">
@@ -3297,13 +3297,24 @@ body.layout-list .pagination { display: none; }
     </div>
     <h1>Sign in</h1>
     <p class="gate-sub">Internal logistics control center. Restricted access.</p>
-    <label for="auth-gate-password">Access password</label>
-    <input id="auth-gate-password" type="password" autofocus required>
+    <label for="auth-gate-email">Email</label>
+    <input id="auth-gate-email" type="email" placeholder="your.name@fasttrackgroup.us" autocomplete="username" autofocus style="margin-bottom:14px;">
+    <label for="auth-gate-password">Password</label>
+    <input id="auth-gate-password" type="password" autocomplete="current-password" required>
     <div class="gate-err" id="auth-gate-err"></div>
     <button type="submit" class="gate-submit" id="auth-gate-submit">Sign in</button>
-    <div class="gate-footer">FT MSC operations · Phase 1</div>
+    <div class="gate-footer">FT MSC operations · Leave email blank to use legacy shared password.</div>
   </form>
 </div>
+
+<!-- Sync status pill (top-right) -->
+<div id="ft-sync-pill" style="position:fixed;top:10px;right:10px;z-index:99996;padding:5px 10px;border-radius:12px;font:11px/1.4 -apple-system,sans-serif;background:rgba(15,23,42,.85);color:#94a3b8;border:1px solid rgba(148,163,184,.2);display:none;backdrop-filter:blur(8px);"></div>
+
+<!-- Global loading spinner overlay (shown during slow API calls) -->
+<div id="ft-spinner" style="position:fixed;inset:0;z-index:99997;background:rgba(5,11,21,.55);display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
+  <div style="width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#2d6da3;animation:ftspin 800ms linear infinite;"></div>
+</div>
+<style>@keyframes ftspin{to{transform:rotate(360deg)}}</style>
 
 <script>
 /* ========== Phase 1 auth gate runtime ========== */
@@ -3316,8 +3327,10 @@ body.layout-list .pagination { display: none; }
   window.FT_API_BASE = apiOverride;  // empty = same-origin
 
   const TOKEN_KEY = 'ft_jwt';
+  const USER_KEY = 'ft_user';
   const gate = document.getElementById('auth-gate');
   const form = document.getElementById('auth-gate-form');
+  const emailInput = document.getElementById('auth-gate-email');
   const input = document.getElementById('auth-gate-password');
   const errBox = document.getElementById('auth-gate-err');
   const submitBtn = document.getElementById('auth-gate-submit');
@@ -3352,10 +3365,16 @@ body.layout-list .pagination { display: none; }
 
   function lock() {
     clearToken();
+    localStorage.removeItem(USER_KEY);
     gate.classList.remove('hidden');
     input.value = '';
     input.focus();
   }
+
+  // Expose current user to rest of app
+  window.ftCurrentUser = function() {
+    try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch (e) { return null; }
+  };
 
   // Global helper for authed API calls (use throughout the app once we wire fetches)
   window.fetchAuthed = async function(path, opts = {}) {
@@ -3388,23 +3407,28 @@ body.layout-list .pagination { display: none; }
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     hideError();
+    const email = (emailInput.value || '').trim().toLowerCase();
     const password = input.value;
-    if (!password) { showError('Enter the access password'); return; }
+    if (!password) { showError('Enter your password'); return; }
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing in…';
     try {
+      const body = email ? { email, password } : { password };
       const resp = await fetch(window.FT_API_BASE + '/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(body),
       });
       if (resp.status === 401) {
-        showError('Wrong password.');
+        showError(email ? 'Invalid email or password.' : 'Wrong password.');
+      } else if (resp.status === 429) {
+        showError('Too many attempts. Wait a minute and try again.');
       } else if (!resp.ok) {
         showError('Login failed (' + resp.status + '). Try again.');
       } else {
         const data = await resp.json();
         setToken(data.access_token);
+        if (data.user) localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         unlock();
       }
     } catch (err) {
@@ -3488,13 +3512,21 @@ body.layout-list .pagination { display: none; }
   }
 
   async function fetchJSON(path, opts) {
-    const resp = await window.fetchAuthed(path, opts || {});
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error('API ' + resp.status + ': ' + text);
+    // Show spinner only if the request actually takes >300ms (avoids flicker)
+    let spinnerShown = false;
+    const spinTimer = setTimeout(() => { spinnerShown = true; ftSpinner(true); }, 300);
+    try {
+      const resp = await window.fetchAuthed(path, opts || {});
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error('API ' + resp.status + ': ' + text);
+      }
+      if (resp.status === 204) return null;
+      return await resp.json();
+    } finally {
+      clearTimeout(spinTimer);
+      if (spinnerShown) ftSpinner(false);
     }
-    if (resp.status === 204) return null;
-    return resp.json();
   }
 
   window.FT_API = {
@@ -3519,28 +3551,113 @@ body.layout-list .pagination { display: none; }
       }),
     },
     docs: {
-      list: (kind) => fetchJSON('/api/docs/' + kind),
-      replaceAll: (kind, items) => fetchJSON('/api/docs/' + kind, {
-        method: 'PUT',
-        body: JSON.stringify({ items }),
-      }),
+      // list returns body + ETag (server version), stored in window._ftDocVersions[kind]
+      list: async (kind) => {
+        const resp = await window.fetchAuthed('/api/docs/' + kind);
+        if (!resp.ok) throw new Error('API ' + resp.status);
+        const etag = resp.headers.get('ETag');
+        if (etag) {
+          (window._ftDocVersions = window._ftDocVersions || {})[kind] = etag;
+        }
+        return resp.json();
+      },
+      replaceAll: async (kind, items) => {
+        const headers = { 'Content-Type': 'application/json' };
+        const known = (window._ftDocVersions || {})[kind];
+        if (known) headers['If-Match'] = known;
+        const resp = await window.fetchAuthed('/api/docs/' + kind, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({ items }),
+        });
+        if (resp.status === 409) {
+          // Concurrent write — drop our local cache, surface to caller
+          delete (window._ftDocVersions || {})[kind];
+          const text = await resp.text();
+          throw new Error('Conflict: ' + text);
+        }
+        if (!resp.ok) {
+          const text = await resp.text();
+          throw new Error('API ' + resp.status + ': ' + text);
+        }
+        const body = await resp.json();
+        if (body && body.version !== undefined) {
+          (window._ftDocVersions = window._ftDocVersions || {})[kind] = '"' + body.version + '"';
+        }
+        return body;
+      },
+    },
+    users: {
+      list: () => fetchJSON('/api/users'),
+      create: (u) => fetchJSON('/api/users', { method: 'POST', body: JSON.stringify(u) }),
+      update: (id, patch) => fetchJSON('/api/users/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
+      remove: (id) => fetchJSON('/api/users/' + id, { method: 'DELETE' }),
+    },
+    audit: {
+      list: (params) => {
+        const q = params ? '?' + new URLSearchParams(params).toString() : '';
+        return fetchJSON('/api/audit' + q);
+      },
     },
     fromBackend, toBackend,
   };
 
-  // Debounced array persist — call after every mutation site.
-  // Coalesces rapid edits into 1 PUT 600ms after the last change.
+  // ── Sync status pill (top-right). 3 states: saving | saved | error ──
+  window.ftSyncStatus = function(state, label) {
+    const pill = document.getElementById('ft-sync-pill');
+    if (!pill) return;
+    const palette = {
+      saving:  { bg: 'rgba(37,99,235,.15)', fg: '#93c5fd', border: 'rgba(37,99,235,.35)' },
+      saved:   { bg: 'rgba(22,163,74,.12)', fg: '#86efac', border: 'rgba(22,163,74,.3)' },
+      error:   { bg: 'rgba(220,38,38,.15)', fg: '#fca5a5', border: 'rgba(220,38,38,.4)' },
+      conflict:{ bg: 'rgba(234,88,12,.15)', fg: '#fdba74', border: 'rgba(234,88,12,.4)' },
+    };
+    const p = palette[state] || palette.saving;
+    pill.style.background = p.bg; pill.style.color = p.fg; pill.style.borderColor = p.border;
+    pill.textContent = label || state;
+    pill.style.display = 'block';
+    clearTimeout(window._ftSyncTimer);
+    if (state === 'saved') {
+      window._ftSyncTimer = setTimeout(() => { pill.style.display = 'none'; }, 1800);
+    }
+  };
+
+  // ── Global spinner for slow API calls (>300ms) ──
+  let _spinnerCount = 0;
+  window.ftSpinner = function(on) {
+    const sp = document.getElementById('ft-spinner');
+    if (!sp) return;
+    _spinnerCount += on ? 1 : -1;
+    if (_spinnerCount < 0) _spinnerCount = 0;
+    sp.style.display = _spinnerCount > 0 ? 'flex' : 'none';
+  };
+
+  // Debounced array persist — coalesces rapid edits into 1 PUT 600ms after last change.
   window._ftPersistTimers = {};
+  window._ftInflight = {};
   window.persistDocs = function(kind, getArray) {
     clearTimeout(window._ftPersistTimers[kind]);
     window._ftPersistTimers[kind] = setTimeout(() => {
       try {
         const arr = getArray();
         if (!Array.isArray(arr)) return;
-        window.FT_API.docs.replaceAll(kind, arr).catch(err => {
-          console.error('Persist failed', kind, err);
-          ftToast('Save failed (' + kind + '): ' + err.message);
-        });
+        ftSyncStatus('saving', 'Saving ' + kind + '…');
+        window._ftInflight[kind] = true;
+        window.FT_API.docs.replaceAll(kind, arr)
+          .then(() => {
+            ftSyncStatus('saved', '✓ Saved');
+          })
+          .catch(err => {
+            console.error('Persist failed', kind, err);
+            if (String(err.message).startsWith('Conflict')) {
+              ftSyncStatus('conflict', 'Conflict — reload to merge');
+              ftToast('Another user changed ' + kind + ' while you were editing. Reload to merge.', 'error');
+            } else {
+              ftSyncStatus('error', 'Sync failed');
+              ftToast('Save failed (' + kind + '): ' + err.message);
+            }
+          })
+          .finally(() => { delete window._ftInflight[kind]; });
       } catch (e) { console.error('persistDocs threw', e); }
     }, 600);
   };
@@ -8959,24 +9076,24 @@ function setupInventory() {
         // Preserve any fields not in form (e.g. status if not in form)
         const merged = Object.assign({}, INVENTORY[INVENTORY_EDIT_IDX], obj);
         INVENTORY[INVENTORY_EDIT_IDX] = merged;
-        // Sync to backend if this item is persisted
         if (window.FT_API && merged.backendId) {
+          ftSyncStatus('saving', 'Saving inventory…');
           window.FT_API.inventory.update(merged.backendId, obj)
-            .then(row => { Object.assign(INVENTORY[INVENTORY_EDIT_IDX], window.FT_API.fromBackend(row)); renderInventory(); })
-            .catch(err => ftToast('Edit not saved: ' + err.message));
+            .then(row => { Object.assign(INVENTORY[INVENTORY_EDIT_IDX], window.FT_API.fromBackend(row)); renderInventory(); ftSyncStatus('saved', '✓ Saved'); })
+            .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Edit not saved: ' + err.message); });
         } else if (window.FT_API) {
-          // Mock item being edited for the first time → create in backend
+          ftSyncStatus('saving', 'Creating inventory…');
           window.FT_API.inventory.create(merged)
-            .then(row => { Object.assign(INVENTORY[INVENTORY_EDIT_IDX], window.FT_API.fromBackend(row)); renderInventory(); })
-            .catch(err => ftToast('Backend create failed: ' + err.message));
+            .then(row => { Object.assign(INVENTORY[INVENTORY_EDIT_IDX], window.FT_API.fromBackend(row)); renderInventory(); ftSyncStatus('saved', '✓ Saved'); })
+            .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Backend create failed: ' + err.message); });
         }
       } else {
         INVENTORY.unshift(obj);
-        // POST to backend, capture backendId
         if (window.FT_API) {
+          ftSyncStatus('saving', 'Saving inventory…');
           window.FT_API.inventory.create(obj)
-            .then(row => { Object.assign(INVENTORY[0], window.FT_API.fromBackend(row)); renderInventory(); })
-            .catch(err => ftToast('Backend save failed: ' + err.message));
+            .then(row => { Object.assign(INVENTORY[0], window.FT_API.fromBackend(row)); renderInventory(); ftSyncStatus('saved', '✓ Saved'); })
+            .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Backend save failed: ' + err.message); });
         }
       }
       closeInventoryForm();

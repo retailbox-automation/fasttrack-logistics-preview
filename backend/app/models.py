@@ -156,5 +156,41 @@ class Document(Base):
     kind: Mapped[str] = mapped_column(String(32), index=True)
     seq: Mapped[int] = mapped_column(Integer)  # ordering within kind
     data: Mapped[dict] = mapped_column(JSON)
+    version: Mapped[int] = mapped_column(Integer, default=1)  # optimistic locking
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(128))
+    password_hash: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(32), default="viewer", index=True)
+    # Roles: admin (Andrés/Sultan), manager (Gabriela/Luis), ops (Andrea/Yamisley),
+    #        viewer (read-only). Permission gates check this.
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class AuditLog(Base):
+    """Append-only audit trail of mutations.
+
+    Records who did what when. Captures the diff payload so we can answer
+    'who changed invoice INV-001 from draft to approved'."""
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    user_name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    user_role: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    action: Mapped[str] = mapped_column(String(32), index=True)  # create, update, delete, move, replace_all
+    entity_kind: Mapped[str] = mapped_column(String(48), index=True)  # inventory_item, loading_lists, ...
+    entity_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

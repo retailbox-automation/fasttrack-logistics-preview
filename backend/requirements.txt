@@ -6,3 +6,7 @@ pydantic==2.9.2
 pydantic-settings==2.6.1
 python-multipart==0.0.12
 PyJWT==2.9.0
+bcrypt==4.2.0
+slowapi==0.1.9
+python-json-logger==2.0.7
+alembic==1.13.3
