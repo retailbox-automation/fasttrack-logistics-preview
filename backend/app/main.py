@@ -87,3 +87,19 @@ def serve_index():
         "health": "/health",
         "note": "index.html not bundled — frontend served from /static when present",
     }
+
+
+@app.get("/_debug", tags=["root"])
+def debug_fs():
+    """Debug — what's in the container filesystem."""
+    info = {
+        "cwd": os.getcwd(),
+        "__file__": __file__,
+        "STATIC_DIR": STATIC_DIR,
+        "STATIC_DIR_exists": os.path.isdir(STATIC_DIR),
+        "INDEX_PATH": INDEX_PATH,
+        "INDEX_PATH_exists": os.path.exists(INDEX_PATH),
+        "app_root": os.listdir("/app") if os.path.isdir("/app") else None,
+        "DATABASE_URL_prefix": (settings.database_url or "")[:40] + "...",
+    }
+    return info
