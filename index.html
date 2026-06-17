@@ -3310,6 +3310,28 @@ body.layout-list .pagination { display: none; }
 <!-- Sync status pill (top-right) -->
 <div id="ft-sync-pill" style="position:fixed;top:10px;right:10px;z-index:99996;padding:5px 10px;border-radius:12px;font:11px/1.4 -apple-system,sans-serif;background:rgba(15,23,42,.85);color:#94a3b8;border:1px solid rgba(148,163,184,.2);display:none;backdrop-filter:blur(8px);"></div>
 
+<!-- Mobile sidebar collapse toggle -->
+<button id="ft-mobile-sidebar-toggle" aria-label="Toggle sidebar" style="display:none;position:fixed;bottom:16px;right:16px;z-index:99995;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1e4d7b,#2d6da3);color:#fff;border:none;font-size:18px;box-shadow:0 6px 16px rgba(0,0,0,.4);cursor:pointer;">☰</button>
+
+<!-- Admin panel — accessed via header gear icon -->
+<div id="ft-admin-overlay" style="display:none;position:fixed;inset:0;z-index:99994;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);align-items:center;justify-content:center;">
+  <div style="background:#0e1d2f;border:1px solid rgba(148,163,184,.25);border-radius:10px;width:min(820px,94vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;color:#cbd5e1;font-family:-apple-system,sans-serif;">
+    <div style="padding:14px 18px;border-bottom:1px solid rgba(148,163,184,.2);display:flex;align-items:center;gap:16px;">
+      <div style="font-weight:600;font-size:15px;color:#fff;letter-spacing:.04em;">Admin</div>
+      <div id="ft-admin-tabs" style="display:flex;gap:4px;font-size:12px;flex:1;">
+        <button data-tab="me" class="ft-admin-tab" style="padding:6px 12px;border-radius:5px;background:rgba(45,109,163,.25);color:#93c5fd;border:none;cursor:pointer;">My account</button>
+        <button data-tab="users" class="ft-admin-tab" style="padding:6px 12px;border-radius:5px;background:transparent;color:#94a3b8;border:none;cursor:pointer;">Users</button>
+        <button data-tab="audit" class="ft-admin-tab" style="padding:6px 12px;border-radius:5px;background:transparent;color:#94a3b8;border:none;cursor:pointer;">Audit log</button>
+      </div>
+      <button id="ft-admin-close" style="background:transparent;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">×</button>
+    </div>
+    <div id="ft-admin-content" style="padding:18px;overflow-y:auto;flex:1;font-size:13px;line-height:1.55;"></div>
+  </div>
+</div>
+
+<!-- Floating gear button to open admin panel -->
+<button id="ft-admin-btn" title="Admin" style="display:none;position:fixed;top:10px;right:140px;z-index:99996;width:30px;height:30px;border-radius:50%;background:rgba(15,23,42,.85);color:#94a3b8;border:1px solid rgba(148,163,184,.25);cursor:pointer;font-size:14px;">⚙</button>
+
 <!-- Global loading spinner overlay (shown during slow API calls) -->
 <div id="ft-spinner" style="position:fixed;inset:0;z-index:99997;background:rgba(5,11,21,.55);display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);">
   <div style="width:42px;height:42px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#2d6da3;animation:ftspin 800ms linear infinite;"></div>
@@ -3601,6 +3623,56 @@ body.layout-list .pagination { display: none; }
     },
     fromBackend, toBackend,
   };
+
+  // ── Realtime SSE subscription — re-hydrate kinds when other users mutate ──
+  window.ftRealtime = (function(){
+    let es = null;
+    let reconnectTimer = null;
+    const handlers = {
+      'doc.updated': null,    // set by hydrate loop below
+      'inventory.changed': null,
+    };
+    function connect() {
+      const tok = localStorage.getItem('ft_jwt');
+      if (!tok) return;
+      const url = (window.FT_API_BASE || '') + '/api/events/stream?token=' + encodeURIComponent(tok);
+      try {
+        es = new EventSource(url);
+        es.addEventListener('hello', () => console.log('SSE connected'));
+        es.addEventListener('ping', () => {});
+        es.addEventListener('doc.updated', (e) => {
+          try {
+            const data = JSON.parse(e.data || '{}');
+            const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
+            // Ignore my own changes (we already have them)
+            if (data.by_user_id && me.id && data.by_user_id === me.id) return;
+            if (handlers['doc.updated']) handlers['doc.updated'](data);
+          } catch (err) { console.error(err); }
+        });
+        es.addEventListener('inventory.changed', (e) => {
+          try {
+            const data = JSON.parse(e.data || '{}');
+            const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
+            if (data.by_user_id && me.id && data.by_user_id === me.id) return;
+            if (handlers['inventory.changed']) handlers['inventory.changed'](data);
+          } catch (err) { console.error(err); }
+        });
+        es.onerror = () => {
+          console.warn('SSE disconnected — retrying in 5s');
+          es.close();
+          es = null;
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connect, 5000);
+        };
+      } catch (err) { console.error('SSE init failed', err); }
+    }
+    function on(eventName, fn) { handlers[eventName] = fn; }
+    function disconnect() {
+      if (es) { es.close(); es = null; }
+      clearTimeout(reconnectTimer);
+    }
+    return { connect, on, disconnect };
+  })();
 
   // ── Sync status pill (top-right). 3 states: saving | saved | error ──
   window.ftSyncStatus = function(state, label) {
@@ -14190,11 +14262,290 @@ setInterval(tickClock, 1000);
     });
   }
 
+  // Single-kind re-hydrate (called by SSE handler)
+  window.ftReHydrateKind = function(kind) {
+    if (!window.FT_API) return;
+    if (kind === 'inventory_item') kind = 'inventory';
+    if (kind === 'inventory') {
+      window.FT_API.inventory.list().then(rows => {
+        if (!Array.isArray(rows)) return;
+        const items = rows.map(window.FT_API.fromBackend);
+        INVENTORY.splice(0, INVENTORY.length, ...items);
+        try { renderInventory(); } catch(e) {}
+        if (window.ftToast) ftToast('Inventory updated by another user', 'info');
+      }).catch(() => {});
+      return;
+    }
+    const map = {
+      loading_lists:        ['LOADING_LISTS', () => typeof renderLoadingLists === 'function' && renderLoadingLists()],
+      sdrs:                 ['SDRS',          () => typeof renderSDRs === 'function' && renderSDRs()],
+      invoices:             ['INVOICES',      () => typeof renderInvoices === 'function' && renderInvoices()],
+      credit_memos:         ['CREDIT_MEMOS',  () => typeof renderCreditMemos === 'function' && renderCreditMemos()],
+      discrepancy_reports:  ['DISCREPANCY_REPORTS', () => typeof renderDiscrepancyReports === 'function' && renderDiscrepancyReports()],
+      notifications:        ['NOTIFICATIONS', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
+      ct_requests:          ['CT_REQUESTS',   () => typeof renderCrunchTime === 'function' && renderCrunchTime()],
+      ct_audit_trail:       ['CT_AUDIT_TRAIL',() => typeof renderCrunchTime === 'function' && renderCrunchTime()],
+      barcode_history:      ['BC_HISTORY',    () => typeof renderBarcoding === 'function' && renderBarcoding()],
+      emails:               ['EMAILS',        () => typeof buildInboxList === 'function' && buildInboxList()],
+      shipments:            ['SHIPMENTS',     () => { try { typeof renderCards === 'function' && renderCards(); typeof renderList === 'function' && renderList(); } catch(e){} }],
+    };
+    const entry = map[kind];
+    if (!entry) return;
+    window.FT_API.docs.list(kind).then(rows => {
+      if (!Array.isArray(rows)) return;
+      const target = window[entry[0]];
+      if (!Array.isArray(target)) return;
+      target.splice(0, target.length, ...rows);
+      try { entry[1](); } catch(e) {}
+      if (window.ftToast) ftToast('"' + kind + '" updated by another user', 'info');
+    }).catch(() => {});
+  };
+
   if (localStorage.getItem('ft_jwt')) {
-    setTimeout(loadAll, 80);
+    setTimeout(() => { loadAll(); window.ftRealtime && window.ftRealtime.connect(); }, 80);
   } else {
-    document.addEventListener('ft-auth-ready', () => setTimeout(loadAll, 80), { once: true });
+    document.addEventListener('ft-auth-ready', () => setTimeout(() => { loadAll(); window.ftRealtime && window.ftRealtime.connect(); }, 80), { once: true });
   }
+})();
+
+// Wire SSE handlers to re-hydrate
+if (window.ftRealtime) {
+  window.ftRealtime.on('doc.updated', (d) => window.ftReHydrateKind(d.kind));
+  window.ftRealtime.on('inventory.changed', () => window.ftReHydrateKind('inventory'));
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Admin panel — My account / Users / Audit log
+   ════════════════════════════════════════════════════════════════════ */
+(function adminPanel(){
+  const overlay = document.getElementById('ft-admin-overlay');
+  const content = document.getElementById('ft-admin-content');
+  const btn     = document.getElementById('ft-admin-btn');
+  const close   = document.getElementById('ft-admin-close');
+  const tabs    = document.querySelectorAll('.ft-admin-tab');
+  if (!overlay || !btn) return;
+
+  function showAdminBtn() {
+    const u = window.ftCurrentUser && window.ftCurrentUser();
+    btn.style.display = u ? 'block' : 'none';
+  }
+
+  function open(tab) {
+    overlay.style.display = 'flex';
+    selectTab(tab || 'me');
+  }
+  function closePanel() { overlay.style.display = 'none'; }
+  btn.addEventListener('click', () => open('me'));
+  close.addEventListener('click', closePanel);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
+
+  tabs.forEach(t => t.addEventListener('click', () => selectTab(t.dataset.tab)));
+
+  function selectTab(tab) {
+    tabs.forEach(t => {
+      const active = t.dataset.tab === tab;
+      t.style.background = active ? 'rgba(45,109,163,.25)' : 'transparent';
+      t.style.color = active ? '#93c5fd' : '#94a3b8';
+    });
+    if (tab === 'me')    renderMe();
+    if (tab === 'users') renderUsers();
+    if (tab === 'audit') renderAudit();
+  }
+
+  function renderMe() {
+    const u = window.ftCurrentUser && window.ftCurrentUser();
+    content.innerHTML = `
+      <h3 style="font-size:14px;color:#fff;margin:0 0 12px;">My account</h3>
+      <div style="background:rgba(45,109,163,.08);border:1px solid rgba(45,109,163,.2);padding:12px 14px;border-radius:6px;margin-bottom:18px;font-family:monospace;font-size:12px;">
+        <div><b style="color:#fff;">${u ? u.name : 'Shared Access (viewer)'}</b></div>
+        <div style="color:#94a3b8;">${u ? u.email : '—'} · ${u ? u.role : 'viewer'}</div>
+      </div>
+      ${(u && u.id) ? `
+      <h4 style="font-size:13px;color:#fff;margin:0 0 10px;">Change password</h4>
+      <form id="ft-pw-form" style="display:flex;flex-direction:column;gap:10px;max-width:340px;">
+        <input id="ft-pw-cur" type="password" placeholder="Current password" required style="padding:8px 10px;background:#1a2c44;border:1px solid rgba(148,163,184,.25);border-radius:5px;color:#fff;font:13px monospace;">
+        <input id="ft-pw-new" type="password" placeholder="New password (min 8 chars)" minlength="8" required style="padding:8px 10px;background:#1a2c44;border:1px solid rgba(148,163,184,.25);border-radius:5px;color:#fff;font:13px monospace;">
+        <button type="submit" style="padding:9px 14px;background:linear-gradient(135deg,#1e4d7b,#2d6da3);color:#fff;border:none;border-radius:5px;font-weight:600;font-size:13px;cursor:pointer;">Change password</button>
+        <div id="ft-pw-msg" style="font-size:12px;min-height:18px;"></div>
+      </form>` : '<div style="color:#94a3b8;font-size:12px;">Sign in with a real account (email + password) to change your password.</div>'}
+    `;
+    const form = document.getElementById('ft-pw-form');
+    if (form) form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('ft-pw-msg');
+      msg.textContent = ''; msg.style.color = '';
+      const cur = document.getElementById('ft-pw-cur').value;
+      const nw = document.getElementById('ft-pw-new').value;
+      try {
+        const resp = await window.fetchAuthed('/api/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ current_password: cur, new_password: nw }),
+        });
+        if (resp.ok || resp.status === 204) {
+          msg.style.color = '#86efac'; msg.textContent = '✓ Password changed.';
+          form.reset();
+        } else {
+          const t = await resp.text();
+          msg.style.color = '#fca5a5'; msg.textContent = t || ('HTTP ' + resp.status);
+        }
+      } catch (err) {
+        msg.style.color = '#fca5a5'; msg.textContent = err.message;
+      }
+    });
+  }
+
+  async function renderUsers() {
+    const me = window.ftCurrentUser && window.ftCurrentUser();
+    if (!me || me.role !== 'admin') {
+      content.innerHTML = '<div style="color:#94a3b8;font-size:12px;">Only admins can view this. Your role: <b>' + (me ? me.role : 'viewer') + '</b>.</div>';
+      return;
+    }
+    content.innerHTML = '<div style="color:#94a3b8;font-size:12px;">Loading users…</div>';
+    try {
+      const users = await window.FT_API.users.list();
+      const rows = users.map(u => `
+        <tr data-uid="${u.id}">
+          <td style="padding:8px 10px;font-family:monospace;color:#cbd5e1;">${u.email}</td>
+          <td style="padding:8px 10px;color:#fff;">${u.name}</td>
+          <td style="padding:8px 10px;">
+            <select data-field="role" style="background:#1a2c44;color:#fff;border:1px solid rgba(148,163,184,.25);border-radius:4px;padding:3px 6px;font-size:12px;">
+              ${['admin','manager','ops','viewer'].map(r => `<option value="${r}" ${u.role===r?'selected':''}>${r}</option>`).join('')}
+            </select>
+          </td>
+          <td style="padding:8px 10px;">
+            <label style="font-size:11px;color:#94a3b8;cursor:pointer;"><input type="checkbox" data-field="is_active" ${u.is_active?'checked':''}> active</label>
+          </td>
+          <td style="padding:8px 10px;font-size:11px;color:#94a3b8;font-family:monospace;">${u.last_login ? u.last_login.replace('T',' ').slice(0,16) : '—'}</td>
+          <td style="padding:8px 10px;">
+            <button data-act="reset" style="padding:3px 8px;font-size:11px;background:rgba(45,109,163,.2);color:#93c5fd;border:1px solid rgba(45,109,163,.4);border-radius:4px;cursor:pointer;">Reset PW</button>
+            ${u.id !== me.id ? `<button data-act="delete" style="padding:3px 8px;font-size:11px;background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.35);border-radius:4px;cursor:pointer;margin-left:4px;">Delete</button>` : ''}
+          </td>
+        </tr>`).join('');
+      content.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h3 style="font-size:14px;color:#fff;margin:0;">Users (${users.length})</h3>
+          <button id="ft-new-user" style="padding:6px 12px;background:linear-gradient(135deg,#1e4d7b,#2d6da3);color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;">+ New user</button>
+        </div>
+        <table id="ft-users-tbl" style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:rgba(148,163,184,.08);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;">
+              <th style="padding:8px 10px;text-align:left;">Email</th>
+              <th style="padding:8px 10px;text-align:left;">Name</th>
+              <th style="padding:8px 10px;text-align:left;">Role</th>
+              <th style="padding:8px 10px;text-align:left;">Active</th>
+              <th style="padding:8px 10px;text-align:left;">Last login</th>
+              <th style="padding:8px 10px;text-align:left;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+      content.querySelector('#ft-new-user').addEventListener('click', newUser);
+      content.querySelectorAll('#ft-users-tbl tbody tr').forEach(tr => {
+        const uid = parseInt(tr.dataset.uid, 10);
+        tr.querySelector('[data-field="role"]').addEventListener('change', (e) => updateUser(uid, { role: e.target.value }));
+        tr.querySelector('[data-field="is_active"]').addEventListener('change', (e) => updateUser(uid, { is_active: e.target.checked }));
+        const reset = tr.querySelector('[data-act="reset"]');
+        if (reset) reset.addEventListener('click', () => resetPw(uid));
+        const del = tr.querySelector('[data-act="delete"]');
+        if (del) del.addEventListener('click', () => deleteUser(uid));
+      });
+    } catch (err) {
+      content.innerHTML = '<div style="color:#fca5a5;">Error: ' + err.message + '</div>';
+    }
+  }
+
+  async function newUser() {
+    const email = prompt('Email:');
+    if (!email) return;
+    const name = prompt('Full name:');
+    if (!name) return;
+    const role = prompt('Role (admin / manager / ops / viewer):', 'ops');
+    if (!role) return;
+    const password = prompt('Initial password (min 8 chars):');
+    if (!password || password.length < 8) { alert('Password must be at least 8 chars'); return; }
+    try {
+      await window.FT_API.users.create({ email, name, role, password });
+      renderUsers();
+    } catch (err) { alert('Failed: ' + err.message); }
+  }
+  async function updateUser(uid, patch) {
+    try { await window.FT_API.users.update(uid, patch); }
+    catch (err) { alert('Update failed: ' + err.message); renderUsers(); }
+  }
+  async function resetPw(uid) {
+    const np = prompt('New password (min 8 chars):');
+    if (!np || np.length < 8) return;
+    try { await window.FT_API.users.update(uid, { password: np }); alert('Password reset.'); }
+    catch (err) { alert('Failed: ' + err.message); }
+  }
+  async function deleteUser(uid) {
+    if (!confirm('Delete user #' + uid + '? This cannot be undone.')) return;
+    try { await window.FT_API.users.remove(uid); renderUsers(); }
+    catch (err) { alert('Delete failed: ' + err.message); }
+  }
+
+  async function renderAudit() {
+    content.innerHTML = '<div style="color:#94a3b8;font-size:12px;">Loading audit log…</div>';
+    try {
+      const items = await window.FT_API.audit.list({ limit: 100 });
+      const rows = items.map(a => `
+        <tr>
+          <td style="padding:6px 10px;font-family:monospace;font-size:11px;color:#94a3b8;white-space:nowrap;">${a.created_at.replace('T',' ').slice(0,16)}</td>
+          <td style="padding:6px 10px;color:#fff;font-size:12px;">${a.user_name || '—'}</td>
+          <td style="padding:6px 10px;font-family:monospace;font-size:11px;color:#93c5fd;">${a.action}</td>
+          <td style="padding:6px 10px;font-family:monospace;font-size:11px;color:#cbd5e1;">${a.entity_kind}${a.entity_id ? '/' + a.entity_id : ''}</td>
+          <td style="padding:6px 10px;font-size:12px;color:#cbd5e1;">${a.summary || ''}</td>
+        </tr>`).join('');
+      content.innerHTML = `
+        <h3 style="font-size:14px;color:#fff;margin:0 0 10px;">Audit log — last ${items.length}</h3>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead>
+            <tr style="background:rgba(148,163,184,.08);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;">
+              <th style="padding:7px 10px;text-align:left;">When (UTC)</th>
+              <th style="padding:7px 10px;text-align:left;">Who</th>
+              <th style="padding:7px 10px;text-align:left;">Action</th>
+              <th style="padding:7px 10px;text-align:left;">Entity</th>
+              <th style="padding:7px 10px;text-align:left;">Summary</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    } catch (err) {
+      content.innerHTML = '<div style="color:#fca5a5;">Error: ' + err.message + '</div>';
+    }
+  }
+
+  // Show admin button after auth
+  document.addEventListener('ft-auth-ready', showAdminBtn);
+  document.addEventListener('DOMContentLoaded', showAdminBtn);
+  setTimeout(showAdminBtn, 100);
+})();
+
+/* ════════════════════════════════════════════════════════════════════
+   Mobile sidebar collapse toggle (≤700px)
+   ════════════════════════════════════════════════════════════════════ */
+(function mobileSidebar(){
+  const btn = document.getElementById('ft-mobile-sidebar-toggle');
+  if (!btn) return;
+  function showHideToggle() {
+    btn.style.display = window.innerWidth <= 700 ? 'block' : 'none';
+  }
+  window.addEventListener('resize', showHideToggle);
+  showHideToggle();
+  btn.addEventListener('click', () => {
+    const sb = document.querySelector('.sidebar');
+    if (!sb) return;
+    if (sb.style.display === 'none') {
+      sb.style.display = '';
+      btn.textContent = '☰';
+    } else {
+      sb.style.display = 'none';
+      btn.textContent = '▾';
+    }
+  });
 })();
 
 // URL hash → auto-open state for screenshots / deep links / auto-demo

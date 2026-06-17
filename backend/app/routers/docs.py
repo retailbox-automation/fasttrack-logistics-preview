@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from app.auth import require_auth, require_roles
 from app.audit import log_audit
 from app.database import get_db
+from app.events import broadcast
 from app.models import Document
 
 
@@ -106,4 +107,11 @@ def replace_docs(
         summary=f"Replaced {len(payload.items)} item(s); v{current_version}→v{new_version}",
         ip=request.client.host if request.client else None,
     )
+    broadcast("doc.updated", {
+        "kind": kind,
+        "version": new_version,
+        "by_user_id": claims.get("user_id"),
+        "by_name": claims.get("name"),
+        "count": len(payload.items),
+    })
     return {"kind": kind, "count": len(payload.items), "version": new_version}

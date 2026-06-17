@@ -34,6 +34,8 @@ from app.config import settings
 from app.database import get_db
 from app.models import User
 
+from sqlalchemy.orm import Session as _Session  # for type
+
 log = logging.getLogger("ft.auth")
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -172,3 +174,24 @@ def require_roles(*allowed_roles: str):
             )
         return claims
     return _check
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password", status_code=204)
+def change_password(payload: PasswordChangeIn, claims: dict = Depends(require_auth), db: Session = Depends(get_db)):
+    if not claims.get("user_id"):
+        raise HTTPException(status_code=403, detail="Legacy viewers can't change password. Sign in with a real account.")
+    user = db.get(User, claims["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Current password incorrect")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 chars")
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    log.info("password_changed", extra={"user_id": user.id})

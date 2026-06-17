@@ -14,6 +14,7 @@ from app.schemas import (
 )
 from app.auth import require_auth, require_roles
 from app.audit import log_audit
+from app.events import broadcast
 
 router = APIRouter(prefix="/api/inventory", tags=["inventory"])
 
@@ -59,6 +60,7 @@ def create_item(payload: InventoryItemCreate, request: Request, db: Session = De
               summary=f"Created {item.warehouse_receipt} · {item.part_number}",
               payload=payload.model_dump(),
               ip=request.client.host if request.client else None)
+    broadcast("inventory.changed", {"action": "create", "id": item.id, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
     return item
 
 
@@ -88,6 +90,7 @@ def update_item(item_id: int, payload: InventoryItemUpdate, request: Request, db
                   summary=f"Updated {item.warehouse_receipt} · {item.part_number}: {list(changed.keys())}",
                   payload=changed,
                   ip=request.client.host if request.client else None)
+        broadcast("inventory.changed", {"action": "update", "id": item.id, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
     return item
 
 
@@ -102,6 +105,7 @@ def delete_item(item_id: int, request: Request, db: Session = Depends(get_db), c
     log_audit(db, claims, "delete", "inventory_item", entity_id=str(item_id),
               summary=summary,
               ip=request.client.host if request.client else None)
+    broadcast("inventory.changed", {"action": "delete", "id": item_id, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
 
 
 @router.post("/{item_id}/move", response_model=InventoryItemOut)
@@ -130,6 +134,7 @@ def move_item(item_id: int, payload: InventoryItemMove, request: Request, db: Se
               summary=f"Moved {item.warehouse_receipt} · {item.part_number} from {old_loc} → {payload.new_location}",
               payload={"from": old_loc, "to": payload.new_location, "reason": payload.reason},
               ip=request.client.host if request.client else None)
+    broadcast("inventory.changed", {"action": "move", "id": item.id, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
     return item
 
 
@@ -151,4 +156,5 @@ def bulk_import(items: list[InventoryItemCreate], request: Request, db: Session 
     log_audit(db, claims, "bulk_import", "inventory_item",
               summary=f"Bulk-imported {created} item(s), {len(errors)} error(s)",
               ip=request.client.host if request.client else None)
+    broadcast("inventory.changed", {"action": "bulk_import", "count": created, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
     return {"created": created, "errors": errors, "total": len(items)}

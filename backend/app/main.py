@@ -23,6 +23,7 @@ from app.database import init_db, get_db, SessionLocal
 from app.routers import inventory, docs
 from app.routers import users as users_router
 from app.routers import audit as audit_router
+from app.routers import sse as sse_router
 from app.schemas import HealthOut
 from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
@@ -158,6 +159,7 @@ app.include_router(users_router.router)
 app.include_router(audit_router.router)
 app.include_router(inventory.router)
 app.include_router(docs.router)
+app.include_router(sse_router.router)
 
 
 # Serve frontend index.html bundled into the image
