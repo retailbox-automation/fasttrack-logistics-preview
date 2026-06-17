@@ -839,6 +839,58 @@ body.view-inventory .pagination { display: none; }
   color: #C4B5FD;
 }
 
+/* Inventory type badge (per Andrés 6/11 — code prefix detection) */
+.inv-type-badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.04em; margin-left: 4px; }
+.inv-type-badge--S    { background: rgba(96, 165, 250, 0.12); color: var(--info); border: 1px solid rgba(96,165,250,0.25); }
+.inv-type-badge--H    { background: rgba(217, 119, 6, 0.12); color: var(--accent-bright); border: 1px solid var(--border-accent); }
+.inv-type-badge--P    { background: rgba(16, 185, 129, 0.12); color: var(--ok); border: 1px solid rgba(16,185,129,0.25); }
+.inv-type-badge--F    { background: rgba(139, 92, 246, 0.12); color: #C4B5FD; border: 1px solid rgba(139,92,246,0.25); }
+.inv-type-badge--M    { background: rgba(239, 68, 68, 0.12); color: var(--crit); border: 1px solid rgba(239,68,68,0.3); }
+.inv-type-badge--O    { background: rgba(148, 163, 184, 0.12); color: var(--text-dim); border: 1px solid rgba(148,163,184,0.25); }
+.inv-type-badge--other { background: rgba(148, 163, 184, 0.12); color: var(--text-dim); border: 1px solid rgba(148,163,184,0.25); }
+
+/* Move action modal */
+.inv-move-overlay { position: fixed; inset: 0; background: rgba(6,10,20,0.7); backdrop-filter: blur(4px); z-index: 120; display: none; }
+.inv-move-overlay.open { display: block; }
+.inv-move-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 520px; max-width: 92vw; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; z-index: 121; display: none; padding: 22px 26px; }
+.inv-move-modal.open { display: block; }
+.inv-move-modal__title { font-family: var(--font-display); font-size: 16px; color: var(--text-bright); font-weight: 500; margin-bottom: 4px; }
+.inv-move-modal__sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); margin-bottom: 18px; }
+.inv-move-modal__field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.inv-move-modal__field label { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-dim); }
+.inv-move-modal__field input,
+.inv-move-modal__field textarea { padding: 8px 10px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 11px; }
+.inv-move-modal__field input:focus,
+.inv-move-modal__field textarea:focus { outline: none; border-color: var(--accent); }
+.inv-move-modal__current { padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-bottom: 14px; }
+.inv-move-modal__current strong { color: var(--text-bright); }
+.inv-move-modal__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* Notifications bell + panel */
+.notif-bell-wrap { position: relative; margin-right: 8px; }
+.notif-bell { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-dim); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 120ms; position: relative; }
+.notif-bell:hover { color: var(--text-bright); border-color: var(--border-bright); }
+.notif-bell__count { position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: var(--crit); color: #FBFAF6; font-family: var(--font-mono); font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.notif-panel { position: absolute; top: 46px; right: 0; width: 380px; max-height: 480px; background: var(--bg-elevated); border: 1px solid var(--border-bright); border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 250; display: none; overflow: hidden; flex-direction: column; }
+.notif-panel.open { display: flex; }
+.notif-panel__header { padding: 12px 16px; border-bottom: 1px solid var(--border); background: rgba(10,15,28,0.4); display: flex; justify-content: space-between; align-items: center; }
+.notif-panel__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-bright); }
+.notif-panel__clear { background: transparent; border: none; color: var(--text-dim); font-family: var(--font-mono); font-size: 10px; cursor: pointer; }
+.notif-panel__clear:hover { color: var(--accent-bright); }
+.notif-panel__body { overflow-y: auto; flex: 1; }
+.notif-entry { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
+.notif-entry:last-child { border-bottom: none; }
+.notif-entry.unread { background: rgba(217,119,6,0.04); border-left: 2px solid var(--accent); }
+.notif-entry__icon { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
+.notif-entry__icon--in { background: rgba(16,185,129,0.15); color: var(--ok); }
+.notif-entry__icon--out { background: rgba(96,165,250,0.15); color: var(--info); }
+.notif-entry__icon--move { background: rgba(217,119,6,0.15); color: var(--accent-bright); }
+.notif-entry__body { flex: 1; min-width: 0; }
+.notif-entry__title { font-size: 12px; color: var(--text-bright); margin-bottom: 2px; }
+.notif-entry__sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.notif-entry__time { font-family: var(--font-mono); font-size: 9px; color: var(--text-dimmer); margin-top: 3px; }
+.notif-panel__footer { padding: 10px 16px; border-top: 1px solid var(--border); background: rgba(10,15,28,0.4); font-family: var(--font-mono); font-size: 9px; color: var(--text-dim); text-align: center; line-height: 1.5; }
+
 .inventory-actions { display: flex; align-items: center; gap: 12px; }
 
 /* status badges in inventory table */
@@ -3055,6 +3107,13 @@ body.layout-list .pagination { display: none; }
         <input id="search-input" placeholder="PO, cruise, vessel, or vendor…">
         <span class="search__kbd">⌘K</span>
       </div>
+      <div class="notif-bell-wrap">
+        <button class="notif-bell" id="notif-bell-btn" title="Notifications · alerts when items arrive/leave (per Andrés 6/11)">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="notif-bell__count" id="notif-bell-count">3</span>
+        </button>
+        <div class="notif-panel" id="notif-panel"></div>
+      </div>
       <button class="user-chip" id="user-chip-btn" title="Click to switch user role (demo)">
         <div class="user-chip__avatar" id="user-chip-avatar">GP</div>
         <div class="user-chip__name" id="user-chip-name">Gabriela P.</div>
@@ -4284,6 +4343,7 @@ body.layout-list .pagination { display: none; }
         </button>
         <div class="inv-drawer__action-buttons">
           <button class="inv-drawer__action-btn" id="inv-drawer-edit">EDIT</button>
+          <button class="inv-drawer__action-btn" id="inv-drawer-move">MOVE</button>
           <button class="inv-drawer__action-btn inv-drawer__action-btn--danger" id="inv-drawer-delete">DELETE</button>
         </div>
       </div>
@@ -4423,6 +4483,28 @@ body.layout-list .pagination { display: none; }
           <button type="button" class="btn btn--ghost" id="inv-form-cancel">Cancel</button>
           <button type="submit" class="btn btn--accent" id="inv-form-submit">Save item</button>
         </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- INVENTORY MOVE MODAL (per Andrés 6/11 — relocate item with audit log) -->
+  <div class="inv-move-overlay" id="inv-move-overlay"></div>
+  <div class="inv-move-modal" id="inv-move-modal">
+    <div class="inv-move-modal__title">Move item to new location</div>
+    <div class="inv-move-modal__sub">Updates inventory location + logs the move in movement history</div>
+    <div class="inv-move-modal__current" id="inv-move-current">—</div>
+    <form id="inv-move-form" onsubmit="return false;">
+      <div class="inv-move-modal__field">
+        <label>New location code<span class="required">*</span></label>
+        <input name="newLocation" required placeholder="R2-A-3" pattern="R[0-9]+-[A-Z]-[0-9]+M?">
+      </div>
+      <div class="inv-move-modal__field">
+        <label>Reason / notes (optional)</label>
+        <textarea name="reason" placeholder="e.g. consolidating with same dept · reorganization · cross-dock staging" rows="2"></textarea>
+      </div>
+      <div class="inv-move-modal__actions">
+        <button type="button" class="btn btn--ghost" id="inv-move-cancel">Cancel</button>
+        <button type="submit" class="btn btn--accent" id="inv-move-save">Move + log</button>
       </div>
     </form>
   </div>
@@ -8090,6 +8172,24 @@ const STATUS_LABEL_INV = {
   bonded:   "Bonded",
 };
 
+/* Per Andrés 6/11: inventory by code prefix
+   S = Shop · H = Hotel · P = Pool/Hotel goods · F = F&B · M = MSC Foundation · O = Ocean Cay (also S- for Foundation/Shop) */
+const INV_TYPE_MAP = {
+  S: { code: "S", label: "Shop", desc: "Shop merchandise" },
+  H: { code: "H", label: "Hotel", desc: "Hotel cabin / housekeeping" },
+  P: { code: "P", label: "Pool / Hotel", desc: "Pool / hotel goods (luggage etc.)" },
+  F: { code: "F", label: "F&B", desc: "Food & Beverage" },
+  M: { code: "M", label: "Medical", desc: "Medical / pharma" },
+  O: { code: "O", label: "Other", desc: "Other / unclassified prefix" },
+};
+
+function detectInventoryType(item) {
+  const pn = (item.partNumber || "").trim().toUpperCase();
+  if (!pn) return INV_TYPE_MAP.O;
+  const firstChar = pn[0];
+  return INV_TYPE_MAP[firstChar] || INV_TYPE_MAP.O;
+}
+
 function computeItemStatus(item, itemIdx) {
   if (item.status === "bonded") return "bonded";
   // Derive from Loading List membership (only consider real arrays — initial seed uses indexes 0-28)
@@ -8161,6 +8261,49 @@ function renderInventoryFilterBar() {
     });
     bar.appendChild(chip);
   });
+
+  bar.appendChild(el("span", { class: "inv-filter-bar__divider" }));
+  bar.appendChild(el("span", { class: "inv-filter-bar__group-label", text: "Type (code prefix)" }));
+
+  // Inventory type chips by code prefix (per Andrés 6/11)
+  const typeCounts = {};
+  INVENTORY.forEach(it => {
+    const t = detectInventoryType(it).code;
+    typeCounts[t] = (typeCounts[t] || 0) + 1;
+  });
+  Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).forEach(([t, count]) => {
+    const def = INV_TYPE_MAP[t] || INV_TYPE_MAP.O;
+    const active = INV_FILTER && INV_FILTER.kind === "type" && INV_FILTER.value === t;
+    const chip = el("button", { class: "inv-chip" + (active ? " inv-chip--active" : ""), title: def.desc + " — code prefix '" + t + "'" });
+    chip.appendChild(document.createTextNode(def.label));
+    chip.appendChild(el("span", { class: "inv-chip__count", text: "· " + count }));
+    chip.addEventListener("click", () => {
+      INV_FILTER = active ? null : { kind: "type", value: t };
+      renderInventory();
+    });
+    bar.appendChild(chip);
+  });
+
+  // Package type chips (Pallet vs Box per Andrés 6/11)
+  const pkgCounts = {};
+  INVENTORY.forEach(it => {
+    if (it.packageUnit) pkgCounts[it.packageUnit] = (pkgCounts[it.packageUnit] || 0) + 1;
+  });
+  if (Object.keys(pkgCounts).length > 1) {
+    bar.appendChild(el("span", { class: "inv-filter-bar__divider" }));
+    bar.appendChild(el("span", { class: "inv-filter-bar__group-label", text: "Package" }));
+    Object.entries(pkgCounts).sort((a, b) => b[1] - a[1]).forEach(([p, count]) => {
+      const active = INV_FILTER && INV_FILTER.kind === "pkg" && INV_FILTER.value === p;
+      const chip = el("button", { class: "inv-chip" + (active ? " inv-chip--active" : "") });
+      chip.appendChild(document.createTextNode(p));
+      chip.appendChild(el("span", { class: "inv-chip__count", text: "· " + count }));
+      chip.addEventListener("click", () => {
+        INV_FILTER = active ? null : { kind: "pkg", value: p };
+        renderInventory();
+      });
+      bar.appendChild(chip);
+    });
+  }
 }
 
 function renderInventory() {
@@ -8185,6 +8328,10 @@ function renderInventory() {
       filtered = filtered.filter(({ item, idx }) => computeItemStatus(item, idx) === INV_FILTER.value);
     } else if (INV_FILTER.kind === "dept") {
       filtered = filtered.filter(({ item }) => item.department === INV_FILTER.value);
+    } else if (INV_FILTER.kind === "type") {
+      filtered = filtered.filter(({ item }) => detectInventoryType(item).code === INV_FILTER.value);
+    } else if (INV_FILTER.kind === "pkg") {
+      filtered = filtered.filter(({ item }) => item.packageUnit === INV_FILTER.value);
     }
   }
 
@@ -8198,7 +8345,12 @@ function renderInventory() {
   filtered.forEach(({ item, idx }) => {
     const tr = el("tr");
     tr.appendChild(el("td", {}, [el("span", { class: "inv-wr", text: item.warehouseReceipt })]));
-    tr.appendChild(el("td", {}, [el("span", { class: "inv-part", text: item.partNumber })]));
+    // Part # + inventory type badge (code prefix detection per Andrés 6/11)
+    const partCell = el("td");
+    partCell.appendChild(el("span", { class: "inv-part", text: item.partNumber }));
+    const invType = detectInventoryType(item);
+    partCell.appendChild(el("span", { class: "inv-type-badge inv-type-badge--" + invType.code, title: invType.desc, text: invType.label }));
+    tr.appendChild(partCell);
     tr.appendChild(el("td", {}, [el("span", { class: "inv-desc", title: item.description, text: item.description })]));
     tr.appendChild(el("td", {}, [
       item.department ? el("span", { class: "inv-dept", text: item.department }) : dash()
@@ -8621,6 +8773,26 @@ function setupInvImport() {
 
 let INV_DRAWER_IDX = null;
 
+/* Global notifications feed — items in / out / moved (per Andrés 6/11 alerts mockup) */
+const NOTIFICATIONS = [
+  { time: "5 min ago", iso: "2026-06-11 09:14", kind: "in",   title: "Cargo received", sub: "WR-26201 · 9 boxes · MSC Foundation t-shirts at R2-A-2", unread: true },
+  { time: "23 min ago", iso: "2026-06-11 08:56", kind: "out", title: "Pick confirmed for dispatch", sub: "WR-18448 · S1627230 · 6 boxes pulled for LL-2026-0049 · MSC Seascape", unread: true },
+  { time: "1 hr ago", iso: "2026-06-11 08:14", kind: "move", title: "Item relocated", sub: "WR-15294 · S1447250 moved from R6-A-23 → R6-A-21 (consolidating same-dept)", unread: true },
+  { time: "Yesterday", iso: "2026-06-10 16:42", kind: "out", title: "Shipment loaded onto MSC Seascape", sub: "LL-2026-0049 · 7 items · GWX-2026-0049 dispatched", unread: false },
+  { time: "Yesterday", iso: "2026-06-10 14:08", kind: "in",   title: "Cross-dock cargo received", sub: "WR-26500 · 12 boxes MSC Foundation arrived (ships within 48hrs)", unread: false },
+];
+
+function addNotification(kind, title, sub) {
+  NOTIFICATIONS.unshift({
+    time: "just now",
+    iso: new Date().toISOString().slice(0, 16).replace("T", " "),
+    kind: kind, title: title, sub: sub, unread: true,
+  });
+  if (NOTIFICATIONS.length > 20) NOTIFICATIONS.pop();
+  updateNotifBadge();
+  renderNotifPanel();
+}
+
 function openInvDrawer(idx) {
   const item = INVENTORY[idx];
   if (!item) return;
@@ -8643,6 +8815,9 @@ function openInvDrawer(idx) {
   const pkgClass = item.packageUnit === "Pallet" ? "inv-pkg inv-pkg--pallet" : "inv-pkg inv-pkg--box";
   pills.appendChild(el("span", { class: pkgClass, text: item.packageUnit }));
   if (item.department) pills.appendChild(el("span", { class: "inv-dept", text: item.department }));
+  // Inventory type badge (code prefix detection per Andrés 6/11)
+  const drawerType = detectInventoryType(item);
+  pills.appendChild(el("span", { class: "inv-type-badge inv-type-badge--" + drawerType.code, title: drawerType.desc, text: "Type: " + drawerType.label + " (" + drawerType.code + "-prefix)" }));
 
   // Body
   const body = document.getElementById("inv-drawer-body");
@@ -8717,6 +8892,15 @@ function openInvDrawer(idx) {
   sec4.appendChild(el("div", { class: "inv-drawer__section-title", text: "Movement history" }));
   const history = el("div", { class: "inv-drawer__history" });
   const events = [];
+  // User-recorded movements (from Move action — most recent first)
+  if (item.movements && item.movements.length > 0) {
+    item.movements.forEach(m => {
+      events.push({
+        time: m.time,
+        event: "Moved · " + m.from + " → " + m.to + " · by " + m.by + (m.reason && m.reason !== "—" ? " · " + m.reason : "")
+      });
+    });
+  }
   if (item.receivedDate) {
     events.push({ time: item.receivedDate, event: "Received at warehouse · " + (item.receivedBy || "FT receiving") + " · stored at " + item.locationCode });
   } else {
@@ -8781,6 +8965,66 @@ function setupInvDrawer() {
     closeInvDrawer();
     renderInventory();
   });
+
+  // Move action (per Andrés 6/11 — relocate item with audit log)
+  const moveBtn = document.getElementById("inv-drawer-move");
+  if (moveBtn) moveBtn.addEventListener("click", () => {
+    if (INV_DRAWER_IDX === null) return;
+    const item = INVENTORY[INV_DRAWER_IDX];
+    if (!item) return;
+    document.getElementById("inv-move-current").innerHTML = "";
+    const cur = document.getElementById("inv-move-current");
+    cur.appendChild(document.createTextNode("Currently: "));
+    cur.appendChild(el("strong", { text: item.warehouseReceipt + " · " + item.partNumber }));
+    cur.appendChild(document.createTextNode(" at location "));
+    cur.appendChild(el("strong", { text: item.locationCode || "—" }));
+    cur.appendChild(document.createTextNode(" · " + item.pieces + " " + item.packageUnit + " · " + (item.department || "—")));
+    document.getElementById("inv-move-form").reset();
+    document.getElementById("inv-move-overlay").classList.add("open");
+    document.getElementById("inv-move-modal").classList.add("open");
+  });
+
+  const moveCancel = document.getElementById("inv-move-cancel");
+  if (moveCancel) moveCancel.addEventListener("click", closeMoveModal);
+  const moveOverlay = document.getElementById("inv-move-overlay");
+  if (moveOverlay) moveOverlay.addEventListener("click", closeMoveModal);
+
+  const moveForm = document.getElementById("inv-move-form");
+  if (moveForm) moveForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (INV_DRAWER_IDX === null) return;
+    const item = INVENTORY[INV_DRAWER_IDX];
+    if (!item) return;
+    const fd = new FormData(moveForm);
+    const newLoc = String(fd.get("newLocation") || "").trim();
+    const reason = String(fd.get("reason") || "").trim();
+    if (!newLoc) return;
+    const oldLoc = item.locationCode;
+    if (newLoc === oldLoc) {
+      alert("New location is same as current.");
+      return;
+    }
+    // Update location + record movement event
+    item.locationCode = newLoc;
+    if (!item.movements) item.movements = [];
+    item.movements.unshift({
+      time: new Date().toISOString().slice(0, 16).replace("T", " "),
+      action: "moved",
+      from: oldLoc,
+      to: newLoc,
+      by: CURRENT_USER ? CURRENT_USER.name : "Andrea Palmisano",
+      reason: reason || "—",
+    });
+    addNotification("move", "Item relocated", item.warehouseReceipt + " · " + item.partNumber + " moved from " + oldLoc + " → " + newLoc + (reason ? " (" + reason + ")" : ""));
+    closeMoveModal();
+    renderInventory();
+    openInvDrawer(INV_DRAWER_IDX); // refresh drawer to show new location + audit entry
+  });
+}
+
+function closeMoveModal() {
+  document.getElementById("inv-move-overlay").classList.remove("open");
+  document.getElementById("inv-move-modal").classList.remove("open");
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -11766,6 +12010,79 @@ function renderUserSwitcher() {
   });
 }
 
+function updateNotifBadge() {
+  const c = document.getElementById("notif-bell-count");
+  if (!c) return;
+  const unread = NOTIFICATIONS.filter(n => n.unread).length;
+  if (unread > 0) {
+    c.textContent = String(unread);
+    c.style.display = "flex";
+  } else {
+    c.style.display = "none";
+  }
+}
+
+function renderNotifPanel() {
+  const panel = document.getElementById("notif-panel");
+  if (!panel) return;
+  while (panel.firstChild) panel.removeChild(panel.firstChild);
+
+  const header = el("div", { class: "notif-panel__header" });
+  header.appendChild(el("div", { class: "notif-panel__title", text: "Inventory alerts" }));
+  const clearBtn = el("button", { class: "notif-panel__clear", text: "Mark all read" });
+  clearBtn.addEventListener("click", () => {
+    NOTIFICATIONS.forEach(n => { n.unread = false; });
+    updateNotifBadge();
+    renderNotifPanel();
+  });
+  header.appendChild(clearBtn);
+  panel.appendChild(header);
+
+  const body = el("div", { class: "notif-panel__body" });
+  if (NOTIFICATIONS.length === 0) {
+    body.appendChild(el("div", { style: "padding: 24px 16px; text-align: center; color: var(--text-dim); font-family: var(--font-mono); font-size: 11px;", text: "No alerts yet" }));
+  } else {
+    NOTIFICATIONS.forEach(n => {
+      const entry = el("div", { class: "notif-entry" + (n.unread ? " unread" : "") });
+      const iconText = n.kind === "in" ? "↓" : n.kind === "out" ? "↑" : "↔";
+      entry.appendChild(el("div", { class: "notif-entry__icon notif-entry__icon--" + n.kind, text: iconText }));
+      const b = el("div", { class: "notif-entry__body" });
+      b.appendChild(el("div", { class: "notif-entry__title", text: n.title }));
+      b.appendChild(el("div", { class: "notif-entry__sub", text: n.sub }));
+      b.appendChild(el("div", { class: "notif-entry__time", text: n.time + " · " + n.iso }));
+      entry.appendChild(b);
+      body.appendChild(entry);
+    });
+  }
+  panel.appendChild(body);
+
+  panel.appendChild(el("div", { class: "notif-panel__footer", text: "Mockup · per Andrés 6/11. When server is live: real alerts via email + WhatsApp to MSC contacts + FT team based on item arrivals / departures / moves." }));
+}
+
+function setupNotifBell() {
+  updateNotifBadge();
+  renderNotifPanel();
+  const btn = document.getElementById("notif-bell-btn");
+  if (btn) btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const panel = document.getElementById("notif-panel");
+    panel.classList.toggle("open");
+    // Mark visible items as read when panel opens
+    if (panel.classList.contains("open")) {
+      setTimeout(() => {
+        NOTIFICATIONS.forEach(n => { n.unread = false; });
+        updateNotifBadge();
+      }, 1500);
+    }
+  });
+  document.addEventListener("click", (e) => {
+    const panel = document.getElementById("notif-panel");
+    if (panel && !panel.contains(e.target) && !document.getElementById("notif-bell-btn").contains(e.target)) {
+      panel.classList.remove("open");
+    }
+  });
+}
+
 function setupUserSwitcher() {
   applyUserChip();
   renderUserSwitcher();
@@ -13140,6 +13457,7 @@ setupSDR();
 setupCreditMemos();
 setupSOA();
 setupUserSwitcher();
+setupNotifBell();
 setupInbox();
 buildMailboxSwitcher();
 buildInboxList();
