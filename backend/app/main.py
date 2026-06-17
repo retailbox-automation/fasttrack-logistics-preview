@@ -2,12 +2,13 @@
 Fast Track Platform — FastAPI backend + frontend static serve.
 Phase 1A: persistence layer for prototype data model + bundled UI.
 """
+import logging
 import os
+import sys
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -17,12 +18,25 @@ from app.routers import inventory
 from app.schemas import HealthOut
 from app.auth import router as auth_router
 
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+    format="%(asctime)s %(levelname)s %(name)s | %(message)s",
+)
+log = logging.getLogger("ft")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-create tables on first boot (Phase 1A — Alembic migrations later)
-    init_db()
+    log.info("Lifespan start — initializing DB tables")
+    try:
+        init_db()
+        log.info("DB init OK")
+    except Exception as e:
+        log.exception("DB init FAILED: %s", e)
+        # Don't crash the app — health endpoint will report db down
     yield
+    log.info("Lifespan shutdown")
 
 
 app = FastAPI(
@@ -55,9 +69,11 @@ app.include_router(auth_router)
 app.include_router(inventory.router)
 
 
-# Serve frontend (index.html bundled into the image at /app/static/index.html)
+# Serve frontend index.html bundled into the image
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 INDEX_PATH = os.path.join(STATIC_DIR, "index.html")
+log.info("STATIC_DIR=%s exists=%s INDEX_PATH=%s exists=%s",
+         STATIC_DIR, os.path.isdir(STATIC_DIR), INDEX_PATH, os.path.exists(INDEX_PATH))
 
 
 @app.get("/", include_in_schema=False)
@@ -69,8 +85,5 @@ def serve_index():
         "version": settings.api_version,
         "docs": "/docs",
         "health": "/health",
+        "note": "index.html not bundled — frontend served from /static when present",
     }
-
-
-if os.path.isdir(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
