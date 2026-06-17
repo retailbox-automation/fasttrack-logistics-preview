@@ -13,6 +13,13 @@ class Settings(BaseSettings):
     api_title: str = "Fast Track Platform API"
     api_version: str = "0.1.0"
 
+    # Auth — Phase 1: shared password gate (Andrés/team logs in with one password)
+    # Override both via Zeabur env vars for production.
+    auth_password: str = "fasttrack-dev-2026"
+    jwt_secret: str = "change-me-in-production-please"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_hours: int = 24 * 14  # 2 weeks — long-lived for daily ops use
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     @property

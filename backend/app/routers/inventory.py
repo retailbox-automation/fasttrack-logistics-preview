@@ -12,8 +12,13 @@ from app.schemas import (
     InventoryItemMove,
     InventoryItemOut,
 )
+from app.auth import require_auth
 
-router = APIRouter(prefix="/api/inventory", tags=["inventory"])
+router = APIRouter(
+    prefix="/api/inventory",
+    tags=["inventory"],
+    dependencies=[Depends(require_auth)],
+)
 
 
 @router.get("", response_model=list[InventoryItemOut])

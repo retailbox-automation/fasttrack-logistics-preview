@@ -3083,9 +3083,248 @@ body.layout-list .pagination { display: none; }
 
 .icon--sm { width: 13px; height: 13px; }
 .icon--xs { width: 12px; height: 12px; }
+
+/* ========== Phase 1 auth gate (shared password) ========== */
+#auth-gate {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 30% 20%, #1a3a5f 0%, #0e1d2f 60%, #050b15 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#auth-gate.hidden { display: none; }
+#auth-gate .gate-card {
+  background: #fff;
+  width: 380px; max-width: 92vw;
+  border-radius: 12px;
+  padding: 36px 32px 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+#auth-gate .gate-brand {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 24px;
+}
+#auth-gate .gate-brand-mark {
+  width: 44px; height: 44px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1e4d7b, #2d6da3);
+  color: #fff; font-weight: 800; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: 1px;
+}
+#auth-gate .gate-brand-text { line-height: 1.15; }
+#auth-gate .gate-brand-name { font-weight: 700; font-size: 14px; color: #0e1d2f; letter-spacing: .5px; }
+#auth-gate .gate-brand-sub { font-size: 10px; color: #6b7280; letter-spacing: 1.2px; }
+#auth-gate h1 {
+  font-size: 18px; font-weight: 600; color: #0e1d2f;
+  margin: 0 0 6px;
+}
+#auth-gate .gate-sub {
+  font-size: 12.5px; color: #6b7280;
+  margin: 0 0 22px; line-height: 1.5;
+}
+#auth-gate label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: #374151; text-transform: uppercase; letter-spacing: .8px;
+  margin-bottom: 6px;
+}
+#auth-gate input[type=password] {
+  width: 100%; box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1.5px solid #d1d5db; border-radius: 7px;
+  font-size: 14px; color: #0e1d2f;
+  transition: border-color .15s, box-shadow .15s;
+}
+#auth-gate input[type=password]:focus {
+  outline: none;
+  border-color: #2d6da3;
+  box-shadow: 0 0 0 3px rgba(45, 109, 163, .15);
+}
+#auth-gate button.gate-submit {
+  width: 100%; margin-top: 18px;
+  padding: 11px 16px;
+  background: linear-gradient(135deg, #1e4d7b, #2d6da3);
+  color: #fff; font-weight: 600; font-size: 14px;
+  border: none; border-radius: 7px;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+#auth-gate button.gate-submit:hover { opacity: .92; }
+#auth-gate button.gate-submit:disabled { opacity: .5; cursor: wait; }
+#auth-gate .gate-err {
+  margin-top: 14px; padding: 9px 12px;
+  background: #fef2f2; color: #b91c1c;
+  border: 1px solid #fecaca; border-radius: 6px;
+  font-size: 12.5px; display: none;
+}
+#auth-gate .gate-err.show { display: block; }
+#auth-gate .gate-footer {
+  margin-top: 22px; padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 11px; color: #9ca3af;
+  text-align: center;
+}
+.signout-btn {
+  background: transparent; border: 1px solid rgba(255,255,255,.2);
+  color: rgba(255,255,255,.85); cursor: pointer;
+  padding: 6px 10px; border-radius: 5px;
+  font-size: 11px; font-weight: 500;
+  margin-left: 8px;
+  transition: background .15s;
+}
+.signout-btn:hover { background: rgba(255,255,255,.1); }
 </style>
 </head>
 <body>
+
+<!-- Phase 1 auth gate — shared-password overlay -->
+<div id="auth-gate">
+  <form class="gate-card" id="auth-gate-form" autocomplete="off">
+    <div class="gate-brand">
+      <div class="gate-brand-mark">FT</div>
+      <div class="gate-brand-text">
+        <div class="gate-brand-name">FAST TRACK</div>
+        <div class="gate-brand-sub">WORLDWIDE LOGISTICS</div>
+      </div>
+    </div>
+    <h1>Sign in</h1>
+    <p class="gate-sub">Internal logistics control center. Restricted access.</p>
+    <label for="auth-gate-password">Access password</label>
+    <input id="auth-gate-password" type="password" autofocus required>
+    <div class="gate-err" id="auth-gate-err"></div>
+    <button type="submit" class="gate-submit" id="auth-gate-submit">Sign in</button>
+    <div class="gate-footer">FT MSC operations · Phase 1</div>
+  </form>
+</div>
+
+<script>
+/* ========== Phase 1 auth gate runtime ========== */
+(function(){
+  // API base — override via ?api=URL or localStorage.ft_api_base
+  const qs = new URLSearchParams(location.search);
+  const apiOverride = qs.get('api') || localStorage.getItem('ft_api_base') || '';
+  if (qs.get('api')) localStorage.setItem('ft_api_base', qs.get('api'));
+  window.FT_API_BASE = apiOverride;  // empty string = same-origin (won't work for GH Pages until set)
+
+  const TOKEN_KEY = 'ft_jwt';
+  const gate = document.getElementById('auth-gate');
+  const form = document.getElementById('auth-gate-form');
+  const input = document.getElementById('auth-gate-password');
+  const errBox = document.getElementById('auth-gate-err');
+  const submitBtn = document.getElementById('auth-gate-submit');
+
+  function showError(msg) {
+    errBox.textContent = msg;
+    errBox.classList.add('show');
+  }
+  function hideError() {
+    errBox.classList.remove('show');
+  }
+
+  function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+  function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+  function isTokenValid() {
+    const t = getToken();
+    if (!t) return false;
+    try {
+      const payload = JSON.parse(atob(t.split('.')[1]));
+      if (payload.exp && payload.exp * 1000 < Date.now()) return false;
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function unlock() {
+    gate.classList.add('hidden');
+    // Notify rest of app
+    document.dispatchEvent(new CustomEvent('ft-auth-ready'));
+  }
+
+  function lock() {
+    clearToken();
+    gate.classList.remove('hidden');
+    input.value = '';
+    input.focus();
+  }
+
+  // Global helper for authed API calls (use throughout the app once we wire fetches)
+  window.fetchAuthed = async function(path, opts = {}) {
+    const url = (window.FT_API_BASE || '') + path;
+    const headers = Object.assign({}, opts.headers || {}, {
+      'Authorization': 'Bearer ' + getToken(),
+      'Content-Type': opts.body && !(opts.body instanceof FormData) ? 'application/json' : (opts.headers || {})['Content-Type'],
+    });
+    const resp = await fetch(url, Object.assign({}, opts, { headers }));
+    if (resp.status === 401) {
+      lock();
+      throw new Error('Session expired — please sign in again');
+    }
+    return resp;
+  };
+
+  window.ftSignOut = function() {
+    lock();
+  };
+
+  // Initial gate check
+  if (isTokenValid()) {
+    unlock();
+  } else {
+    clearToken();
+    gate.classList.remove('hidden');
+  }
+
+  // Login submit
+  form.addEventListener('submit', async function(e){
+    e.preventDefault();
+    hideError();
+    const password = input.value;
+    if (!password) { showError('Enter the access password'); return; }
+    if (!window.FT_API_BASE) {
+      showError('Backend URL not configured. Add ?api=https://your-backend-url to the URL or contact admin.');
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Signing in…';
+    try {
+      const resp = await fetch(window.FT_API_BASE + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+      if (resp.status === 401) {
+        showError('Wrong password.');
+      } else if (!resp.ok) {
+        showError('Login failed (' + resp.status + '). Try again.');
+      } else {
+        const data = await resp.json();
+        setToken(data.access_token);
+        unlock();
+      }
+    } catch (err) {
+      showError('Cannot reach backend: ' + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Sign in';
+    }
+  });
+
+  // Inject sign-out button into header once DOM is ready + authed
+  document.addEventListener('DOMContentLoaded', function(){
+    const actions = document.querySelector('.header__actions');
+    if (actions && !document.getElementById('signout-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'signout-btn';
+      btn.className = 'signout-btn';
+      btn.textContent = 'Sign out';
+      btn.title = 'End session';
+      btn.onclick = () => window.ftSignOut();
+      actions.appendChild(btn);
+    }
+  });
+})();
+</script>
+
 <div class="app">
 
   <!-- HEADER -->
