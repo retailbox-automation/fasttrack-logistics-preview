@@ -3199,11 +3199,12 @@ body.layout-list .pagination { display: none; }
 <script>
 /* ========== Phase 1 auth gate runtime ========== */
 (function(){
-  // API base — override via ?api=URL or localStorage.ft_api_base
+  // API base — defaults to same-origin (Zeabur nginx proxies /api → ft-api service).
+  // Override via ?api=URL for local dev or alternative backend.
   const qs = new URLSearchParams(location.search);
-  const apiOverride = qs.get('api') || localStorage.getItem('ft_api_base') || '';
   if (qs.get('api')) localStorage.setItem('ft_api_base', qs.get('api'));
-  window.FT_API_BASE = apiOverride;  // empty string = same-origin (won't work for GH Pages until set)
+  const apiOverride = qs.get('api') || localStorage.getItem('ft_api_base') || '';
+  window.FT_API_BASE = apiOverride;  // empty = same-origin
 
   const TOKEN_KEY = 'ft_jwt';
   const gate = document.getElementById('auth-gate');
@@ -3280,10 +3281,6 @@ body.layout-list .pagination { display: none; }
     hideError();
     const password = input.value;
     if (!password) { showError('Enter the access password'); return; }
-    if (!window.FT_API_BASE) {
-      showError('Backend URL not configured. Add ?api=https://your-backend-url to the URL or contact admin.');
-      return;
-    }
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing in…';
     try {
