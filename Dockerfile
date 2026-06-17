@@ -16,7 +16,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/app ./app
 
 # Bake frontend static assets into the same image — FastAPI mounts /static and / -> index.html
+RUN mkdir -p ./static
 COPY index.html ./static/index.html
+RUN echo "=== /app ===" && ls -la /app/ && echo "=== /app/static ===" && ls -la /app/static/ || true
 
 EXPOSE 8000
 
