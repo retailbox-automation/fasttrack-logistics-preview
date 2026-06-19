@@ -2,6 +2,7 @@
 Fast Track Platform — FastAPI backend + frontend static serve.
 Phase 1B: per-user accounts + roles + audit + optimistic locking.
 """
+import gzip
 import logging
 import os
 import sys
@@ -11,7 +12,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pythonjsonlogger import jsonlogger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -120,6 +121,33 @@ app.add_middleware(
 )
 
 
+# ── Security headers applied to every response ──
+# CSP is permissive enough for the current app (inline scripts/styles, Google Fonts,
+# data:/blob: images for future camera/barcode, same-origin XHR + SSE) while blocking
+# framing and external script injection.
+SECURITY_HEADERS = {
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    ),
+}
+
+
+def _apply_security_headers(response):
+    for k, v in SECURITY_HEADERS.items():
+        response.headers.setdefault(k, v)
+    return response
+
+
 @app.middleware("http")
 async def request_log(request: Request, call_next):
     rid = uuid.uuid4().hex[:10]
@@ -137,10 +165,12 @@ async def request_log(request: Request, call_next):
             "ip": request.client.host if request.client else None,
         })
         response.headers["X-Request-ID"] = rid
-        return response
+        return _apply_security_headers(response)
     except Exception as e:
         log.exception("req_error rid=%s path=%s", rid, request.url.path)
-        return JSONResponse(status_code=500, content={"detail": "Internal server error", "request_id": rid})
+        resp = JSONResponse(status_code=500, content={"detail": "Internal server error", "request_id": rid})
+        resp.headers["X-Request-ID"] = rid
+        return _apply_security_headers(resp)
 
 
 @app.get("/health", response_model=HealthOut, tags=["root"])
@@ -166,14 +196,37 @@ app.include_router(sse_router.router)
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 INDEX_PATH = os.path.join(STATIC_DIR, "index.html")
 
+# Cache of the gzip-compressed index, keyed by file mtime (rebuilt on redeploy/restart).
+# Gzipping only the large static shell keeps SSE / streaming responses untouched.
+_INDEX_GZIP_CACHE: dict = {}
+
+
+def _index_gzip_bytes():
+    mtime = os.path.getmtime(INDEX_PATH)
+    if _INDEX_GZIP_CACHE.get("mtime") != mtime:
+        with open(INDEX_PATH, "rb") as f:
+            _INDEX_GZIP_CACHE["data"] = gzip.compress(f.read(), compresslevel=6)
+            _INDEX_GZIP_CACHE["mtime"] = mtime
+    return _INDEX_GZIP_CACHE["data"]
+
 
 @app.get("/", include_in_schema=False)
-def serve_index():
-    if os.path.exists(INDEX_PATH):
-        return FileResponse(INDEX_PATH, media_type="text/html")
-    return {
-        "name": settings.api_title,
-        "version": settings.api_version,
-        "health": "/health",
-        "note": "index.html not bundled",
-    }
+def serve_index(request: Request):
+    if not os.path.exists(INDEX_PATH):
+        return {
+            "name": settings.api_title,
+            "version": settings.api_version,
+            "health": "/health",
+            "note": "index.html not bundled",
+        }
+    if "gzip" in request.headers.get("accept-encoding", "").lower():
+        return Response(
+            content=_index_gzip_bytes(),
+            media_type="text/html",
+            headers={
+                "Content-Encoding": "gzip",
+                "Vary": "Accept-Encoding",
+                "Cache-Control": "no-cache",
+            },
+        )
+    return FileResponse(INDEX_PATH, media_type="text/html")
