@@ -176,6 +176,39 @@ class User(Base):
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
+class EmailMessage(Base):
+    """Email ingested from Microsoft Graph (Outlook/M365), read-only.
+
+    Slice 1 = ingestion + storage. AI fields (category/ai_summary/urgency)
+    are nullable placeholders filled in Slice 2 (Claude classify/summarize).
+    """
+    __tablename__ = "email_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    graph_id: Mapped[str] = mapped_column(String(512), unique=True, index=True)  # Graph message id
+    internet_message_id: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, index=True)
+    mailbox: Mapped[str] = mapped_column(String(128), index=True)  # which FT mailbox
+    subject: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    from_name: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    from_email: Mapped[Optional[str]] = mapped_column(String(256), nullable=True, index=True)
+    to_recipients: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    received_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    body_preview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    importance: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    has_attachments: Mapped[bool] = mapped_column(Boolean, default=False)
+    web_link: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    conversation_id: Mapped[Optional[str]] = mapped_column(String(512), nullable=True, index=True)
+    # AI projections (Slice 2) — nullable for now
+    category: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    urgency: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, index=True)
+    language: Mapped[Optional[str]] = mapped_column(String(8), nullable=True)
+    ai_processed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class AuditLog(Base):
     """Append-only audit trail of mutations.
 

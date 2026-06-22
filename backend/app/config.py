@@ -20,11 +20,21 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_hours: int = 24 * 14  # 2 weeks — long-lived for daily ops use
 
+    # Microsoft Graph (Outlook/M365) — app-only, read-only mail. Set via Zeabur env.
+    ms_tenant_id: str = ""
+    ms_client_id: str = ""
+    ms_client_secret: str = ""
+    ms_graph_mailboxes: str = ""  # comma-separated mailbox addresses to ingest
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def graph_mailbox_list(self) -> list[str]:
+        return [m.strip() for m in self.ms_graph_mailboxes.split(",") if m.strip()]
 
 
 settings = Settings()

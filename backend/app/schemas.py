@@ -61,6 +61,30 @@ class InventoryItemOut(InventoryItemBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class EmailMessageOut(BaseModel):
+    id: int
+    mailbox: str
+    subject: Optional[str] = None
+    from_name: Optional[str] = None
+    from_email: Optional[str] = None
+    to_recipients: Optional[list] = None
+    received_at: Optional[datetime] = None
+    body_preview: Optional[str] = None
+    importance: Optional[str] = None
+    is_read: bool
+    has_attachments: bool
+    web_link: Optional[str] = None
+    conversation_id: Optional[str] = None
+    category: Optional[str] = None
+    ai_summary: Optional[str] = None
+    urgency: Optional[str] = None
+    language: Optional[str] = None
+    ai_processed: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class HealthOut(BaseModel):
     status: str
     db: str
