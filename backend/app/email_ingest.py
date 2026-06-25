@@ -59,15 +59,22 @@ def sync_mailboxes(db: Session, boxes: list[str], top: int = 25) -> dict:
             result[mb] = {"error": str(e)[:200]}
             continue
         new = 0
+        backfilled = 0
         for g in msgs:
             gid = g.get("id")
             if not gid:
                 continue
-            if db.query(EmailMessage.id).filter(EmailMessage.graph_id == gid).first():
+            existing = db.query(EmailMessage).filter(EmailMessage.graph_id == gid).first()
+            if existing:
+                # Backfill full body on rows ingested before body_content existed
+                body = (g.get("body") or {}).get("content")
+                if body and not existing.body_content:
+                    existing.body_content = body
+                    backfilled += 1
                 continue
             db.add(_row_from_graph(mb, g))
             new += 1
         db.commit()
-        result[mb] = {"fetched": len(msgs), "new": new}
+        result[mb] = {"fetched": len(msgs), "new": new, "backfilled": backfilled}
         total_new += new
     return {"new": total_new, "mailboxes": result}
