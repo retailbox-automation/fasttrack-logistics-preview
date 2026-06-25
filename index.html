@@ -3917,24 +3917,20 @@ body.layout-list .pagination { display: none; }
       </div>
       <div class="inbox-stats">
         <div class="inbox-stat">
-          <div class="inbox-stat__label">Awaiting your review</div>
-          <div class="inbox-stat__value inbox-stat__value--warn">12</div>
-          <div class="inbox-stat__delta">↑ 3 in last hour</div>
+          <div class="inbox-stat__label">Emails in mailbox</div>
+          <div class="inbox-stat__value" id="inbox-stat-total">—</div>
         </div>
         <div class="inbox-stat">
-          <div class="inbox-stat__label">Sent today (AI drafted)</div>
-          <div class="inbox-stat__value inbox-stat__value--ok">8</div>
-          <div class="inbox-stat__delta inbox-stat__delta--up">↑ 5 vs yesterday</div>
+          <div class="inbox-stat__label">Urgent / action needed</div>
+          <div class="inbox-stat__value inbox-stat__value--warn" id="inbox-stat-urgent">—</div>
         </div>
         <div class="inbox-stat">
-          <div class="inbox-stat__label">Avg response time</div>
-          <div class="inbox-stat__value inbox-stat__value--ok">6 min</div>
-          <div class="inbox-stat__delta inbox-stat__delta--up">↓ from 4 hours</div>
+          <div class="inbox-stat__label">Auto-classified by rules</div>
+          <div class="inbox-stat__value inbox-stat__value--ok" id="inbox-stat-classified">—</div>
         </div>
         <div class="inbox-stat">
-          <div class="inbox-stat__label">Languages handled today</div>
-          <div class="inbox-stat__value">4</div>
-          <div class="inbox-stat__delta">EN · ES · IT · FR</div>
+          <div class="inbox-stat__label">Languages</div>
+          <div class="inbox-stat__value" id="inbox-stat-langs">—</div>
         </div>
       </div>
       <div class="inbox-grid">
@@ -8483,7 +8479,7 @@ function backendEmailToUI(row) {
     lang: (row.language || 'EN').toUpperCase(),
     urgent: row.urgency === 'high' || row.importance === 'high',
     aiReady: !!row.ai_processed,
-    body: row.body_preview || '',
+    body: row.body_content || row.body_preview || '',
     aiSummary: row.ai_summary ? [{ type: 'info', parts: [row.ai_summary] }] : [],
     draftReply: '',
     webLink: row.web_link || '',
@@ -8613,6 +8609,13 @@ function buildInboxList() {
     const auto = filtered.filter(x => isAutoSendReady(x.email)).length;
     titleCount.textContent = `${filtered.length} emails · ${urgent} urgent · ${auto} auto-draft ready`;
   }
+
+  // Real stat cards for the current mailbox
+  const setStat = (id, v) => { const n = document.getElementById(id); if (n) n.textContent = v; };
+  setStat("inbox-stat-total", filtered.length);
+  setStat("inbox-stat-urgent", filtered.filter(x => x.email.urgent || x.email.actionNeeded).length);
+  setStat("inbox-stat-classified", filtered.filter(x => x.email.ruleProcessed).length);
+  setStat("inbox-stat-langs", new Set(filtered.map(x => x.email.lang).filter(Boolean)).size);
 
   if (filtered.length === 0) {
     list.appendChild(el("div", { class: "inbox-item", text: "No emails for this mailbox yet." }));

@@ -39,6 +39,7 @@ def _row_from_graph(mailbox: str, g: dict) -> EmailMessage:
         received_at=_parse_dt(g.get("receivedDateTime")),
         sent_at=_parse_dt(g.get("sentDateTime")),
         body_preview=g.get("bodyPreview"),
+        body_content=(g.get("body") or {}).get("content"),
         importance=g.get("importance"),
         is_read=bool(g.get("isRead")),
         has_attachments=bool(g.get("hasAttachments")),

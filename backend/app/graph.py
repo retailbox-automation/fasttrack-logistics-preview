@@ -19,7 +19,7 @@ log = logging.getLogger("ft.graph")
 _GRAPH = "https://graph.microsoft.com/v1.0"
 _SELECT = (
     "id,internetMessageId,subject,from,toRecipients,receivedDateTime,"
-    "sentDateTime,bodyPreview,importance,isRead,hasAttachments,webLink,conversationId"
+    "sentDateTime,bodyPreview,body,importance,isRead,hasAttachments,webLink,conversationId"
 )
 
 _token_lock = threading.Lock()
@@ -81,5 +81,7 @@ def fetch_messages(mailbox: str, top: int = 25) -> list[dict]:
         "$orderby": "receivedDateTime desc",
     })
     url = f"{_GRAPH}/users/{urllib.parse.quote(mailbox)}/messages?{qs}"
-    _, payload = _http("GET", url, headers={"Authorization": f"Bearer {token}"})
+    # Prefer plain-text bodies — safe to display as text, no HTML/XSS handling needed.
+    headers = {"Authorization": f"Bearer {token}", "Prefer": 'outlook.body-content-type="text"'}
+    _, payload = _http("GET", url, headers=headers)
     return payload.get("value", [])

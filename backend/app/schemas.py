@@ -70,6 +70,7 @@ class EmailMessageOut(BaseModel):
     to_recipients: Optional[list] = None
     received_at: Optional[datetime] = None
     body_preview: Optional[str] = None
+    body_content: Optional[str] = None
     importance: Optional[str] = None
     is_read: bool
     has_attachments: bool

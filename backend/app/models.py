@@ -195,6 +195,7 @@ class EmailMessage(Base):
     received_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
     sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     body_preview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    body_content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # full plain-text body
     importance: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     has_attachments: Mapped[bool] = mapped_column(Boolean, default=False)
