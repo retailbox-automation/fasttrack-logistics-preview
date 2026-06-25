@@ -8475,6 +8475,7 @@ function backendEmailToUI(row) {
     backendId: row.id,
     mailbox: mb ? mb.id : row.mailbox,
     from: row.from_name || row.from_email || '(unknown sender)',
+    fromEmail: row.from_email || '',
     fromOrg: (row.from_email || '').split('@')[1] || '',
     subject: row.subject || '(no subject)',
     preview: row.body_preview || '',
@@ -8487,6 +8488,57 @@ function backendEmailToUI(row) {
     draftReply: '',
     webLink: row.web_link || '',
   };
+  return applyEmailRules(e);
+}
+
+// Deterministic rules engine (Slice 3) — classify a real email against its
+// mailbox's keyword/contact/rule config from the master table. No AI; sets
+// urgency, known-contact, matched rule + template reply, action-needed.
+function _ruleTerms(s) {
+  return (s || '').split(/[\/;,]/).map(t => t.trim().toLowerCase()).filter(t => t.length >= 3);
+}
+function _templateForRule(r) {
+  const s = ((r.trigger || '') + ' ' + (r.action || '')).toLowerCase();
+  if (/discrepan|status|review|update/.test(s)) return 'we will review what happened';
+  if (/received|thanks|po list|\bpo\b/.test(s)) return 'Hello Team, received. thanks';
+  return 'working on it.';
+}
+function applyEmailRules(email) {
+  const mb = MAILBOXES.find(m => m.id === email.mailbox);
+  if (!mb) return email;
+  const hay = ((email.subject || '') + ' ' + (email.preview || '')).toLowerCase();
+
+  // 1) Keywords → urgency + categories
+  const matched = [];
+  let high = false;
+  for (const k of (mb.keywords || [])) {
+    for (const t of _ruleTerms(k.phrase)) {
+      if (hay.includes(t)) { matched.push(t); if ((k.urgency || '').toLowerCase() === 'high') high = true; break; }
+    }
+  }
+  const uniq = [...new Set(matched)];
+  if (high) email.urgent = true;
+
+  // 2) Rules → matched action + (auto-)reply template
+  let rule = null;
+  for (const r of (mb.rules || [])) {
+    if (_ruleTerms(r.trigger).some(t => hay.includes(t))) { rule = r; break; }
+  }
+
+  // 3) Contact relevance
+  const contact = findContact(email);
+
+  // 4) Build rule facts + suggested reply
+  const facts = [];
+  if (uniq.length) facts.push({ type: high ? 'warn' : 'info', parts: ['Matched keywords: ', { strong: uniq.slice(0, 6).join(', ') }, high ? ' · High' : ''] });
+  if (contact) facts.push({ type: 'ok', parts: ['Known contact: ', { strong: contact.name }, ' · ' + (contact.company || '') + ' · freq ' + (contact.frequency || '?')] });
+  if (rule) {
+    facts.push({ type: 'info', parts: ['Rule: ', { em: rule.action }] });
+    email.actionNeeded = true;
+    if (rule.autoSend) email.draftReply = _templateForRule(rule) + '\n\n— Fast Track';
+  }
+  if (facts.length) { email.aiSummary = facts; email.ruleProcessed = true; }
+  return email;
 }
 
 // Auto-refresh: re-read emails from the backend (cheap DB read) while the inbox
@@ -8537,12 +8589,15 @@ function isAutoSendReady(email) {
 function findContact(email) {
   const mb = MAILBOXES.find(m => m.id === email.mailbox);
   if (!mb) return null;
-  // Match by from name OR by from email substring
   const fromLower = (email.from || "").toLowerCase();
+  const emailLower = (email.fromEmail || email.fromOrg || "").toLowerCase();
   return mb.contacts.find(c => {
     const nameLower = (c.name || "").toLowerCase();
+    const cEmails = (c.email || "").toLowerCase();
+    // Match by sender name, first name, or by email address present in the contact's email field
     return nameLower === fromLower
-        || nameLower.split(" ")[0] === fromLower.split(" ")[0];
+        || (fromLower && nameLower.split(" ")[0] === fromLower.split(" ")[0])
+        || (emailLower && cEmails.includes(emailLower));
   });
 }
 
@@ -8590,6 +8645,8 @@ function buildInboxList() {
       meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--auto", text: "Auto-draft" }));
     } else if (email.aiReady) {
       meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--approve", text: "Awaiting approval" }));
+    } else if (email.actionNeeded) {
+      meta.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--approve", text: "Action needed" }));
     }
     item.appendChild(meta);
 
@@ -8817,42 +8874,49 @@ function buildInboxDetail(email) {
   metaRow.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--lang", text: email.lang }));
   if (email.urgent) metaRow.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--urgent", text: "Urgent" }));
   if (email.aiReady) metaRow.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--ai", text: "AI processed" }));
+  else if (email.ruleProcessed) metaRow.appendChild(el("span", { class: "inbox-item__tag inbox-item__tag--auto", text: "Auto-classified" }));
   metaRow.appendChild(el("span", { class: "inbox-item__time", text: email.time + (email.backendId ? " · via Outlook" : "") }));
   root.appendChild(metaRow);
 
   root.appendChild(el("div", { class: "inbox-detail__body", text: email.body }));
 
-  // AI summary block (reuse ai-block styles)
-  const ai = el("div", { class: "ai-block", style: "margin-top:18px;" });
-  const cmp = el("div", { class: "ai-comparison" });
-  const out = el("div", { class: "ai-output" });
-  out.appendChild(el("span", { class: "ai-output__label", text: "AI-parsed · key facts" }));
-  for (const f of email.aiSummary) {
-    const factRow = el("div", { class: "ai-fact" });
-    const icon = f.type === "ok" ? "✓" : f.type === "warn" ? "!" : "ⓘ";
-    factRow.appendChild(el("span", { class: "ai-fact__icon ai-fact__icon--" + f.type, text: icon }));
-    factRow.appendChild(buildAiFactText(f.parts));
-    out.appendChild(factRow);
+  // Key-facts block — AI when processed, otherwise rule-based auto-classification
+  if (email.aiSummary && email.aiSummary.length) {
+    const ai = el("div", { class: "ai-block", style: "margin-top:18px;" });
+    const cmp = el("div", { class: "ai-comparison" });
+    const out = el("div", { class: "ai-output" });
+    out.appendChild(el("span", { class: "ai-output__label", text: email.aiReady ? "AI-parsed · key facts" : "Auto-classified · rules" }));
+    for (const f of email.aiSummary) {
+      const factRow = el("div", { class: "ai-fact" });
+      const icon = f.type === "ok" ? "✓" : f.type === "warn" ? "!" : "ⓘ";
+      factRow.appendChild(el("span", { class: "ai-fact__icon ai-fact__icon--" + f.type, text: icon }));
+      factRow.appendChild(buildAiFactText(f.parts));
+      out.appendChild(factRow);
+    }
+    cmp.appendChild(out);
+    ai.appendChild(cmp);
+    root.appendChild(ai);
   }
-  cmp.appendChild(out);
-  ai.appendChild(cmp);
-  root.appendChild(ai);
 
-  // Draft reply block
-  const draft = el("div", { class: "draft-reply" });
-  draft.appendChild(el("div", { class: "draft-reply__hint", text: "Edit the AI draft, or approve and send as is. Your team always decides." }));
-  const ta = el("textarea", { class: "draft-reply__textarea" });
-  ta.value = email.draftReply;
-  draft.appendChild(ta);
+  // Suggested reply block — only when we have a draft (AI or rule template)
+  if (email.draftReply) {
+    const draft = el("div", { class: "draft-reply" });
+    draft.appendChild(el("div", { class: "draft-reply__hint", text: email.aiReady
+      ? "Edit the AI draft, or approve and send as is. Your team always decides."
+      : "Suggested reply from your rules — edit before use. Sending from the platform is not enabled yet." }));
+    const ta = el("textarea", { class: "draft-reply__textarea" });
+    ta.value = email.draftReply;
+    draft.appendChild(ta);
 
-  const actions = el("div", { class: "draft-reply__actions" });
-  actions.appendChild(el("span", { class: "draft-reply__status", text: "Saved · ready to send" }));
-  actions.appendChild(el("button", { class: "draft-reply__btn draft-reply__btn--reject", text: "Reject" }));
-  actions.appendChild(el("button", { class: "draft-reply__btn", text: "Edit draft" }));
-  actions.appendChild(el("button", { class: "draft-reply__btn draft-reply__btn--approve", text: "Approve & Send" }));
-  draft.appendChild(actions);
+    const actions = el("div", { class: "draft-reply__actions" });
+    actions.appendChild(el("span", { class: "draft-reply__status", text: email.aiReady ? "Saved · ready to send" : "Draft suggestion" }));
+    actions.appendChild(el("button", { class: "draft-reply__btn draft-reply__btn--reject", text: "Reject" }));
+    actions.appendChild(el("button", { class: "draft-reply__btn", text: "Edit draft" }));
+    actions.appendChild(el("button", { class: "draft-reply__btn draft-reply__btn--approve", text: email.aiReady ? "Approve & Send" : "Approve (send: soon)" }));
+    draft.appendChild(actions);
 
-  root.appendChild(draft);
+    root.appendChild(draft);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
