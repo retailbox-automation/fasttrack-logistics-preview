@@ -8489,6 +8489,37 @@ function backendEmailToUI(row) {
   };
 }
 
+// Auto-refresh: re-read emails from the backend (cheap DB read) while the inbox
+// is open, so new mail (pulled server-side by auto-sync) appears without the
+// button. Skips the DOM rebuild when nothing changed; preserves selection.
+let _lastEmailSig = '';
+async function ftRefreshEmails() {
+  if (!window.FT_API || !window.FT_API.emails) return;
+  let rows;
+  try { rows = await window.FT_API.emails.list(); } catch (e) { return; }
+  if (!Array.isArray(rows) || rows.length === 0) return;
+  const sig = rows.length + ':' + (rows[0] && rows[0].id);  // count + newest id
+  if (sig === _lastEmailSig) return;  // nothing new → don't rebuild
+  _lastEmailSig = sig;
+  const prevId = (EMAILS[selectedEmailIdx] && EMAILS[selectedEmailIdx].backendId) || null;
+  EMAILS.splice(0, EMAILS.length, ...rows.map(backendEmailToUI));
+  if (prevId != null) {
+    const i = EMAILS.findIndex(e => e.backendId === prevId);
+    if (i >= 0) selectedEmailIdx = i;
+  }
+  try { buildInboxList(); } catch (e) {}
+  try { buildMailboxSwitcher(); } catch (e) {}
+}
+
+// Poll every 60s, only when the inbox view is open and signed in.
+setInterval(function () {
+  try {
+    if (document.body.classList.contains('view-inbox') && localStorage.getItem('ft_jwt')) {
+      ftRefreshEmails();
+    }
+  } catch (e) {}
+}, 60000);
+
 function getFilteredEmails() {
   return EMAILS.map((e, origIdx) => ({ email: e, origIdx }))
                .filter(x => x.email.mailbox === currentMailboxId);

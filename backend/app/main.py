@@ -2,6 +2,7 @@
 Fast Track Platform — FastAPI backend + frontend static serve.
 Phase 1B: per-user accounts + roles + audit + optimistic locking.
 """
+import asyncio
 import gzip
 import logging
 import os
@@ -29,6 +30,7 @@ from app.routers import emails as emails_router
 from app.schemas import HealthOut
 from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
+from app import graph, email_ingest
 
 
 # ── Structured JSON logging (per-request id, latency) ──
@@ -82,6 +84,33 @@ def seed_users_if_empty():
         db.close()
 
 
+async def _auto_sync_loop():
+    """Background email auto-sync: pull recent mail from Outlook into the DB
+    on a fixed cadence so the inbox stays fresh without manual sync."""
+    interval = settings.email_sync_interval_seconds
+    if interval <= 0:
+        log.info("auto_sync_disabled")
+        return
+    await asyncio.sleep(15)  # let the app settle after boot
+    while True:
+        try:
+            boxes = settings.graph_mailbox_list
+            if graph.is_configured() and boxes:
+                def _cycle():
+                    db = SessionLocal()
+                    try:
+                        return email_ingest.sync_mailboxes(db, boxes, settings.email_sync_top)
+                    finally:
+                        db.close()
+                r = await asyncio.to_thread(_cycle)
+                log.info("auto_sync_ok", extra={"new": r.get("new")})
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            log.exception("auto_sync_failed: %s", e)
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("lifespan_start")
@@ -91,7 +120,13 @@ async def lifespan(app: FastAPI):
         seed_users_if_empty()
     except Exception as e:
         log.exception("db_init_failed: %s", e)
+    sync_task = asyncio.create_task(_auto_sync_loop())
     yield
+    sync_task.cancel()
+    try:
+        await sync_task
+    except (asyncio.CancelledError, Exception):
+        pass
     log.info("lifespan_shutdown")
 
 

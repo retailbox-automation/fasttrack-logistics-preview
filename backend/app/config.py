@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     ms_client_id: str = ""
     ms_client_secret: str = ""
     ms_graph_mailboxes: str = ""  # comma-separated mailbox addresses to ingest
+    email_sync_interval_seconds: int = 300  # background auto-sync cadence (0 = disabled)
+    email_sync_top: int = 25  # messages pulled per mailbox per cycle
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
