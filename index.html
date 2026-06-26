@@ -706,6 +706,24 @@ body.view-inbox .pagination { display: none; }
   flex-shrink: 0;
 }
 
+/* ═══ TIME TRACKING view ═══ */
+.timetracking-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-timetracking .timetracking-view { display: block; }
+body.view-timetracking .dashboard { display: none; }
+body.view-timetracking .pagination { display: none; }
+.tt-card { background: rgba(10,15,28,0.4); border: 1px solid var(--border); border-radius: 10px; padding: 22px 24px; margin-bottom: 18px; }
+.tt-clock-status { font-size: 14px; color: var(--text-dim); margin-bottom: 14px; }
+.tt-clock-status strong { color: var(--text); }
+.tt-btn { padding: 12px 22px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; }
+.tt-btn--in { background: var(--ok); color: #04210f; }
+.tt-btn--out { background: var(--warn); color: #2a1500; }
+.tt-btn:disabled { opacity: .5; cursor: default; }
+.tt-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+.tt-table th, .tt-table td { border-bottom: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+.tt-table th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+.tt-live-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--ok); margin-right:6px; }
+.tt-section-title { font-size: 12px; text-transform: uppercase; color: var(--text-dim); letter-spacing: .05em; margin: 8px 0 6px; font-weight: 600; }
+
 /* ═══ INBOX (Email AI) view ═══ */
 .inbox-view { overflow-y: auto; padding: 28px 32px; display: none; }
 body.view-inbox .inbox-view { display: block; }
@@ -3578,6 +3596,14 @@ body.layout-list .pagination { display: none; }
         method: 'POST',
       }),
     },
+    time: {
+      status: () => fetchJSON('/api/time/status'),
+      clockIn: (note) => fetchJSON('/api/time/clock-in', { method: 'POST', body: JSON.stringify({ note: note || null }) }),
+      clockOut: () => fetchJSON('/api/time/clock-out', { method: 'POST', body: JSON.stringify({}) }),
+      active: () => fetchJSON('/api/time/active'),
+      entries: (qs) => fetchJSON('/api/time/entries' + (qs || '')),
+      report: (qs) => fetchJSON('/api/time/report' + (qs || '')),
+    },
     docs: {
       // list returns body + ETag (server version), stored in window._ftDocVersions[kind]
       list: async (kind) => {
@@ -3937,6 +3963,16 @@ body.layout-list .pagination { display: none; }
         <aside class="inbox-list" id="inbox-list"></aside>
         <section class="inbox-detail" id="inbox-detail"></section>
       </div>
+    </section>
+    <section class="timetracking-view" id="timetracking-view">
+      <div class="dashboard__header">
+        <div class="dashboard__title-block">
+          <div class="dashboard__crumb">Employees · working hours</div>
+          <div class="dashboard__title"><h1>Time Tracking</h1></div>
+        </div>
+      </div>
+      <div id="tt-self"></div>
+      <div id="tt-manager"></div>
     </section>
 
     <!-- INVENTORY VIEW -->
@@ -5372,6 +5408,7 @@ const SIDEBAR_DATA = {
     { label: "CrunchTime · Requests", count: "4", view: "crunchtime" },
     { label: "Barcoding · Scan",     count: "·", view: "barcoding" },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
+    { label: "Time · Clock in/out",  count: "·", view: "timetracking" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
     { label: "Critical",             count: "4" },
@@ -8926,9 +8963,109 @@ function buildInboxDetail(email) {
    VIEW SWITCHING  ·  Inbox ⇄ Shipments
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════
+   TIME TRACKING  ·  clock in/out + manager visibility
+   ═══════════════════════════════════════════════════════════════════ */
+function _ttFmt(iso) {
+  if (!iso) return "—";
+  const s = /[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + "Z";
+  const d = new Date(s);
+  if (isNaN(d)) return iso;
+  return d.toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+function _ttDur(mins) {
+  mins = mins || 0;
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return (h ? h + "h " : "") + m + "m";
+}
+async function _ttClock(action) {
+  try {
+    if (action === "in") await window.FT_API.time.clockIn();
+    else await window.FT_API.time.clockOut();
+    if (window.ftToast) ftToast(action === "in" ? "Clocked in" : "Clocked out", "ok");
+  } catch (e) { if (window.ftToast) ftToast("Failed: " + e.message, "warn"); }
+  renderTimeTracking();
+}
+async function _ttExportCsv() {
+  try {
+    const resp = await window.fetchAuthed("/api/time/export.csv");
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "time_entries.csv"; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { if (window.ftToast) ftToast("Export failed: " + e.message, "warn"); }
+}
+async function renderTimeTracking() {
+  const selfEl = document.getElementById("tt-self");
+  const mgrEl = document.getElementById("tt-manager");
+  if (!selfEl) return;
+  if (!window.FT_API || !window.FT_API.time) { selfEl.textContent = "Backend not connected."; return; }
+  while (selfEl.firstChild) selfEl.removeChild(selfEl.firstChild);
+  let st = null;
+  try { st = await window.FT_API.time.status(); } catch (e) { selfEl.textContent = "Could not load status: " + e.message; return; }
+  const card = el("div", { class: "tt-card" });
+  if (st && st.clocked_in && st.entry) {
+    card.appendChild(el("div", { class: "tt-clock-status" }, [
+      document.createTextNode("You are "), el("strong", { text: "clocked in" }),
+      document.createTextNode(" since " + _ttFmt(st.entry.clock_in_at) + " · " + _ttDur(st.entry.duration_minutes) + " so far"),
+    ]));
+    const b = el("button", { class: "tt-btn tt-btn--out", text: "Clock out" });
+    b.addEventListener("click", () => _ttClock("out"));
+    card.appendChild(b);
+  } else {
+    card.appendChild(el("div", { class: "tt-clock-status", text: "You are not clocked in." }));
+    const b = el("button", { class: "tt-btn tt-btn--in", text: "Clock in" });
+    b.addEventListener("click", () => _ttClock("in"));
+    card.appendChild(b);
+  }
+  selfEl.appendChild(card);
+
+  if (!mgrEl) return;
+  while (mgrEl.firstChild) mgrEl.removeChild(mgrEl.firstChild);
+  const user = window.ftCurrentUser ? window.ftCurrentUser() : null;
+  if (!user || (user.role !== "admin" && user.role !== "manager")) return;
+
+  let active = [], report = [], entries = [];
+  try { active = await window.FT_API.time.active(); } catch (e) {}
+  try { report = await window.FT_API.time.report(); } catch (e) {}
+  try { entries = await window.FT_API.time.entries("?limit=50"); } catch (e) {}
+
+  const inCard = el("div", { class: "tt-card" });
+  inCard.appendChild(el("div", { class: "tt-section-title", text: "Who's in now (" + active.length + ")" }));
+  if (!active.length) inCard.appendChild(el("div", { class: "tt-clock-status", text: "Nobody clocked in." }));
+  else active.forEach(e => inCard.appendChild(el("div", { class: "tt-clock-status" }, [
+    el("span", { class: "tt-live-dot" }), document.createTextNode(e.user_name + " · since " + _ttFmt(e.clock_in_at) + " · " + _ttDur(e.duration_minutes)),
+  ])));
+  mgrEl.appendChild(inCard);
+
+  const totCard = el("div", { class: "tt-card" });
+  totCard.appendChild(el("div", { class: "tt-section-title", text: "Hours by employee" }));
+  const exportBtn = el("button", { class: "tt-btn", style: "padding:6px 14px;font-size:12px;margin-bottom:8px;background:var(--bg-hover);color:var(--text);", text: "↓ Export CSV" });
+  exportBtn.addEventListener("click", _ttExportCsv);
+  totCard.appendChild(exportBtn);
+  const tbl = el("table", { class: "tt-table" });
+  tbl.appendChild(el("tr", {}, [el("th", { text: "Employee" }), el("th", { text: "Shifts" }), el("th", { text: "Total hours" })]));
+  if (!report.length) tbl.appendChild(el("tr", {}, [el("td", { text: "No closed shifts yet" })]));
+  else report.forEach(r => tbl.appendChild(el("tr", {}, [el("td", { text: r.user_name }), el("td", { text: String(r.shifts) }), el("td", { text: r.total_hours + " h" })])));
+  totCard.appendChild(tbl);
+  mgrEl.appendChild(totCard);
+
+  const recCard = el("div", { class: "tt-card" });
+  recCard.appendChild(el("div", { class: "tt-section-title", text: "Recent entries" }));
+  const rt = el("table", { class: "tt-table" });
+  rt.appendChild(el("tr", {}, [el("th", { text: "Employee" }), el("th", { text: "Clock in" }), el("th", { text: "Clock out" }), el("th", { text: "Duration" })]));
+  entries.slice(0, 30).forEach(e => rt.appendChild(el("tr", {}, [
+    el("td", { text: e.user_name }), el("td", { text: _ttFmt(e.clock_in_at) }),
+    el("td", { text: e.clock_out_at ? _ttFmt(e.clock_out_at) : "— open" }), el("td", { text: _ttDur(e.duration_minutes) }),
+  ])));
+  recCard.appendChild(rt);
+  mgrEl.appendChild(recCard);
+}
+
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr", "view-credit_memos", "view-soa");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-timetracking");
   document.body.classList.add("view-" + view);
+  if (view === "timetracking") renderTimeTracking();
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
   if (view === "discrepancies") renderDiscrepancyReports();
