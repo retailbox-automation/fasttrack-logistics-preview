@@ -210,6 +210,35 @@ class EmailMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class TimeEntry(Base):
+    """Employee clock-in/clock-out record (per Andrés 6/19 — time tracking).
+
+    One row per shift. Open shift = clock_out_at is NULL. Stored in UTC;
+    frontend renders in ET. Andrés (admin) + Gabriela (manager) see all;
+    ops/viewer see only their own. Manager corrections recorded (edited_by)."""
+    __tablename__ = "time_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_name: Mapped[str] = mapped_column(String(128))  # denorm for fast reporting
+    clock_in_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    clock_out_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(16), default="web")
+    edited_by: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)  # manager who corrected
+    edited_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    @property
+    def duration_minutes(self) -> int:
+        end = self.clock_out_at or datetime.utcnow()
+        return max(0, int((end - self.clock_in_at).total_seconds() // 60))
+
+    @property
+    def is_open(self) -> bool:
+        return self.clock_out_at is None
+
+
 class AuditLog(Base):
     """Append-only audit trail of mutations.
 

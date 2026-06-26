@@ -86,6 +86,31 @@ class EmailMessageOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class TimeEntryOut(BaseModel):
+    id: int
+    user_id: int
+    user_name: str
+    clock_in_at: datetime
+    clock_out_at: Optional[datetime] = None
+    note: Optional[str] = None
+    source: str
+    edited_by: Optional[str] = None
+    duration_minutes: int
+    is_open: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ClockInOut(BaseModel):
+    note: Optional[str] = None
+
+
+class TimeEntryUpdate(BaseModel):
+    clock_in_at: Optional[datetime] = None
+    clock_out_at: Optional[datetime] = None
+    note: Optional[str] = None
+
+
 class HealthOut(BaseModel):
     status: str
     db: str
