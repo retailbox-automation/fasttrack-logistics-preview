@@ -3812,7 +3812,7 @@ body.layout-list .pagination { display: none; }
         </button>
         <div class="notif-panel" id="notif-panel"></div>
       </div>
-      <button class="user-chip" id="user-chip-btn" title="Click to switch user role (demo)">
+      <button class="user-chip" id="user-chip-btn" title="Account & settings">
         <div class="user-chip__avatar" id="user-chip-avatar">GP</div>
         <div class="user-chip__name" id="user-chip-name">Gabriela P.</div>
         <svg class="icon" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
@@ -12149,22 +12149,33 @@ const USER_ROLES = [
   { name: "Yamisley Barros",   role: "Receiving",        email: "yamisley@fasttrackgroup.us", canSendInvoice: false },
 ];
 
-// Default current user — first authorized (Gabriela)
+// Default current user — first authorized (Gabriela). Overwritten by real login.
 let CURRENT_USER = USER_ROLES[0];
 
-function userCanSendInvoice(inv) {
-  if (!CURRENT_USER || !CURRENT_USER.canSendInvoice) return false;
-  // Per Andrés 6/10: out-of-scope invoices route via Luis (bypass Andrés)
-  // Standard invoices need Andrés approval (Gabriela/Andrés can send; Luis cannot
-  // send standard invoices unless they're his out-of-scope ones)
-  if (!inv) return true; // generic check
-  if (inv.outOfScope) {
-    // Only Luis or Andrés can send out-of-scope (Luis-managed pattern)
-    return ["Luis Cruz", "Andrés Yeguez"].includes(CURRENT_USER.name);
-  } else {
-    // Standard: Gabriela / Andrés can send (Luis typically Luis-managed only)
-    return ["Gabriela Pita", "Andrés Yeguez"].includes(CURRENT_USER.name);
+// ── Permission matrix (single source of truth) — keyed by real JWT role ──
+// admin = Andrés/Sultan · manager = Gabriela/Luis · ops = Andrea/Yamisley · viewer.
+// Backend enforces the same via require_roles; this gates the UI to match.
+const ROLE_PERMISSIONS = {
+  admin:   { send_invoice: true,  manage_users: true,  correct_time: true,  edit_data: true },
+  manager: { send_invoice: true,  manage_users: false, correct_time: true,  edit_data: true },
+  ops:     { send_invoice: false, manage_users: false, correct_time: false, edit_data: true },
+  viewer:  { send_invoice: false, manage_users: false, correct_time: false, edit_data: false },
+};
+function ftRole() { const u = window.ftCurrentUser && window.ftCurrentUser(); return (u && u.role) || "viewer"; }
+function ftCan(cap) { const p = ROLE_PERMISSIONS[ftRole()]; return !!(p && p[cap]); }
+window.ftCan = ftCan;
+
+// Mirror the real signed-in user into CURRENT_USER (display + legacy callers)
+function syncCurrentUserFromAuth() {
+  const u = window.ftCurrentUser && window.ftCurrentUser();
+  if (u && u.email) {
+    CURRENT_USER = { name: u.name, role: u.role, email: u.email, canSendInvoice: ftCan("send_invoice"), real: true };
   }
+}
+
+function userCanSendInvoice(inv) {
+  // Real RBAC: admin (Andrés) + manager (Gabriela/Luis) send; ops/viewer cannot.
+  return ftCan("send_invoice");
 }
 
 function getApproverForInvoice(inv) {
@@ -12984,6 +12995,7 @@ function setupInvoices() {
 /* ─── Permission gate UI + user switcher ─── */
 
 function applyUserChip() {
+  syncCurrentUserFromAuth();
   const avatar = document.getElementById("user-chip-avatar");
   const name = document.getElementById("user-chip-name");
   if (!avatar || !name || !CURRENT_USER) return;
@@ -12995,35 +13007,37 @@ function applyUserChip() {
 function renderUserSwitcher() {
   const sw = document.getElementById("user-switcher");
   if (!sw) return;
+  syncCurrentUserFromAuth();
   while (sw.firstChild) sw.removeChild(sw.firstChild);
-  sw.appendChild(el("div", { class: "user-switcher-header", text: "Switch role (demo) · invoice send permission gated" }));
-  USER_ROLES.forEach(u => {
-    const isActive = CURRENT_USER && CURRENT_USER.name === u.name;
-    const item = el("div", { class: "user-switcher-item" + (isActive ? " active" : "") });
-    const initials = u.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-    item.appendChild(el("div", { class: "user-switcher-item__avatar", text: initials }));
-    const info = el("div", { class: "user-switcher-item__info" });
-    info.appendChild(el("div", { class: "user-switcher-item__name", text: u.name }));
-    info.appendChild(el("div", { class: "user-switcher-item__role", text: u.role + " · " + u.email }));
-    item.appendChild(info);
-    item.appendChild(el("span", {
-      class: "user-switcher-item__perm " + (u.canSendInvoice ? "user-switcher-item__perm--can" : "user-switcher-item__perm--cant"),
-      text: u.canSendInvoice ? "✓ Send invoice" : "✗ No send"
-    }));
-    item.addEventListener("click", () => {
-      CURRENT_USER = u;
-      applyUserChip();
-      sw.classList.remove("open");
-      renderInvoices();
-      // If invoice preview is open, refresh its action availability
-      const ovl = document.getElementById("invc-preview-overlay");
-      if (ovl && ovl.classList.contains("open")) {
-        const idx = parseInt(ovl.dataset.idx, 10);
-        if (!isNaN(idx) && INVOICES[idx]) openInvcPreview(idx);
-      }
-    });
-    sw.appendChild(item);
+  const u = window.ftCurrentUser && window.ftCurrentUser();
+  const role = u ? u.role : "viewer";
+  sw.appendChild(el("div", { class: "user-switcher-header", text: "Signed in · role: " + role }));
+
+  // Real signed-in user (read-only)
+  const nm = u ? u.name : "Shared Access";
+  const item = el("div", { class: "user-switcher-item active" });
+  item.appendChild(el("div", { class: "user-switcher-item__avatar", text: nm.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() }));
+  const info = el("div", { class: "user-switcher-item__info" });
+  info.appendChild(el("div", { class: "user-switcher-item__name", text: nm }));
+  info.appendChild(el("div", { class: "user-switcher-item__role", text: (u ? u.email + " · " : "") + role }));
+  item.appendChild(info);
+  item.appendChild(el("span", {
+    class: "user-switcher-item__perm " + (ftCan("send_invoice") ? "user-switcher-item__perm--can" : "user-switcher-item__perm--cant"),
+    text: ftCan("send_invoice") ? "✓ Can send invoice" : "✗ No send"
+  }));
+  sw.appendChild(item);
+
+  // Link into the real admin panel (account / manage users)
+  const adminLink = el("div", { class: "user-switcher-item", style: "cursor:pointer;color:#93c5fd;" });
+  adminLink.appendChild(el("div", { class: "user-switcher-item__info" }, [
+    el("div", { class: "user-switcher-item__name", text: ftCan("manage_users") ? "⚙ Account · Manage users →" : "⚙ My account →" }),
+  ]));
+  adminLink.addEventListener("click", () => {
+    sw.classList.remove("open");
+    const ab = document.getElementById("ft-admin-btn");
+    if (ab) ab.click();
   });
+  sw.appendChild(adminLink);
 }
 
 function updateNotifBadge() {
@@ -14511,6 +14525,8 @@ setInterval(tickClock, 1000);
 
   function loadAll() {
     if (!window.FT_API) return;
+    // Refresh the user chip / permission display with the real signed-in user
+    try { if (typeof applyUserChip === "function") applyUserChip(); if (typeof renderUserSwitcher === "function") renderUserSwitcher(); } catch (e) {}
     const tasks = [];
     // Inventory uses its dedicated endpoint + camelCase mapping
     tasks.push(window.FT_API.inventory.list().then(rows => {
