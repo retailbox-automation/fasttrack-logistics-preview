@@ -7471,6 +7471,7 @@ function formatDays(d) {
 
 function buildSidebar() {
   const sidebar = document.getElementById("sidebar");
+  while (sidebar.firstChild) sidebar.removeChild(sidebar.firstChild);  // idempotent — safe to rebuild on login
 
   const section = (title, items, withDots) => {
     const sec = el("div", { class: "sidebar-section" });
@@ -7499,7 +7500,9 @@ function buildSidebar() {
     return sec;
   };
 
-  sidebar.appendChild(section("Views",       SIDEBAR_DATA.views));
+  // Hide views this role may not access (financial/approval/reporting → manager+admin)
+  const allowedViews = SIDEBAR_DATA.views.filter(it => !it.view || (typeof viewAllowed !== "function") || viewAllowed(it.view));
+  sidebar.appendChild(section("Views",       allowedViews));
   sidebar.appendChild(section("Vessels",     SIDEBAR_DATA.vessels, true));
   sidebar.appendChild(section("Departments", SIDEBAR_DATA.departments));
   sidebar.appendChild(section("Region",      SIDEBAR_DATA.regions));
@@ -8615,8 +8618,18 @@ const AUTO_REPLY_TEMPLATES = [
   "we will review what happened",
 ];
 
+// Mailbox visibility: admins see every mailbox; everyone else only their own
+// (the box whose address == their login email). Mirrors backend enforcement.
+function visibleMailboxes() {
+  const u = (window.ftCurrentUser && window.ftCurrentUser()) || null;
+  if (u && u.role === "admin") return MAILBOXES;
+  const em = ((u && u.email) || "").toLowerCase();
+  return MAILBOXES.filter(m => m.email.toLowerCase() === em);
+}
+
 function getCurrentMailbox() {
-  return MAILBOXES.find(m => m.id === currentMailboxId) || MAILBOXES[0];
+  const vis = visibleMailboxes();
+  return vis.find(m => m.id === currentMailboxId) || vis[0] || null;
 }
 
 // Map a backend EmailMessage row (/api/emails) → the shape the inbox UI uses.
@@ -8835,16 +8848,24 @@ function buildInboxList() {
    ═══════════════════════════════════════════════════════════════════ */
 
 function buildMailboxSwitcher() {
+  // Scope to mailboxes this user may see; snap selection into range.
+  const vis = visibleMailboxes();
+  if (!vis.find(m => m.id === currentMailboxId)) currentMailboxId = vis[0] ? vis[0].id : null;
+
   // Active button label
   const mb = getCurrentMailbox();
-  document.getElementById("mailbox-switcher-label").textContent = mb.name;
-  document.getElementById("mailbox-switcher-avatar").textContent = mb.initials;
+  document.getElementById("mailbox-switcher-label").textContent = mb ? mb.name : "No mailbox";
+  document.getElementById("mailbox-switcher-avatar").textContent = mb ? mb.initials : "—";
 
   // Dropdown menu
   const menu = document.getElementById("mailbox-switcher-menu");
   while (menu.firstChild) menu.removeChild(menu.firstChild);
 
-  MAILBOXES.forEach(m => {
+  // Single-mailbox (non-admin) users have nothing to switch between — hide the chevron affordance.
+  const switcherBtn = document.getElementById("mailbox-switcher-label") && document.getElementById("mailbox-switcher-label").closest(".mailbox-switcher");
+  if (switcherBtn) switcherBtn.classList.toggle("mailbox-switcher--single", vis.length <= 1);
+
+  vis.forEach(m => {
     const count = EMAILS.filter(e => e.mailbox === m.id).length;
     const item = el("div", {
       class: "mailbox-switcher__item" + (m.id === currentMailboxId ? " mailbox-switcher__item--active" : ""),
@@ -8879,6 +8900,7 @@ let mbcActiveTab = "contacts";
 
 function renderMailboxConfig() {
   const mb = getCurrentMailbox();
+  if (!mb) { document.getElementById("mbc-title").textContent = "No mailbox assigned"; return; }
   document.getElementById("mbc-title").textContent = mb.name + " · Mailbox configuration";
   document.getElementById("mbc-subtitle").textContent = mb.email + " · " + mb.role;
 
@@ -9383,6 +9405,11 @@ async function renderWeeklyReport() {
 }
 
 function switchView(view) {
+  // Role guard: block direct navigation to a view this role may not access.
+  if (typeof viewAllowed === "function" && !viewAllowed(view)) {
+    if (window.ftToast) ftToast("Your role doesn't have access to that section", "info");
+    view = "dashboard";
+  }
   document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-timetracking", "view-weekly_report");
   document.body.classList.add("view-" + view);
   if (view === "timetracking") renderTimeTracking();
@@ -12558,6 +12585,24 @@ function ftRole() { const u = window.ftCurrentUser && window.ftCurrentUser(); re
 function ftCan(cap) { const p = ROLE_PERMISSIONS[ftRole()]; return !!(p && p[cap]); }
 window.ftCan = ftCan;
 
+// ── View-level access by role ──────────────────────────────────────────
+// Operational views (inventory, shipments, crunchtime, barcoding, inbox,
+// time, dashboard) = everyone. Financial / approval / reporting views =
+// manager + admin only. Views not listed here are open to all roles.
+const VIEW_ROLES = {
+  invoices:      ["manager", "admin"],
+  credit_memos:  ["manager", "admin"],
+  soa:           ["manager", "admin"],
+  sdr:           ["manager", "admin"],
+  discrepancies: ["manager", "admin"],
+  weekly_report: ["manager", "admin"],
+};
+function viewAllowed(view) {
+  const roles = VIEW_ROLES[view];
+  return !roles || roles.includes(ftRole());
+}
+window.viewAllowed = viewAllowed;
+
 // Mirror the real signed-in user into CURRENT_USER (display + legacy callers)
 function syncCurrentUserFromAuth() {
   const u = window.ftCurrentUser && window.ftCurrentUser();
@@ -14962,6 +15007,9 @@ function setupSearch() {
 }
 
 buildSidebar();
+// Rebuild the sidebar once the user signs in, so the nav reflects their role
+// (fresh login doesn't reload the page — unlock() just fires this event).
+document.addEventListener('ft-auth-ready', function(){ if (typeof buildSidebar === 'function') buildSidebar(); });
 renderCards();
 renderList();
 setupLayoutToggle();

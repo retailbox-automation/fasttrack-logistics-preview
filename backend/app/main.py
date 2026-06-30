@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from pythonjsonlogger import jsonlogger
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy import text
+from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -221,7 +221,24 @@ def health(db: Session = Depends(get_db)):
         db_status = "up"
     except Exception as e:
         db_status = f"down: {type(e).__name__}"
-    return HealthOut(status="ok", db=db_status, version=settings.api_version)
+
+    # Graph creds presence (catches vanished MS_* env vars) + sync freshness
+    graph_status = "configured" if graph.is_configured() else "not_configured"
+    newest_minutes = None
+    try:
+        from app.models import EmailMessage
+        from datetime import datetime
+        newest = db.query(func.max(EmailMessage.received_at)).scalar()
+        if newest:
+            newest_minutes = int((datetime.utcnow() - newest).total_seconds() // 60)
+    except Exception:
+        pass
+
+    auth_secret = "DEFAULT-INSECURE" if settings.jwt_secret == "change-me-in-production-please" else "ok"
+
+    return HealthOut(status="ok", db=db_status, version=settings.api_version,
+                     graph=graph_status, email_newest_minutes=newest_minutes,
+                     auth_secret=auth_secret)
 
 
 # Register routers

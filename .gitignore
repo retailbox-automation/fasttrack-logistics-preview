@@ -1,1 +1,18 @@
 DEMO-SCRIPT.md
+
+# Ops scripts contain infra IDs (Zeabur service/env, MS tenant/client) — keep out of the PUBLIC repo
+scripts/restore-zeabur-env.sh
+scripts/deploy.sh
+scripts/healthcheck.sh
+scripts/health.log
+
+# Never commit secrets / local env
+.env
+.env.*
+*.secret
+*_secret*
+
+# Python bytecode
+__pycache__/
+*.pyc
+

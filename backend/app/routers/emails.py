@@ -19,7 +19,30 @@ from app.schemas import EmailMessageOut
 router = APIRouter(prefix="/api/emails", tags=["emails"])
 
 
-@router.get("", response_model=list[EmailMessageOut], dependencies=[Depends(require_auth)])
+def _visible_mailboxes(claims: dict) -> list[str] | None:
+    """Mailboxes the caller may see. None = all (admin). Otherwise an explicit allow-list.
+
+    Rule (per Andrés, 2026-06-30): admins see every mailbox; every other role
+    sees only their own mailbox (the one whose address == their login email).
+    """
+    if claims.get("role") == "admin":
+        return None
+    own = (claims.get("email") or "").lower()
+    return [own] if own else []
+
+
+@router.get("/_mailboxes", response_model=dict, dependencies=[Depends(require_auth)])
+def allowed_mailboxes(claims: dict = Depends(require_auth)):
+    """Mailbox addresses the current user is allowed to view (drives the UI switcher)."""
+    allowed = _visible_mailboxes(claims)
+    boxes = settings.graph_mailbox_list
+    if allowed is None:
+        return {"role": claims.get("role"), "all": True, "mailboxes": boxes}
+    return {"role": claims.get("role"), "all": False,
+            "mailboxes": [b for b in boxes if b.lower() in allowed]}
+
+
+@router.get("", response_model=list[EmailMessageOut])
 def list_emails(
     mailbox: str | None = None,
     q: str | None = None,
@@ -27,9 +50,16 @@ def list_emails(
     limit: int = Query(50, le=200),
     offset: int = 0,
     db: Session = Depends(get_db),
+    claims: dict = Depends(require_auth),
 ):
     query = db.query(EmailMessage)
-    if mailbox:
+    # Visibility scoping: non-admins are locked to their own mailbox regardless
+    # of the requested `mailbox` param.
+    allowed = _visible_mailboxes(claims)
+    if allowed is not None:
+        # func.lower for case-insensitive match against the stored mailbox
+        query = query.filter(EmailMessage.mailbox.in_(allowed))
+    elif mailbox:
         query = query.filter(EmailMessage.mailbox == mailbox)
     if unread is not None:
         query = query.filter(EmailMessage.is_read == (not unread))
@@ -45,10 +75,14 @@ def list_emails(
             .offset(offset).limit(limit).all())
 
 
-@router.get("/{email_id}", response_model=EmailMessageOut, dependencies=[Depends(require_auth)])
-def get_email(email_id: int, db: Session = Depends(get_db)):
+@router.get("/{email_id}", response_model=EmailMessageOut)
+def get_email(email_id: int, db: Session = Depends(get_db), claims: dict = Depends(require_auth)):
     m = db.get(EmailMessage, email_id)
     if not m:
+        raise HTTPException(status_code=404, detail="Email not found")
+    allowed = _visible_mailboxes(claims)
+    if allowed is not None and (m.mailbox or "").lower() not in allowed:
+        # Hide existence from users outside this mailbox
         raise HTTPException(status_code=404, detail="Email not found")
     return m
 

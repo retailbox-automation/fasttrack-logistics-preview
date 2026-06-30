@@ -168,3 +168,6 @@ class HealthOut(BaseModel):
     status: str
     db: str
     version: str
+    graph: str = "unknown"            # "configured" | "not_configured" — catches vanished MS_* creds
+    email_newest_minutes: int | None = None  # age of newest ingested email; large/None = sync stalled
+    auth_secret: str = "unknown"      # "ok" | "DEFAULT-INSECURE" — catches a wiped/unset JWT_SECRET
