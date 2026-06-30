@@ -3286,14 +3286,17 @@ body.layout-list .pagination { display: none; }
   color: #374151; text-transform: uppercase; letter-spacing: .8px;
   margin-bottom: 6px;
 }
-#auth-gate input[type=password] {
+#auth-gate input[type=password],
+#auth-gate input[type=email] {
   width: 100%; box-sizing: border-box;
   padding: 11px 13px;
   border: 1.5px solid #d1d5db; border-radius: 7px;
-  font-size: 14px; color: #0e1d2f;
+  font-size: 14px; color: #0e1d2f; background: #fff;
   transition: border-color .15s, box-shadow .15s;
 }
-#auth-gate input[type=password]:focus {
+#auth-gate input[type=email]::placeholder { color: #9ca3af; }
+#auth-gate input[type=password]:focus,
+#auth-gate input[type=email]:focus {
   outline: none;
   border-color: #2d6da3;
   box-shadow: 0 0 0 3px rgba(45, 109, 163, .15);
