@@ -2190,6 +2190,23 @@ body.view-credit_memos .pagination { display: none; }
 /* ═══ STATEMENT OF ACCOUNT (SOA) view ═══ */
 .soa-view { overflow-y: auto; padding: 28px 32px; display: none; }
 body.view-soa .soa-view { display: block; }
+.soa-ap-summary { margin: 0 0 18px; }
+.ap-strip { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.ap-stat { background: rgba(10,15,28,0.4); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 130px; }
+.ap-stat__label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); }
+.ap-stat__value { font-size: 18px; font-weight: 600; margin-top: 4px; }
+.ap-stat__value.ap-warn { color: var(--warn); }
+.ap-stat__value.ap-crit { color: var(--crit); }
+.ap-stat__value.ap-ok { color: var(--ok); }
+.ap-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+.ap-card { background: rgba(10,15,28,0.4); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 200px; }
+.ap-card__entity { font-size: 12px; font-weight: 600; color: var(--text); }
+.ap-card__out { font-size: 15px; font-weight: 600; margin: 4px 0 6px; color: var(--warn); }
+.ap-card__badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.ap-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+.ap-badge--crit { background: rgba(239,68,68,0.15); color: #fca5a5; }
+.ap-badge--warn { background: rgba(245,158,11,0.15); color: #fcd34d; }
+.ap-badge--ok { background: rgba(34,197,94,0.12); color: #86efac; }
 body.view-soa .dashboard,
 body.view-soa .inbox-view,
 body.view-soa .inventory-view,
@@ -4151,6 +4168,9 @@ body.layout-list .pagination { display: none; }
           <strong>How it works:</strong> Initially exported from Magaya. Maintained per MSC entity (P&L vs Ocean Cay). Lines = invoices + credit memos interspersed — credit memos positioned above/below their related invoice. Includes custom columns beyond Magaya (week of year). Payment application by tracking MSC Payment Remittance Advice emails.
         </div>
       </div>
+
+      <!-- Accounts-Payable / Outstanding summary -->
+      <div class="soa-ap-summary" id="soa-ap-summary"></div>
 
       <!-- MSC entity tabs -->
       <div class="soa-entity-tabs" id="soa-entity-tabs"></div>
@@ -14410,7 +14430,94 @@ function renderSOAEntityTabs() {
   });
 }
 
+/* ─── Accounts-Payable / Outstanding (computed from real invoices + credit memos) ─── */
+function _apInvoiceDue(inv) {
+  const due = (typeof calcInvoiceDueDate === "function") ? calcInvoiceDueDate(inv) : (inv.invoiceDate || "");
+  if (!due) return { due: "", days: null, overdue: false, dueSoon: false };
+  const dueT = new Date(due + "T00:00:00").getTime();
+  const todayT = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00").getTime();
+  const days = Math.round((dueT - todayT) / 86400000);
+  const paid = inv.status === "paid";
+  return { due, days, overdue: !paid && days < 0, dueSoon: !paid && days >= 0 && days <= 7 };
+}
+
+let _apReminderFired = false;
+function _apOverdueReminderOnce(count, amt) {
+  if (_apReminderFired || !count) return;
+  _apReminderFired = true;
+  if (typeof addNotification === "function") {
+    addNotification("billing", count + " invoice(s) overdue",
+      "Overdue total $" + Math.round(amt).toLocaleString() + " — review Statement of Account");
+  }
+}
+
+function renderAPSummary() {
+  const root = document.getElementById("soa-ap-summary");
+  if (!root) return;
+  while (root.firstChild) root.removeChild(root.firstChild);
+  const entities = (typeof getSOAEntities === "function") ? getSOAEntities() : [];
+  let gInvoiced = 0, gCredits = 0, gPaid = 0, gOutstanding = 0, gOverdue = 0, gOverdueAmt = 0, gDueSoon = 0;
+  const cards = [];
+  entities.forEach(entity => {
+    const invs = INVOICES.filter(i => i.billTo === entity);
+    let invoiced = 0, paid = 0, outstanding = 0, overdue = 0, overdueAmt = 0, dueSoon = 0;
+    invs.forEach(i => {
+      const total = (typeof calcInvoiceTotals === "function") ? calcInvoiceTotals(i).total : 0;
+      invoiced += total;
+      if (i.status === "paid") { paid += total; }
+      else {
+        outstanding += total;
+        const d = _apInvoiceDue(i);
+        if (d.overdue) { overdue++; overdueAmt += total; }
+        else if (d.dueSoon) { dueSoon++; }
+      }
+    });
+    let credits = 0;
+    CREDIT_MEMOS.forEach(cm => {
+      const inv = INVOICES.find(i => i.id === cm.appliedToInvoiceId);
+      if (inv && inv.billTo === entity) {
+        credits += cm.amount;
+        if (inv.status !== "paid") outstanding -= cm.amount;
+      }
+    });
+    gInvoiced += invoiced; gCredits += credits; gPaid += paid; gOutstanding += outstanding;
+    gOverdue += overdue; gOverdueAmt += overdueAmt; gDueSoon += dueSoon;
+    cards.push({ entity, outstanding, overdue, dueSoon });
+  });
+
+  const strip = el("div", { class: "ap-strip" });
+  const stat = (label, val, cls) => {
+    const d = el("div", { class: "ap-stat" });
+    d.appendChild(el("div", { class: "ap-stat__label", text: label }));
+    d.appendChild(el("div", { class: "ap-stat__value" + (cls ? " " + cls : ""), text: val }));
+    return d;
+  };
+  strip.appendChild(stat("Outstanding (all)", "$" + Math.round(gOutstanding).toLocaleString(), "ap-warn"));
+  strip.appendChild(stat("Overdue", gOverdue + (gOverdueAmt ? " · $" + Math.round(gOverdueAmt).toLocaleString() : ""), gOverdue ? "ap-crit" : ""));
+  strip.appendChild(stat("Due in 7 days", String(gDueSoon), gDueSoon ? "ap-warn" : ""));
+  strip.appendChild(stat("Total invoiced", "$" + Math.round(gInvoiced).toLocaleString()));
+  strip.appendChild(stat("Paid", "$" + Math.round(gPaid).toLocaleString(), "ap-ok"));
+  root.appendChild(strip);
+
+  const grid = el("div", { class: "ap-cards" });
+  cards.forEach(c => {
+    const card = el("div", { class: "ap-card" });
+    card.appendChild(el("div", { class: "ap-card__entity", text: c.entity }));
+    card.appendChild(el("div", { class: "ap-card__out", text: "$" + Math.round(c.outstanding).toLocaleString() + " outstanding" }));
+    const badges = el("div", { class: "ap-card__badges" });
+    if (c.overdue) badges.appendChild(el("span", { class: "ap-badge ap-badge--crit", text: c.overdue + " overdue" }));
+    if (c.dueSoon) badges.appendChild(el("span", { class: "ap-badge ap-badge--warn", text: c.dueSoon + " due soon" }));
+    if (!c.overdue && !c.dueSoon) badges.appendChild(el("span", { class: "ap-badge ap-badge--ok", text: "on track" }));
+    card.appendChild(badges);
+    grid.appendChild(card);
+  });
+  root.appendChild(grid);
+
+  _apOverdueReminderOnce(gOverdue, gOverdueAmt);
+}
+
 function renderSOA() {
+  renderAPSummary();
   renderSOAEntityTabs();
 
   const tbody = document.getElementById("soa-tbody");
@@ -14446,11 +14553,16 @@ function renderSOA() {
       tr.appendChild(el("td", { class: "mono", text: due }));
       tr.appendChild(el("td", { text: (line.inv.notes || "").slice(0, 60) + ((line.inv.notes || "").length > 60 ? "…" : "") }));
       tr.appendChild(el("td", { class: "num" }, [el("span", { class: "soa-amount-positive", text: "$" + line.total.toFixed(2) })]));
-      tr.appendChild(el("td", {}, [
-        line.inv.status === "paid"
-          ? el("span", { class: "soa-paid-tag", text: "PAID" })
-          : el("span", { class: "soa-open-tag", text: INVC_STATUS_LABELS[line.inv.status] || line.inv.status })
-      ]));
+      const stTd = el("td", {});
+      if (line.inv.status === "paid") {
+        stTd.appendChild(el("span", { class: "soa-paid-tag", text: "PAID" }));
+      } else {
+        stTd.appendChild(el("span", { class: "soa-open-tag", text: INVC_STATUS_LABELS[line.inv.status] || line.inv.status }));
+        const d = _apInvoiceDue(line.inv);
+        if (d.overdue) stTd.appendChild(el("span", { class: "ap-badge ap-badge--crit", style: "margin-left:6px;", text: "OVERDUE" }));
+        else if (d.dueSoon) stTd.appendChild(el("span", { class: "ap-badge ap-badge--warn", style: "margin-left:6px;", text: "DUE SOON" }));
+      }
+      tr.appendChild(stTd);
 
       if (line.inv.status === "paid") {
         // No effect on outstanding balance
