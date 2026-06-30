@@ -10893,7 +10893,23 @@ function setupLoadingLists() {
   if (previewClose) previewClose.addEventListener("click", closeLLPreview);
 
   const previewPrint = document.getElementById("ll-preview-print");
-  if (previewPrint) previewPrint.addEventListener("click", () => window.print());
+  if (previewPrint) previewPrint.addEventListener("click", async () => {
+    // Primary: server-generated PDF for the active doc tab. Fallback: browser print.
+    const overlay = document.getElementById("ll-preview-overlay");
+    const idx = parseInt(overlay.dataset.idx, 10);
+    const ll = LOADING_LISTS[idx];
+    const bid = ll && ll.backendId;
+    if (!bid || !window.FT_API) { window.print(); return; }
+    try {
+      const resp = await window.fetchAuthed("/api/shipments/" + bid + "/pdf?doc=" + LL_PREVIEW_DOC_TAB);
+      if (!resp.ok) { window.print(); return; }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = LL_PREVIEW_DOC_TAB + "-" + (ll.id || bid) + ".pdf"; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { window.print(); }
+  });
 
   // Doc type tabs (3 documents per shipment per Andrés 6/10)
   document.querySelectorAll(".ll-doc-tab").forEach(t => {

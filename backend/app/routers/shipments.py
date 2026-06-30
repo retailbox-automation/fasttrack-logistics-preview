@@ -13,6 +13,7 @@ TODO: validate the Loading List document layout against MSC's official LL
 template once the client sends it (ops manual §4.4 used meanwhile).
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -21,6 +22,7 @@ from app.schemas import ShipmentCreate, ShipmentUpdate, ShipmentOut, ShipmentBul
 from app.auth import require_auth, require_roles
 from app.audit import log_audit
 from app.events import broadcast
+from app import pdf_docs
 
 router = APIRouter(prefix="/api/shipments", tags=["shipments"])
 
@@ -71,6 +73,24 @@ def get_shipment(ll_id: int, db: Session = Depends(get_db)):
     if not ll:
         raise HTTPException(status_code=404, detail="Loading list not found")
     return ll
+
+
+@router.get("/{ll_id}/pdf", dependencies=[Depends(require_auth)])
+def shipment_pdf(ll_id: int, doc: str = "ll", db: Session = Depends(get_db)):
+    """Server-generated PDF of a dispatch document (doc = ll | cr | do)."""
+    ll = db.get(LoadingList, ll_id)
+    if not ll:
+        raise HTTPException(status_code=404, detail="Loading list not found")
+    key = (doc or "ll").lower()
+    gen = pdf_docs.GENERATORS.get(key)
+    if not gen:
+        raise HTTPException(status_code=400, detail="doc must be one of: ll, cr, do")
+    ids = (ll.meta or {}).get("inv_backend_ids", []) or []
+    items = db.query(InventoryItem).filter(InventoryItem.id.in_(ids)).all() if ids else []
+    pdf_bytes = gen(ll, items)
+    fname = f"{pdf_docs.FILENAMES[key]}-{ll.public_id}.pdf"
+    return StreamingResponse(iter([pdf_bytes]), media_type="application/pdf",
+                             headers={"Content-Disposition": f'inline; filename="{fname}"'})
 
 
 @router.post("", response_model=ShipmentOut)
