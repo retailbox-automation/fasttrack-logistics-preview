@@ -60,6 +60,7 @@ class UserOut(BaseModel):
     email: str
     name: str
     role: str
+    must_change_password: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -92,6 +93,7 @@ def _issue_token(user_claims: dict) -> TokenOut:
             "email": user_claims.get("email"),
             "name": user_claims.get("name"),
             "role": user_claims.get("role"),
+            "must_change_password": user_claims.get("must_change_password", False),
         },
     )
 
@@ -99,17 +101,9 @@ def _issue_token(user_claims: dict) -> TokenOut:
 @router.post("/login", response_model=TokenOut)
 @limiter.limit("8/minute")
 def login(request: Request, payload: LoginIn, db: Session = Depends(get_db)):
-    # Legacy mode: password-only matches AUTH_PASSWORD → issue viewer token
+    # Personal accounts only — legacy shared-password login removed (decided 2026-06-27).
     if not payload.email:
-        if payload.password != settings.auth_password:
-            raise HTTPException(status_code=401, detail="Invalid password")
-        return _issue_token({
-            "sub": "legacy",
-            "user_id": None,
-            "email": None,
-            "name": "Shared Access",
-            "role": "viewer",
-        })
+        raise HTTPException(status_code=400, detail="Email and password required — sign in with your own account")
 
     user = db.query(User).filter(User.email == payload.email.lower(), User.is_active == True).first()
     if not user or not verify_password(payload.password, user.password_hash):
@@ -125,14 +119,15 @@ def login(request: Request, payload: LoginIn, db: Session = Depends(get_db)):
         "email": user.email,
         "name": user.name,
         "role": user.role,
+        "must_change_password": user.must_change_password,
     })
 
 
 @router.get("/me", response_model=UserOut)
 def me(claims: dict = Depends(lambda creds=Depends(security): _decode(creds)), db: Session = Depends(get_db)):
     if not claims.get("user_id"):
-        # Legacy viewer
-        return UserOut(id=0, email="shared@fasttrackgroup.us", name=claims.get("name", "Shared"), role="viewer")
+        # Stale legacy token (shared login removed) — treat as viewer, no identity
+        return UserOut(id=0, email="shared@fasttrackgroup.us", name=claims.get("name", "Shared"), role="viewer", must_change_password=False)
     user = db.get(User, claims["user_id"])
     if not user:
         raise HTTPException(status_code=401, detail="User no longer exists")
@@ -193,5 +188,6 @@ def change_password(payload: PasswordChangeIn, claims: dict = Depends(require_au
     if len(payload.new_password) < 8:
         raise HTTPException(status_code=400, detail="New password must be at least 8 chars")
     user.password_hash = hash_password(payload.new_password)
+    user.must_change_password = False
     db.commit()
     log.info("password_changed", extra={"user_id": user.id})

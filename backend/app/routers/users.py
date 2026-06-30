@@ -20,6 +20,7 @@ class UserOut(BaseModel):
     name: str
     role: str
     is_active: bool
+    must_change_password: bool = False
     last_login: Optional[datetime] = None
     created_at: datetime
     model_config = {"from_attributes": True}
@@ -59,6 +60,7 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db), claims: dict
         role=payload.role,
         password_hash=hash_password(payload.password),
         is_active=True,
+        must_change_password=True,  # admin sets a temp password; user must change on first login
     )
     db.add(u)
     db.commit()
@@ -83,7 +85,9 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     if payload.is_active is not None and payload.is_active != u.is_active:
         u.is_active = payload.is_active; changes.append(f"is_active→{payload.is_active}")
     if payload.password:
-        u.password_hash = hash_password(payload.password); changes.append("password")
+        u.password_hash = hash_password(payload.password)
+        u.must_change_password = True  # admin reset → user must change on next login
+        changes.append("password (reset, must-change)")
     db.commit()
     db.refresh(u)
     log_audit(db, claims, "update", "user", entity_id=str(u.id), summary=f"Updated {u.email}: " + ", ".join(changes))

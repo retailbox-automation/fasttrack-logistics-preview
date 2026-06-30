@@ -3333,12 +3333,12 @@ body.layout-list .pagination { display: none; }
     <h1>Sign in</h1>
     <p class="gate-sub">Internal logistics control center. Restricted access.</p>
     <label for="auth-gate-email">Email</label>
-    <input id="auth-gate-email" type="email" placeholder="your.name@fasttrackgroup.us" autocomplete="username" autofocus style="margin-bottom:14px;">
+    <input id="auth-gate-email" type="email" placeholder="your.name@fasttrackgroup.us" autocomplete="username" autofocus required style="margin-bottom:14px;">
     <label for="auth-gate-password">Password</label>
     <input id="auth-gate-password" type="password" autocomplete="current-password" required>
     <div class="gate-err" id="auth-gate-err"></div>
     <button type="submit" class="gate-submit" id="auth-gate-submit">Sign in</button>
-    <div class="gate-footer">FT MSC operations · Leave email blank to use legacy shared password.</div>
+    <div class="gate-footer">FT MSC operations · Sign in with your Fast Track account.</div>
   </form>
 </div>
 
@@ -3428,6 +3428,51 @@ body.layout-list .pagination { display: none; }
     input.focus();
   }
 
+  // Forced password change on first login (must_change_password). Blocks app until set.
+  function showForcedChange(currentPw) {
+    let ov = document.getElementById('ft-force-pw');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'ft-force-pw';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(8,12,22,.97);display:flex;align-items:center;justify-content:center;';
+      ov.innerHTML = '<form class="gate-card" id="ft-fpw-form" autocomplete="off">'
+        + '<h1>Set your password</h1>'
+        + '<p class="gate-sub">First sign-in — choose your own password to continue.</p>'
+        + '<label for="ft-fpw-new">New password</label><input id="ft-fpw-new" type="password" minlength="8" autocomplete="new-password" required style="margin-bottom:14px;">'
+        + '<label for="ft-fpw-confirm">Confirm password</label><input id="ft-fpw-confirm" type="password" minlength="8" autocomplete="new-password" required>'
+        + '<div class="gate-err" id="ft-fpw-err"></div>'
+        + '<button type="submit" class="gate-submit">Save and continue</button></form>';
+      document.body.appendChild(ov);
+    }
+    ov.style.display = 'flex';
+    gate.classList.add('hidden');
+    const f = document.getElementById('ft-fpw-form');
+    const err = document.getElementById('ft-fpw-err');
+    f.onsubmit = async function(e) {
+      e.preventDefault();
+      err.textContent = '';
+      const np = document.getElementById('ft-fpw-new').value;
+      const cf = document.getElementById('ft-fpw-confirm').value;
+      if (np.length < 8) { err.textContent = 'At least 8 characters.'; return; }
+      if (np !== cf) { err.textContent = 'Passwords do not match.'; return; }
+      try {
+        const resp = await fetch(window.FT_API_BASE + '/api/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+          body: JSON.stringify({ current_password: currentPw, new_password: np }),
+        });
+        if (resp.ok || resp.status === 204) {
+          try { const u = JSON.parse(localStorage.getItem(USER_KEY) || 'null'); if (u) { u.must_change_password = false; localStorage.setItem(USER_KEY, JSON.stringify(u)); } } catch (e2) {}
+          ov.style.display = 'none';
+          unlock();
+        } else {
+          err.textContent = (await resp.text()) || ('Error ' + resp.status);
+        }
+      } catch (e2) { err.textContent = 'Cannot reach backend: ' + e2.message; }
+    };
+    const ni = document.getElementById('ft-fpw-new'); if (ni) ni.focus();
+  }
+
   // Expose current user to rest of app
   window.ftCurrentUser = function() {
     try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch (e) { return null; }
@@ -3466,18 +3511,18 @@ body.layout-list .pagination { display: none; }
     hideError();
     const email = (emailInput.value || '').trim().toLowerCase();
     const password = input.value;
+    if (!email) { showError('Enter your email'); return; }
     if (!password) { showError('Enter your password'); return; }
     submitBtn.disabled = true;
     submitBtn.textContent = 'Signing in…';
     try {
-      const body = email ? { email, password } : { password };
       const resp = await fetch(window.FT_API_BASE + '/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ email, password }),
       });
       if (resp.status === 401) {
-        showError(email ? 'Invalid email or password.' : 'Wrong password.');
+        showError('Invalid email or password.');
       } else if (resp.status === 429) {
         showError('Too many attempts. Wait a minute and try again.');
       } else if (!resp.ok) {
@@ -3486,7 +3531,11 @@ body.layout-list .pagination { display: none; }
         const data = await resp.json();
         setToken(data.access_token);
         if (data.user) localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-        unlock();
+        if (data.user && data.user.must_change_password) {
+          showForcedChange(password);
+        } else {
+          unlock();
+        }
       }
     } catch (err) {
       showError('Cannot reach backend: ' + err.message);

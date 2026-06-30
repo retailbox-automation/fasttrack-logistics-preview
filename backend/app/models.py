@@ -175,6 +175,7 @@ class User(Base):
     # Roles: admin (Andrés/Sultan), manager (Gabriela/Luis), ops (Andrea/Yamisley),
     #        viewer (read-only). Permission gates check this.
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)  # force change on first login
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 

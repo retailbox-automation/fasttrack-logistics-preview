@@ -44,6 +44,7 @@ def init_db():
         ("email_messages", "body_content", "TEXT"),
         ("loading_lists", "meta", "JSONB"),
         ("loading_lists", "totals", "JSONB"),
+        ("users", "must_change_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
     ]
     with engine.begin() as conn:
         for tbl, col, defn in add_column_if_missing:
