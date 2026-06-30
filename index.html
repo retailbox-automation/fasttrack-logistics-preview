@@ -3686,6 +3686,9 @@ body.layout-list .pagination { display: none; }
       report: (qs) => fetchJSON('/api/time/report' + (qs || '')),
       correct: (id, patch) => fetchJSON('/api/time/entries/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
     },
+    // Reference/lookup data (vessels/ports/departments/service_codes). Dropdowns can
+    // adopt this with their hardcoded list as fallback — not rewired yet (low-risk).
+    reference: (kind) => fetchJSON('/api/reference/' + encodeURIComponent(kind)),
     docs: {
       // list returns body + ETag (server version), stored in window._ftDocVersions[kind]
       list: async (kind) => {

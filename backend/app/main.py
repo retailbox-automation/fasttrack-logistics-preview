@@ -29,10 +29,12 @@ from app.routers import sse as sse_router
 from app.routers import emails as emails_router
 from app.routers import timetracking as time_router
 from app.routers import shipments as shipments_router
+from app.routers import reference as reference_router
 from app.schemas import HealthOut
 from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
 from app import graph, email_ingest
+from app.reference_seed import seed_reference_if_empty
 
 
 # ── Structured JSON logging (per-request id, latency) ──
@@ -120,6 +122,7 @@ async def lifespan(app: FastAPI):
         init_db()
         log.info("db_init_ok")
         seed_users_if_empty()
+        seed_reference_if_empty()
     except Exception as e:
         log.exception("db_init_failed: %s", e)
     sync_task = asyncio.create_task(_auto_sync_loop())
@@ -231,6 +234,7 @@ app.include_router(sse_router.router)
 app.include_router(emails_router.router)
 app.include_router(time_router.router)
 app.include_router(shipments_router.router)
+app.include_router(reference_router.router)
 
 
 # Serve frontend index.html bundled into the image

@@ -261,3 +261,20 @@ class AuditLog(Base):
     payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     ip: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ReferenceItem(Base):
+    """Reference / lookup data — single source of truth for dropdowns + validation.
+
+    kind ∈ {vessel, port, department, service_code}. Seeded idempotently from the
+    canonical values that already live in the prototype + knowledge docs."""
+    __tablename__ = "reference_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    code: Mapped[str] = mapped_column(String(64), index=True)
+    name: Mapped[str] = mapped_column(String(256))
+    meta: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
