@@ -3653,6 +3653,13 @@ body.layout-list .pagination { display: none; }
         return fetchJSON('/api/audit' + q);
       },
     },
+    shipments: {
+      list: () => fetchJSON('/api/shipments'),
+      create: (s) => fetchJSON('/api/shipments', { method: 'POST', body: JSON.stringify(s) }),
+      update: (id, patch) => fetchJSON('/api/shipments/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
+      remove: (id) => fetchJSON('/api/shipments/' + id, { method: 'DELETE' }),
+      replaceAll: (items) => fetchJSON('/api/shipments/bulk', { method: 'PUT', body: JSON.stringify({ items }) }),
+    },
     fromBackend, toBackend,
   };
 
@@ -10121,6 +10128,62 @@ function estimateItemWeight(item) {
   return (item.pieces || 1) * 14; // Boxes
 }
 
+/* ── Stage 1.4: typed-backend bridge for loading lists (/api/shipments) ──
+   Preserves the LOADING_LISTS array shape exactly (SDR/invoices/discrepancy/
+   barcoding read it unchanged); only persistence moves to the typed table. */
+function shipmentLLToBackend(ll) {
+  const invIds = (ll.itemIdxs || [])
+    .map(i => (typeof INVENTORY !== "undefined" && INVENTORY[i] && INVENTORY[i].backendId))
+    .filter(v => v != null);
+  return {
+    public_id: ll.id,
+    vessel: ll.vessel || "", truck: ll.truck || "", seal: ll.seal || null,
+    driver: ll.driver || null, port: ll.port || "",
+    departure: ll.departure || null, cruise: ll.cruise || null,
+    status: ll.status || "draft", po_number: ll.poNumber || null,
+    invoice_number: ll.invoiceNumber || null,
+    vendor: ll.vendor || "FAST TRACK WORLDWIDE LOGISTIC",
+    customs_docs: ll.customsDocs || null, notes: ll.notes || null,
+    item_ids: ll.itemIdxs || [], cross_dock_item_ids: ll.crossDockItemIdxs || [],
+    truck_dimensions: ll.truckDimensions || null,
+    delivery_address: ll.deliveryAddress || null, created_by: ll.createdBy || null,
+    meta: { createdAt: ll.createdAt || null, inv_backend_ids: invIds },
+    inventory_item_ids: invIds,
+  };
+}
+function shipmentBackendToLL(row) {
+  const m = row.meta || {};
+  return {
+    id: row.public_id, backendId: row.id,
+    vessel: row.vessel || "", truck: row.truck || "", seal: row.seal || "",
+    driver: row.driver || "", port: row.port || "",
+    departure: row.departure || "", cruise: row.cruise || "",
+    createdBy: row.created_by || "",
+    createdAt: m.createdAt || (row.created_at ? String(row.created_at).slice(0, 16).replace("T", " ") : ""),
+    status: row.status || "draft", itemIdxs: row.item_ids || [],
+    poNumber: row.po_number || "", invoiceNumber: row.invoice_number || "",
+    vendor: row.vendor || "FAST TRACK WORLDWIDE LOGISTIC",
+    customsDocs: row.customs_docs || "", notes: row.notes || "",
+    crossDockItemIdxs: row.cross_dock_item_ids || [],
+    truckDimensions: row.truck_dimensions || { length: 53, width: 8.5, height: 9, unit: "ft" },
+    deliveryAddress: row.delivery_address || "", serverTotals: row.totals || null,
+  };
+}
+function saveLoadingLists() {
+  if (window.FT_API && window.FT_API.shipments) {
+    return window.FT_API.shipments.replaceAll(LOADING_LISTS.map(shipmentLLToBackend))
+      .then(rows => {
+        if (Array.isArray(rows)) rows.forEach(r => {
+          const ll = LOADING_LISTS.find(l => l.id === r.public_id);
+          if (ll) { ll.backendId = r.id; ll.serverTotals = r.totals; }
+        });
+      })
+      .catch(err => { if (window.ftToast) ftToast("Loading lists not saved: " + err.message, "warn"); });
+  }
+  if (typeof persistDocs === "function") persistDocs("loading_lists", () => LOADING_LISTS);
+  return Promise.resolve();
+}
+
 function aggregateLL(ll) {
   const items = ll.itemIdxs.map(i => INVENTORY[i]).filter(Boolean);
   const pallets = items.filter(i => i.packageUnit === "Pallet").reduce((s, i) => s + (i.pieces || 0), 0);
@@ -10367,7 +10430,7 @@ function generateLoadingList() {
     deliveryAddress: meta.vessel + " · " + meta.port + " (address pending)",
   };
   LOADING_LISTS.unshift(newLL);
-  persistDocs('loading_lists', () => LOADING_LISTS);
+  saveLoadingLists();
   closeLLBuilder();
   renderLoadingLists();
   // Open preview right away — user sees the document immediately
@@ -10847,7 +10910,7 @@ function setupLoadingLists() {
     if (!isNaN(idx) && LOADING_LISTS[idx]) {
       if (LOADING_LISTS[idx].status === "draft") {
         LOADING_LISTS[idx].status = "dispatched";
-        persistDocs('loading_lists', () => LOADING_LISTS);
+        saveLoadingLists();
       }
       renderLoadingLists();
       alert("Loading List " + LOADING_LISTS[idx].id + " sent to MSC.\n\n(Phase 2: routes to MSC's CrunchTime + INFOSHIP automatically.)");
@@ -14552,9 +14615,17 @@ setInterval(tickClock, 1000);
         return null;
       }));
     }
+    // Loading lists use a dedicated typed endpoint (/api/shipments), like inventory
+    if (window.FT_API.shipments && typeof shipmentBackendToLL === 'function') {
+      tasks.push(window.FT_API.shipments.list().then(rows => {
+        if (!Array.isArray(rows) || rows.length === 0) return null;
+        LOADING_LISTS.splice(0, LOADING_LISTS.length, ...rows.map(shipmentBackendToLL));
+        try { if (typeof renderLoadingLists === 'function') renderLoadingLists(); } catch(e) {}
+        return rows.length;
+      }).catch(err => { ftToast('Could not load loading lists: ' + err.message); return null; }));
+    }
     // Generic docs for the rest — each module's frontend uses these globals
     const generic = [
-      ['LOADING_LISTS', 'loading_lists', () => typeof renderLoadingLists === 'function' && renderLoadingLists()],
       ['SDRS',          'sdrs',          () => typeof renderSDRs === 'function' && renderSDRs()],
       ['INVOICES',      'invoices',      () => typeof renderInvoices === 'function' && renderInvoices()],
       ['CREDIT_MEMOS',  'credit_memos',  () => typeof renderCreditMemos === 'function' && renderCreditMemos()],

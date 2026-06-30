@@ -42,6 +42,8 @@ def init_db():
     add_column_if_missing = [
         ("documents", "version", "INTEGER NOT NULL DEFAULT 1"),
         ("email_messages", "body_content", "TEXT"),
+        ("loading_lists", "meta", "JSONB"),
+        ("loading_lists", "totals", "JSONB"),
     ]
     with engine.begin() as conn:
         for tbl, col, defn in add_column_if_missing:

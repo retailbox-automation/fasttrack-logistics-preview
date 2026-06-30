@@ -111,6 +111,59 @@ class TimeEntryUpdate(BaseModel):
     note: Optional[str] = None
 
 
+class ShipmentBase(BaseModel):
+    public_id: str
+    vessel: str = ""
+    truck: str = ""
+    seal: Optional[str] = None
+    driver: Optional[str] = None
+    port: str = ""
+    departure: Optional[date] = None
+    cruise: Optional[str] = None
+    status: str = "draft"
+    po_number: Optional[str] = None
+    invoice_number: Optional[str] = None
+    vendor: str = "FAST TRACK WORLDWIDE LOGISTIC"
+    customs_docs: Optional[str] = None
+    notes: Optional[str] = None
+    item_ids: list = []                 # frontend inventory array indexes (round-tripped)
+    cross_dock_item_ids: list = []
+    truck_dimensions: Optional[dict] = None
+    delivery_address: Optional[str] = None
+    created_by: Optional[str] = None
+    meta: Optional[dict] = None          # {createdAt, inv_backend_ids}
+
+
+class ShipmentCreate(ShipmentBase):
+    inventory_item_ids: list = []        # real inventory backend ids → server totals + marking
+
+
+class ShipmentUpdate(BaseModel):
+    vessel: Optional[str] = None
+    truck: Optional[str] = None
+    seal: Optional[str] = None
+    driver: Optional[str] = None
+    port: Optional[str] = None
+    departure: Optional[date] = None
+    cruise: Optional[str] = None
+    status: Optional[str] = None
+    po_number: Optional[str] = None
+    invoice_number: Optional[str] = None
+    customs_docs: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ShipmentOut(ShipmentBase):
+    id: int
+    totals: Optional[dict] = None
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShipmentBulk(BaseModel):
+    items: list[ShipmentCreate]
+
+
 class HealthOut(BaseModel):
     status: str
     db: str

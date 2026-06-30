@@ -58,6 +58,9 @@ class LoadingList(Base):
     delivery_address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    # Stage 1.4: round-trip extras (createdAt display string, inv backend ids) + server totals
+    meta: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    totals: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
 
 class ShipmentDetailReport(Base):
