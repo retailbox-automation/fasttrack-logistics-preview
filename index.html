@@ -3603,6 +3603,7 @@ body.layout-list .pagination { display: none; }
       active: () => fetchJSON('/api/time/active'),
       entries: (qs) => fetchJSON('/api/time/entries' + (qs || '')),
       report: (qs) => fetchJSON('/api/time/report' + (qs || '')),
+      correct: (id, patch) => fetchJSON('/api/time/entries/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
     },
     docs: {
       // list returns body + ETag (server version), stored in window._ftDocVersions[kind]
@@ -3943,6 +3944,7 @@ body.layout-list .pagination { display: none; }
             </button>
             <div class="mailbox-switcher__menu" id="mailbox-switcher-menu"></div>
           </div>
+          <input type="text" id="inbox-search" placeholder="Search mail…" autocomplete="off" style="padding:7px 11px;background:var(--bg-hover);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;width:170px;">
           <button class="btn btn--ghost" id="mailbox-sync-btn">⟳ Sync now</button>
           <button class="btn btn--ghost" id="mailbox-config-btn">Settings ▸</button>
           <button class="btn">Send daily digest</button>
@@ -8490,6 +8492,7 @@ const EMAILS = [
 
 let selectedEmailIdx = 0;
 let currentMailboxId = "a.palmisano";  // default starting mailbox (most comprehensive)
+let inboxSearch = "";  // live inbox search term (filters current mailbox)
 
 // Auto-send templates from master table — match to flag emails as auto-draft ready
 const AUTO_REPLY_TEMPLATES = [
@@ -8613,8 +8616,15 @@ setInterval(function () {
 }, 60000);
 
 function getFilteredEmails() {
+  const q = (inboxSearch || "").trim().toLowerCase();
   return EMAILS.map((e, origIdx) => ({ email: e, origIdx }))
-               .filter(x => x.email.mailbox === currentMailboxId);
+               .filter(x => x.email.mailbox === currentMailboxId)
+               .filter(x => !q || (
+                 (x.email.subject || "").toLowerCase().includes(q) ||
+                 (x.email.from || "").toLowerCase().includes(q) ||
+                 (x.email.fromEmail || "").toLowerCase().includes(q) ||
+                 (x.email.preview || "").toLowerCase().includes(q)
+               ));
 }
 
 function isAutoSendReady(email) {
@@ -8859,6 +8869,9 @@ function setupInbox() {
       }
     });
   }
+  // Live inbox search (filters current mailbox by subject/from/preview)
+  const searchInp = document.getElementById("inbox-search");
+  if (searchInp) searchInp.addEventListener("input", (e) => { inboxSearch = e.target.value; buildInboxList(); });
   // Sync now — pull fresh mail from Outlook (Graph) for the current mailbox
   const syncBtn = document.getElementById("mailbox-sync-btn");
   if (syncBtn) syncBtn.addEventListener("click", async () => {
@@ -9002,6 +9015,50 @@ async function _ttExportCsv() {
     URL.revokeObjectURL(url);
   } catch (e) { if (window.ftToast) ftToast("Export failed: " + e.message, "warn"); }
 }
+// Naive-UTC ISO → "YYYY-MM-DDTHH:mm" wall time in ET (for datetime-local input)
+function _ttToETInput(iso) {
+  if (!iso) return "";
+  const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + "Z");
+  if (isNaN(d)) return "";
+  const p = {};
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+    .formatToParts(d).forEach(x => { p[x.type] = x.value; });
+  const hh = p.hour === "24" ? "00" : p.hour;
+  return `${p.year}-${p.month}-${p.day}T${hh}:${p.minute}`;
+}
+// ET wall-time "YYYY-MM-DDTHH:mm" → UTC ISO (Z). tz-agnostic re: browser locale.
+function _ttETInputToUTC(local) {
+  if (!local) return null;
+  const want = new Date(local);                       // parsed as runtime-local
+  const inv = new Date(want.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const diff = want.getTime() - inv.getTime();         // runtime-local minus ET
+  return new Date(want.getTime() + diff).toISOString();
+}
+function _ttEditEntry(e) {
+  const host = document.getElementById("tt-edit-host");
+  if (!host) return;
+  while (host.firstChild) host.removeChild(host.firstChild);
+  const wrap = el("div", { class: "tt-card", style: "border-color:var(--accent);" });
+  wrap.appendChild(el("div", { class: "tt-section-title", text: "Correct entry · " + e.user_name }));
+  const ci = el("input", { type: "datetime-local", value: _ttToETInput(e.clock_in_at), style: "margin:4px 8px 4px 0;background:#1a2c44;color:#fff;border:1px solid var(--border);border-radius:4px;padding:5px 7px;font-size:12px;" });
+  const co = el("input", { type: "datetime-local", value: e.clock_out_at ? _ttToETInput(e.clock_out_at) : "", style: "margin:4px 8px 4px 0;background:#1a2c44;color:#fff;border:1px solid var(--border);border-radius:4px;padding:5px 7px;font-size:12px;" });
+  const note = el("input", { type: "text", value: e.note || "", placeholder: "note (optional)", style: "margin:4px 8px 4px 0;background:#1a2c44;color:#fff;border:1px solid var(--border);border-radius:4px;padding:5px 7px;font-size:12px;width:220px;" });
+  wrap.appendChild(el("div", {}, [el("label", { text: "Clock in (ET) ", style: "font-size:11px;color:var(--text-dim);" }), ci]));
+  wrap.appendChild(el("div", {}, [el("label", { text: "Clock out (ET) ", style: "font-size:11px;color:var(--text-dim);" }), co]));
+  wrap.appendChild(el("div", {}, [note]));
+  const save = el("button", { class: "tt-btn tt-btn--in", style: "padding:7px 16px;font-size:12px;margin:8px 8px 0 0;", text: "Save" });
+  const cancel = el("button", { class: "tt-btn", style: "padding:7px 16px;font-size:12px;margin-top:8px;background:var(--bg-hover);color:var(--text);", text: "Cancel" });
+  save.addEventListener("click", async () => {
+    save.disabled = true;
+    const patch = { clock_in_at: _ttETInputToUTC(ci.value), clock_out_at: co.value ? _ttETInputToUTC(co.value) : null, note: note.value };
+    try { await window.FT_API.time.correct(e.id, patch); if (window.ftToast) ftToast("Entry corrected", "ok"); renderTimeTracking(); }
+    catch (err) { save.disabled = false; if (window.ftToast) ftToast("Correction failed: " + err.message, "warn"); }
+  });
+  cancel.addEventListener("click", () => { while (host.firstChild) host.removeChild(host.firstChild); });
+  wrap.appendChild(el("div", {}, [save, cancel]));
+  host.appendChild(wrap);
+  host.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
 async function renderTimeTracking() {
   const selfEl = document.getElementById("tt-self");
   const mgrEl = document.getElementById("tt-manager");
@@ -9057,15 +9114,27 @@ async function renderTimeTracking() {
   totCard.appendChild(tbl);
   mgrEl.appendChild(totCard);
 
+  const canCorrect = (typeof ftCan === "function") ? ftCan("correct_time") : true;
   const recCard = el("div", { class: "tt-card" });
   recCard.appendChild(el("div", { class: "tt-section-title", text: "Recent entries" }));
   const rt = el("table", { class: "tt-table" });
-  rt.appendChild(el("tr", {}, [el("th", { text: "Employee" }), el("th", { text: "Clock in" }), el("th", { text: "Clock out" }), el("th", { text: "Duration" })]));
-  entries.slice(0, 30).forEach(e => rt.appendChild(el("tr", {}, [
-    el("td", { text: e.user_name }), el("td", { text: _ttFmt(e.clock_in_at) }),
-    el("td", { text: e.clock_out_at ? _ttFmt(e.clock_out_at) : "— open" }), el("td", { text: _ttDur(e.duration_minutes) }),
-  ])));
+  const headCells = [el("th", { text: "Employee" }), el("th", { text: "Clock in" }), el("th", { text: "Clock out" }), el("th", { text: "Duration" })];
+  if (canCorrect) headCells.push(el("th", { text: "" }));
+  rt.appendChild(el("tr", {}, headCells));
+  entries.slice(0, 30).forEach(e => {
+    const cells = [
+      el("td", { text: e.user_name }), el("td", { text: _ttFmt(e.clock_in_at) }),
+      el("td", { text: e.clock_out_at ? _ttFmt(e.clock_out_at) : "— open" }), el("td", { text: _ttDur(e.duration_minutes) }),
+    ];
+    if (canCorrect) {
+      const editBtn = el("button", { class: "tt-btn", style: "padding:3px 10px;font-size:11px;background:var(--bg-hover);color:#93c5fd;", text: "Edit" });
+      editBtn.addEventListener("click", () => _ttEditEntry(e));
+      cells.push(el("td", {}, [editBtn]));
+    }
+    rt.appendChild(el("tr", {}, cells));
+  });
   recCard.appendChild(rt);
+  if (canCorrect) recCard.appendChild(el("div", { id: "tt-edit-host", style: "margin-top:12px;" }));
   mgrEl.appendChild(recCard);
 }
 
