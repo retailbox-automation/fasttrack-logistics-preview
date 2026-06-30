@@ -35,6 +35,7 @@ class UserCreate(BaseModel):
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
+    email: Optional[EmailStr] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
@@ -77,6 +78,12 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     changes = []
     if payload.name is not None and payload.name != u.name:
         u.name = payload.name; changes.append("name")
+    if payload.email is not None:
+        new_email = payload.email.lower()
+        if new_email != u.email:
+            if db.query(User).filter(User.email == new_email, User.id != u.id).first():
+                raise HTTPException(status_code=400, detail="Email already in use")
+            u.email = new_email; changes.append(f"email→{new_email}")
     if payload.role is not None:
         if payload.role not in ROLES:
             raise HTTPException(status_code=400, detail=f"Role must be one of {sorted(ROLES)}")
