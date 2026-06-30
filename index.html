@@ -707,6 +707,21 @@ body.view-inbox .pagination { display: none; }
 }
 
 /* ═══ TIME TRACKING view ═══ */
+.weekly-report-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-weekly_report .weekly-report-view { display: block; }
+body.view-weekly_report .dashboard { display: none; }
+body.view-weekly_report .pagination { display: none; }
+.wr-card { background: rgba(10,15,28,0.4); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin-bottom: 16px; }
+.wr-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 12px; }
+.wr-stat__label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
+.wr-stat__value { font-size: 22px; font-weight: 700; margin-top: 4px; color: var(--text); }
+.wr-table { width:100%; border-collapse: collapse; font-size:12px; margin-top:10px; }
+.wr-table th, .wr-table td { border-bottom:1px solid var(--border); padding:7px 10px; text-align:left; }
+.wr-table th { color: var(--text-dim); font-size:11px; text-transform:uppercase; }
+.wr-section-title { font-size:12px; text-transform:uppercase; color:var(--text-dim); letter-spacing:.05em; font-weight:600; margin-bottom:6px; }
+.wr-pending { font-size:12px; color:var(--text-dim); font-style:italic; }
+@media print { .sidebar, .header, #ft-sync-pill, #ft-mobile-sidebar-toggle, .wr-noprint { display:none !important; } body.view-weekly_report .weekly-report-view { padding:0; } }
+
 .timetracking-view { overflow-y: auto; padding: 28px 32px; display: none; }
 body.view-timetracking .timetracking-view { display: block; }
 body.view-timetracking .dashboard { display: none; }
@@ -4050,6 +4065,23 @@ body.layout-list .pagination { display: none; }
       <div id="tt-manager"></div>
     </section>
 
+    <section class="weekly-report-view" id="weekly-report-view">
+      <div class="dashboard__header">
+        <div class="dashboard__title-block">
+          <div class="dashboard__crumb">Operations · weekly summary</div>
+          <div class="dashboard__title"><h1>Weekly Report</h1></div>
+        </div>
+        <div class="dashboard__actions wr-noprint">
+          <button class="btn btn--ghost" id="wr-prev">‹ Prev</button>
+          <input type="date" id="wr-week" style="padding:6px 10px;background:var(--bg-hover);border:1px solid var(--border);border-radius:6px;color:var(--text);font:inherit;">
+          <button class="btn btn--ghost" id="wr-next">Next ›</button>
+          <button class="btn btn--ghost" id="wr-export">↓ CSV</button>
+          <button class="btn btn--ghost" id="wr-print">Print</button>
+        </div>
+      </div>
+      <div id="wr-body"></div>
+    </section>
+
     <!-- INVENTORY VIEW -->
     <section class="inventory-view" id="inventory-view">
       <div class="inventory-header">
@@ -5487,6 +5519,7 @@ const SIDEBAR_DATA = {
     { label: "Barcoding · Scan",     count: "·", view: "barcoding" },
     { label: "Inbox · Email AI",     count: "12", view: "inbox" },
     { label: "Time · Clock in/out",  count: "·", view: "timetracking" },
+    { label: "Weekly Report",        count: "·", view: "weekly_report" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
     { label: "Critical",             count: "4" },
@@ -9207,10 +9240,141 @@ async function renderTimeTracking() {
   mgrEl.appendChild(recCard);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   WEEKLY REPORT  ·  auto ops summary (client-side aggregation)
+   ═══════════════════════════════════════════════════════════════════ */
+let _wrWeekStart = null;  // YYYY-MM-DD Monday of the selected week
+function _wrMonday(dateStr) {
+  const d = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
+  const dow = (d.getDay() + 6) % 7;  // 0 = Monday
+  d.setDate(d.getDate() - dow);
+  return d.toISOString().slice(0, 10);
+}
+function _wrAddDays(ymd, n) { const d = new Date(ymd + "T00:00:00"); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+function _wrInWeek(ymd, start, end) { return !!ymd && ymd >= start && ymd <= end; }
+function _wrMoney(n) { return "$" + Math.round(n || 0).toLocaleString(); }
+
+function _wrExportCsv() {
+  const w = window._wrLast; if (!w) return;
+  const rows = [["Weekly Report", w.start + " to " + w.end], [],
+    ["Loads dispatched", w.dispatches.length],
+    ["Inventory items (current)", w.invTotal],
+    ["Invoices issued (week)", w.wkInvs],
+    ["Invoiced this week $", Math.round(w.wkInvoiced)],
+    ["Outstanding (all) $", Math.round(w.outstanding)],
+    ["Labor hours (week)", w.laborHours],
+    [], ["LL", "Vessel", "Truck", "Departure", "Status"]];
+  w.dispatches.forEach(l => rows.push([l.id || "", l.vessel || "", l.truck || "", (l.departure || "").slice(0, 10), l.status || ""]));
+  const csv = rows.map(r => r.map(c => { const s = String(c == null ? "" : c); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" }); const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "weekly_report_" + w.start + ".csv"; a.click(); URL.revokeObjectURL(url);
+}
+
+async function renderWeeklyReport() {
+  const body = document.getElementById("wr-body");
+  if (!body) return;
+  if (!_wrWeekStart) _wrWeekStart = _wrMonday();
+  const start = _wrWeekStart, end = _wrAddDays(start, 6);
+  const wk = document.getElementById("wr-week"); if (wk) wk.value = start;
+
+  // Wire the toolbar once
+  if (!window._wrWired) {
+    window._wrWired = true;
+    const on = (id, fn) => { const e = document.getElementById(id); if (e) e.addEventListener(id === "wr-week" ? "change" : "click", fn); };
+    on("wr-prev", () => { _wrWeekStart = _wrAddDays(_wrWeekStart || _wrMonday(), -7); renderWeeklyReport(); });
+    on("wr-next", () => { _wrWeekStart = _wrAddDays(_wrWeekStart || _wrMonday(), 7); renderWeeklyReport(); });
+    on("wr-week", () => { const v = document.getElementById("wr-week").value; if (v) { _wrWeekStart = _wrMonday(v); renderWeeklyReport(); } });
+    on("wr-print", () => window.print());
+    on("wr-export", _wrExportCsv);
+  }
+
+  while (body.firstChild) body.removeChild(body.firstChild);
+  const stat = (l, v) => { const d = el("div", { class: "wr-stat" }); d.appendChild(el("div", { class: "wr-stat__label", text: l })); d.appendChild(el("div", { class: "wr-stat__value", text: String(v) })); return d; };
+
+  body.appendChild(el("div", { class: "wr-card" }, [
+    el("div", { class: "wr-section-title", text: "Week" }),
+    el("div", { style: "font-size:15px;color:var(--text);", text: start + "  →  " + end + "   (Mon–Sun, ET)" }),
+  ]));
+
+  // 1) Dispatches / trucking
+  const lls = (typeof LOADING_LISTS !== "undefined" ? LOADING_LISTS : []).filter(ll =>
+    ["dispatched", "loaded", "received"].includes(ll.status) && _wrInWeek((ll.departure || "").slice(0, 10), start, end));
+  const dCard = el("div", { class: "wr-card" });
+  dCard.appendChild(el("div", { class: "wr-section-title", text: "Dispatches / trucking" }));
+  const dGrid = el("div", { class: "wr-grid" });
+  dGrid.appendChild(stat("Loads dispatched", lls.length));
+  dGrid.appendChild(stat("Vessels", new Set(lls.map(l => l.vessel).filter(Boolean)).size));
+  dGrid.appendChild(stat("Trucks", new Set(lls.map(l => l.truck).filter(Boolean)).size));
+  dCard.appendChild(dGrid);
+  if (lls.length) {
+    const t = el("table", { class: "wr-table" });
+    t.appendChild(el("tr", {}, [el("th", { text: "LL" }), el("th", { text: "Vessel" }), el("th", { text: "Truck" }), el("th", { text: "Departure" }), el("th", { text: "Status" })]));
+    lls.forEach(l => t.appendChild(el("tr", {}, [el("td", { text: l.id || "" }), el("td", { text: l.vessel || "" }), el("td", { text: l.truck || "" }), el("td", { text: (l.departure || "").slice(0, 10) }), el("td", { text: l.status || "" })])));
+    dCard.appendChild(t);
+  } else dCard.appendChild(el("div", { class: "wr-pending", text: "No dispatches in this week." }));
+  body.appendChild(dCard);
+
+  // 2) Inventory snapshot (current point-in-time)
+  const inv = (typeof INVENTORY !== "undefined" ? INVENTORY : []);
+  const byStatus = {}; inv.forEach(i => { byStatus[i.status] = (byStatus[i.status] || 0) + 1; });
+  const iCard = el("div", { class: "wr-card" });
+  iCard.appendChild(el("div", { class: "wr-section-title", text: "Inventory snapshot (current)" }));
+  const iGrid = el("div", { class: "wr-grid" });
+  iGrid.appendChild(stat("Total items", inv.length));
+  ["in_stock", "pulled", "loaded", "sent", "bonded"].forEach(s => { if (byStatus[s]) iGrid.appendChild(stat(s.replace("_", " "), byStatus[s])); });
+  iCard.appendChild(iGrid);
+  body.appendChild(iCard);
+
+  // 3) Billing
+  const invs = (typeof INVOICES !== "undefined" ? INVOICES : []);
+  const wkInvs = invs.filter(i => _wrInWeek((i.invoiceDate || "").slice(0, 10), start, end));
+  let wkInvoiced = 0; wkInvs.forEach(i => { wkInvoiced += (typeof calcInvoiceTotals === "function" ? calcInvoiceTotals(i).total : 0); });
+  let outstanding = 0; invs.forEach(i => { if (i.status !== "paid") outstanding += (typeof calcInvoiceTotals === "function" ? calcInvoiceTotals(i).total : 0); });
+  (typeof CREDIT_MEMOS !== "undefined" ? CREDIT_MEMOS : []).forEach(cm => { const i = invs.find(x => x.id === cm.appliedToInvoiceId); if (i && i.status !== "paid") outstanding -= (cm.amount || 0); });
+  const bCard = el("div", { class: "wr-card" });
+  bCard.appendChild(el("div", { class: "wr-section-title", text: "Billing" }));
+  const bGrid = el("div", { class: "wr-grid" });
+  bGrid.appendChild(stat("Invoices issued", wkInvs.length));
+  const sm = (l, v) => { const d = el("div", { class: "wr-stat" }); d.appendChild(el("div", { class: "wr-stat__label", text: l })); d.appendChild(el("div", { class: "wr-stat__value", text: v })); return d; };
+  bGrid.appendChild(sm("Invoiced (week)", _wrMoney(wkInvoiced)));
+  bGrid.appendChild(sm("Outstanding (all)", _wrMoney(outstanding)));
+  bCard.appendChild(bGrid);
+  body.appendChild(bCard);
+
+  // 4) Labor hours (from /api/time/report)
+  const lCard = el("div", { class: "wr-card" });
+  lCard.appendChild(el("div", { class: "wr-section-title", text: "Labor hours" }));
+  const loading = el("div", { class: "wr-pending", text: "Loading…" });
+  lCard.appendChild(loading); body.appendChild(lCard);
+  let laborHours = 0;
+  if (window.FT_API && window.FT_API.time) {
+    try {
+      const rep = await window.FT_API.time.report("?date_from=" + start + "&date_to=" + end);
+      loading.remove();
+      if (Array.isArray(rep) && rep.length) {
+        const t = el("table", { class: "wr-table" });
+        t.appendChild(el("tr", {}, [el("th", { text: "Employee" }), el("th", { text: "Shifts" }), el("th", { text: "Hours" })]));
+        rep.forEach(r => { laborHours += (r.total_hours || 0); t.appendChild(el("tr", {}, [el("td", { text: r.user_name }), el("td", { text: String(r.shifts) }), el("td", { text: (r.total_hours || 0) + " h" })])); });
+        t.appendChild(el("tr", {}, [el("td", { text: "Total" }), el("td", { text: "" }), el("td", { text: (Math.round(laborHours * 100) / 100) + " h" })]));
+        lCard.appendChild(t);
+      } else lCard.appendChild(el("div", { class: "wr-pending", text: "No closed shifts this week." }));
+    } catch (e) { loading.textContent = "Could not load hours: " + e.message; }
+  } else loading.textContent = "Backend not connected.";
+
+  // 5) Pending Magaya data
+  body.appendChild(el("div", { class: "wr-card" }, [
+    el("div", { class: "wr-section-title", text: "Pending data" }),
+    el("div", { class: "wr-pending", text: "Offloads, airline fees and agency-cost sections require Magaya-sourced data (pending Magaya export / integration — plan item 1.6)." }),
+  ]));
+
+  window._wrLast = { start, end, dispatches: lls, invTotal: inv.length, wkInvs: wkInvs.length, wkInvoiced, outstanding, laborHours: Math.round(laborHours * 100) / 100 };
+}
+
 function switchView(view) {
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-timetracking");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-timetracking", "view-weekly_report");
   document.body.classList.add("view-" + view);
   if (view === "timetracking") renderTimeTracking();
+  if (view === "weekly_report") renderWeeklyReport();
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
   if (view === "discrepancies") renderDiscrepancyReports();
