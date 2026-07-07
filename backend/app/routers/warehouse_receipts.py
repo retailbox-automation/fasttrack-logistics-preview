@@ -78,8 +78,10 @@ def create_receipt(payload: WarehouseReceiptCreate, request: Request, db: Sessio
         if (ln.package_unit or "").lower() == "pallet" and ln.weight_lb and ln.weight_lb > 2000:
             raise HTTPException(status_code=400,
                                 detail=f"Line {i + 1}: pallet weight exceeds 2,000 lb (ops manual §8.2)")
-        if ln.pieces < 0 or ln.quantity < 0:
-            raise HTTPException(status_code=400, detail=f"Line {i + 1}: pieces/quantity cannot be negative")
+        if ln.pieces < 1:
+            raise HTTPException(status_code=400, detail=f"Line {i + 1}: pieces must be at least 1")
+        if ln.quantity < 1:
+            raise HTTPException(status_code=400, detail=f"Line {i + 1}: quantity must be at least 1")
 
     item_ids, line_snapshot = [], []
     for ln in payload.lines:
@@ -146,8 +148,8 @@ def create_receipt(payload: WarehouseReceiptCreate, request: Request, db: Sessio
     log_audit(db, claims, "create", "warehouse_receipt", entity_id=str(wr.id),
               summary=f"Received {wr.public_id} → {totals['items']} item(s), {totals['pieces']} pcs into inventory",
               payload={"public_id": wr.public_id, "item_ids": item_ids, "totals": totals}, ip=ip)
-    broadcast("warehouse_receipts.changed", {"action": "create", "id": wr.id, "by_name": claims.get("name")})
-    broadcast("inventory.changed", {"action": "receive", "count": len(item_ids), "by_name": claims.get("name")})
+    broadcast("warehouse_receipts.changed", {"action": "create", "id": wr.id, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
+    broadcast("inventory.changed", {"action": "receive", "count": len(item_ids), "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
     return wr
 
 
@@ -171,6 +173,6 @@ def delete_receipt(wr_id: int, request: Request, remove_inventory: bool = False,
     log_audit(db, claims, "delete", "warehouse_receipt", entity_id=str(wr_id),
               summary=f"Deleted {pid}" + (f" + {removed} in-stock inventory row(s)" if removed else ""),
               ip=request.client.host if request.client else None)
-    broadcast("warehouse_receipts.changed", {"action": "delete", "id": wr_id, "by_name": claims.get("name")})
+    broadcast("warehouse_receipts.changed", {"action": "delete", "id": wr_id, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})
     if removed:
-        broadcast("inventory.changed", {"action": "delete", "count": removed, "by_name": claims.get("name")})
+        broadcast("inventory.changed", {"action": "delete", "count": removed, "by_user_id": claims.get("user_id"), "by_name": claims.get("name")})

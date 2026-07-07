@@ -3931,6 +3931,7 @@ body.layout-list .pagination { display: none; }
     const handlers = {
       'doc.updated': null,    // set by hydrate loop below
       'inventory.changed': null,
+      'warehouse_receipts.changed': null,
     };
     function connect() {
       const tok = localStorage.getItem('ft_jwt');
@@ -3955,6 +3956,14 @@ body.layout-list .pagination { display: none; }
             const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
             if (data.by_user_id && me.id && data.by_user_id === me.id) return;
             if (handlers['inventory.changed']) handlers['inventory.changed'](data);
+          } catch (err) { console.error(err); }
+        });
+        es.addEventListener('warehouse_receipts.changed', (e) => {
+          try {
+            const data = JSON.parse(e.data || '{}');
+            const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
+            if (data.by_user_id && me.id && data.by_user_id === me.id) return;
+            if (handlers['warehouse_receipts.changed']) handlers['warehouse_receipts.changed'](data);
           } catch (err) { console.error(err); }
         });
         es.onerror = () => {
@@ -10119,6 +10128,8 @@ function wrBuildForm() {
         location_code: (r.location_code || "").trim(),
       }));
     if (!payloadLines.length) { msg.textContent = "Add at least one line with a part # and description."; msg.className = "wr-msg wr-msg--err"; return; }
+    const zero = payloadLines.find(l => l.pieces < 1 || l.quantity < 1);
+    if (zero) { msg.textContent = "Each line needs pieces ≥ 1 and quantity ≥ 1 (check line: " + zero.part_number + ")."; msg.className = "wr-msg wr-msg--err"; return; }
     const bad = payloadLines.find(l => l.package_unit.toLowerCase() === "pallet" && l.weight_lb && l.weight_lb > 2000);
     if (bad) { msg.textContent = "A pallet line exceeds 2,000 lb — fix before saving."; msg.className = "wr-msg wr-msg--err"; return; }
 
@@ -11618,6 +11629,9 @@ let LL_BUILDER_CROSSDOCK = new Set(); // items marked as cross-dock for this LL
 function openLLBuilder() {
   LL_BUILDER_SELECTED = new Set();
   LL_BUILDER_CROSSDOCK = new Set();
+  // Lock INVENTORY re-hydration while the builder is open — selection is stored as
+  // array indices, so a live inventory SSE re-order mid-build would drift the picks.
+  window._ftBuilderOpen = true;
   document.getElementById("ll-builder-overlay").classList.add("open");
   document.getElementById("ll-builder").classList.add("open");
   const form = document.getElementById("ll-meta-form");
@@ -11635,6 +11649,12 @@ function openLLBuilder() {
 function closeLLBuilder() {
   document.getElementById("ll-builder-overlay").classList.remove("open");
   document.getElementById("ll-builder").classList.remove("open");
+  window._ftBuilderOpen = false;
+  // Apply any inventory update that arrived (and was deferred) while the builder was open.
+  if (window._ftInvReloadPending) {
+    window._ftInvReloadPending = false;
+    if (typeof window.ftReHydrateKind === "function") window.ftReHydrateKind("inventory");
+  }
 }
 
 function renderPickList() {
@@ -16319,6 +16339,9 @@ setInterval(tickClock, 1000);
     if (!window.FT_API) return;
     if (kind === 'inventory_item') kind = 'inventory';
     if (kind === 'inventory') {
+      // Defer while the Loading List builder is open — re-ordering INVENTORY under it
+      // would drift the index-based selection. closeLLBuilder() applies it on close.
+      if (window._ftBuilderOpen) { window._ftInvReloadPending = true; return; }
       window.FT_API.inventory.list().then(rows => {
         if (!Array.isArray(rows)) return;
         const items = rows.map(window.FT_API.fromBackend);
@@ -16364,6 +16387,12 @@ setInterval(tickClock, 1000);
 if (window.ftRealtime) {
   window.ftRealtime.on('doc.updated', (d) => window.ftReHydrateKind(d.kind));
   window.ftRealtime.on('inventory.changed', () => window.ftReHydrateKind('inventory'));
+  // Receiving list live-refresh when another user creates/deletes a warehouse receipt.
+  window.ftRealtime.on('warehouse_receipts.changed', () => {
+    if (document.body.classList.contains('view-receiving') && typeof wrLoadList === 'function') {
+      try { wrLoadList(); } catch (e) {}
+    }
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════════
