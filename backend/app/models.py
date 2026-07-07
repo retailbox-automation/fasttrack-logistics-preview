@@ -4,7 +4,7 @@ Phase 1A: Inventory + Loading List + SDR + Invoice + Credit Memo + Discrepancy.
 """
 from datetime import datetime, date
 from typing import Optional, List as TypingList
-from sqlalchemy import String, Integer, Float, Boolean, ForeignKey, DateTime, Date, JSON, Text
+from sqlalchemy import String, Integer, Float, Boolean, ForeignKey, DateTime, Date, JSON, Text, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -162,6 +162,104 @@ class Document(Base):
     version: Mapped[int] = mapped_column(Integer, default=1)  # optimistic locking
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Attachment(Base):
+    """File / photo attached to a shipment (Loading List).
+
+    Linked by shipment_public_id (the frontend LOADING_LISTS id, e.g. "LL-2026-0048")
+    so it survives shipment bulk re-saves (public_id is stable; backend int ids are not).
+    MVP stores bytes in Postgres with a per-file size cap; migrate to a volume / object
+    store if attachment volume grows.
+    """
+    __tablename__ = "attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shipment_public_id: Mapped[str] = mapped_column(String(32), index=True)
+    filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(128))
+    size: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(16), default="file")  # "photo" | "document" | "file"
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    uploaded_by: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Approval(Base):
+    """Generic approval / routing record for reports & billing.
+
+    kind: weekly_report | invoice | sdr | discrepancy | report
+    ref:  identifier of the item being approved (e.g. "2026-W27", an invoice id)
+    status: submitted | approved | rejected | needs_correction
+    Submit = ops/manager/admin; decide (approve/reject) = manager/admin.
+    """
+    __tablename__ = "approvals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(32), index=True)
+    ref: Mapped[str] = mapped_column(String(64), index=True)
+    title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="submitted", index=True)
+    reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    submitted_by: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    decided_by: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class PickTask(Base):
+    """Pick & Pack task — controlled picking with per-line qty validation + audit.
+
+    `lines` is a list of dicts:
+      {inventory_item_id, wr, part, description, location, package_unit,
+       required, picked, scanned (bool), status ["pending"|"picked"|"short"]}
+    status: open | in_progress | completed | short. On complete, inventory pieces
+    are decremented by picked qty (traceable via inventory movements + audit).
+    Photos attach via the attachments API using shipment_public_id = "PICK-<ref>".
+    """
+    __tablename__ = "pick_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ref: Mapped[str] = mapped_column(String(32), index=True)
+    shipment_public_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
+    lines: Mapped[list] = mapped_column(JSON, default=list)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    completed_by: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+
+
+class WarehouseReceipt(Base):
+    """Warehouse Receipt — the intake document (Stage 1.5, Magaya-mimic).
+
+    Receiving goods creates a WR (header + line items). On creation each line
+    generates a real InventoryItem tagged with this WR number, so received cargo
+    flows straight into the inventory control center. Mirrors how Magaya turns a
+    Warehouse Receipt into stock. `lines` is a snapshot of what was received
+    (each carries its generated inventory_item_id); `item_ids` lists those ids.
+    """
+    __tablename__ = "warehouse_receipts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    public_id: Mapped[str] = mapped_column(String(32), unique=True, index=True)  # WR-2026-NNNN
+    received_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    received_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    vessel: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    department: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    vendor: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    po_number: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    carrier: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    tracking: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="received", index=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    lines: Mapped[list] = mapped_column(JSON, default=list)      # received-line snapshot
+    item_ids: Mapped[list] = mapped_column(JSON, default=list)   # generated inventory ids
+    totals: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class User(Base):

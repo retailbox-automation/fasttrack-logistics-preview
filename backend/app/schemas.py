@@ -164,6 +164,54 @@ class ShipmentBulk(BaseModel):
     items: list[ShipmentCreate]
 
 
+# ── Warehouse Receipt (intake side, Stage 1.5) ──
+class WRLineIn(BaseModel):
+    part_number: str
+    description: str
+    department: Optional[str] = None
+    package_unit: str = "Box"      # "Box" | "Pallet"
+    pieces: int = 1
+    quantity: int = 1
+    weight_lb: Optional[float] = None
+    location_code: str = ""
+
+
+class WarehouseReceiptCreate(BaseModel):
+    public_id: Optional[str] = None        # auto WR-2026-NNNN if omitted
+    received_date: Optional[date] = None
+    received_by: Optional[str] = None       # defaults to signed-in user
+    vessel: Optional[str] = None
+    department: Optional[str] = None
+    vendor: Optional[str] = "FAST TRACK WORLDWIDE LOGISTIC"
+    po_number: Optional[str] = None
+    carrier: Optional[str] = None
+    tracking: Optional[str] = None
+    notes: Optional[str] = None
+    lines: list[WRLineIn] = []
+
+
+class WarehouseReceiptOut(BaseModel):
+    id: int
+    public_id: str
+    received_date: Optional[date] = None
+    received_by: Optional[str] = None
+    vessel: Optional[str] = None
+    department: Optional[str] = None
+    vendor: Optional[str] = None
+    po_number: Optional[str] = None
+    carrier: Optional[str] = None
+    tracking: Optional[str] = None
+    status: str
+    notes: Optional[str] = None
+    lines: list = []
+    item_ids: list = []
+    totals: Optional[dict] = None
+    created_by: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class HealthOut(BaseModel):
     status: str
     db: str

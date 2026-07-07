@@ -29,7 +29,11 @@ from app.routers import sse as sse_router
 from app.routers import emails as emails_router
 from app.routers import timetracking as time_router
 from app.routers import shipments as shipments_router
+from app.routers import warehouse_receipts as wr_router
 from app.routers import reference as reference_router
+from app.routers import attachments as attachments_router
+from app.routers import picks as picks_router
+from app.routers import approvals as approvals_router
 from app.schemas import HealthOut
 from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
@@ -251,7 +255,11 @@ app.include_router(sse_router.router)
 app.include_router(emails_router.router)
 app.include_router(time_router.router)
 app.include_router(shipments_router.router)
+app.include_router(wr_router.router)
 app.include_router(reference_router.router)
+app.include_router(attachments_router.router)
+app.include_router(picks_router.router)
+app.include_router(approvals_router.router)
 
 
 # Serve frontend index.html bundled into the image

@@ -17,11 +17,13 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable,
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, HRFlowable, Image,
 )
+import os
 
 FT_NAME = "FAST TRACK WORLDWIDE LOGISTIC"
 FT_ADDR = "1674 NW 215th Street, Miami Gardens, FL 33056"
+_LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "ft_logo.png")
 
 _styles = getSampleStyleSheet()
 _H = ParagraphStyle("h", parent=_styles["Title"], fontSize=16, spaceAfter=2)
@@ -77,7 +79,14 @@ def _info_grid(pairs):
 
 
 def _header(title, accent, ll):
-    els = [
+    els = []
+    if os.path.exists(_LOGO_PATH):
+        try:
+            els.append(Image(_LOGO_PATH, width=1.6 * inch, height=0.64 * inch, hAlign="LEFT"))
+            els.append(Spacer(1, 4))
+        except Exception:
+            pass
+    els += [
         Paragraph(title, ParagraphStyle("th", parent=_H, textColor=colors.HexColor(accent))),
         Paragraph(f"{FT_NAME} · {FT_ADDR}", _SUB),
         HRFlowable(width="100%", thickness=2, color=colors.HexColor(accent), spaceBefore=4, spaceAfter=8),
@@ -221,6 +230,55 @@ def delivery_order_pdf(ll, item_rows) -> bytes:
         story.append(Paragraph(s, _CELL))
     story.append(Spacer(1, 24))
     story.append(_signatures(["FT Dispatcher", "Driver", "MSC Gangway"]))
+    _doc(buf, story)
+    return buf.getvalue()
+
+
+def warehouse_receipt_pdf(wr, item_rows) -> bytes:
+    """Warehouse Receipt (intake document, Stage 1.5). Takes a WarehouseReceipt
+    + the inventory rows it generated."""
+    items = [_item_dict(r) for r in item_rows]
+    buf = io.BytesIO()
+    story = _header("WAREHOUSE RECEIPT", "#7c3aed", wr)
+    story.append(_info_grid([
+        ("Receipt #", wr.public_id), ("Status", (wr.status or "received").upper()),
+        ("Received date", _fmt_date(wr.received_date)), ("Received by", wr.received_by),
+        ("Vessel", wr.vessel), ("Department", wr.department),
+        ("Vendor / shipper", wr.vendor), ("PO #", wr.po_number),
+        ("Carrier", wr.carrier), ("Tracking", wr.tracking),
+    ]))
+    story.append(Spacer(1, 8))
+    head = ["Part #", "Description", "Dept", "Pkg", "Pcs", "Qty", "Location", "Wt(lb)"]
+    data = [[Paragraph(h, _CELLH) for h in head]]
+    for it in items:
+        data.append([
+            Paragraph(it["part"], _CELL), Paragraph(it["desc"], _CELL),
+            Paragraph(it["dept"], _CELL), Paragraph(it["pkg"], _CELL),
+            Paragraph(str(it["pieces"]), _CELL), Paragraph(str(it["qty"]), _CELL),
+            Paragraph(it["loc"], _CELL), Paragraph(f"{it['wt']:.0f}", _CELL),
+        ])
+    if not items:
+        data.append([Paragraph("No lines received on this receipt.", _CELL)] + [""] * 7)
+    tbl = Table(data, repeatRows=1, hAlign="LEFT",
+                colWidths=[w * inch for w in [0.9, 2.5, 0.8, 0.5, 0.4, 0.4, 0.9, 0.5]])
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#7c3aed")),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#cccccc")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f6f4fb")]),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    story.append(tbl)
+    story.append(Spacer(1, 6))
+    t = wr.totals or {}
+    tot = (f"Items: {t.get('items', len(items))}   ·   Pieces: {t.get('pieces', 0)}"
+           f"   ·   Pallets: {t.get('pallets', 0)}   ·   Weight: {t.get('weight_lb', 0)} lb")
+    story.append(Paragraph(tot, ParagraphStyle("tot", parent=_VAL, fontName="Helvetica-Bold")))
+    if wr.notes:
+        story.append(Spacer(1, 8))
+        story.append(Paragraph("Notes: " + wr.notes, _SUB))
+    story.append(Spacer(1, 24))
+    story.append(_signatures(["Received by (FT)", "Driver / carrier"]))
     _doc(buf, story)
     return buf.getvalue()
 
