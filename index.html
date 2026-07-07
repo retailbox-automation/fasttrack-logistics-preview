@@ -9928,6 +9928,9 @@ async function wrLoadList() {
     const actions = el("div", { class: "wr-list-actions" }, [
       el("button", { class: "pp-btn pp-btn--ghost", text: "PDF", onclick: () => wrApi().openPdf(wr.id).catch(e => ftToast && ftToast("PDF failed: " + e.message, "error")) }),
     ]);
+    if (wrCanEdit()) {
+      actions.insertBefore(el("button", { class: "pp-btn", text: "Load onto truck ›", title: "Start a loading list with this receipt's items", onclick: () => wrLoadOntoTruck(wr) }), actions.firstChild);
+    }
     if (wrCanDelete()) {
       actions.appendChild(el("button", { class: "pp-btn pp-btn--ghost", text: "Delete", onclick: () => wrDelete(wr) }));
     }
@@ -9951,6 +9954,47 @@ async function wrDelete(wr) {
     if (window.ftToast) ftToast("Deleted " + wr.public_id, "info");
     wrLoadList();
   } catch (e) { if (window.ftToast) ftToast("Delete failed: " + e.message, "error"); }
+}
+
+// Pull a receipt's still-in-stock items straight onto a truck: refresh inventory,
+// pre-select this WR's items, and open the (tested) Loading List builder so the
+// user just adds truck/seal/driver + generates. Cross-dock is handled per-line in
+// the builder. Loaded items get marked on dispatch, so re-loading finds none left.
+async function wrLoadOntoTruck(wr) {
+  try {
+    const rows = await window.FT_API.inventory.list();
+    if (Array.isArray(rows)) INVENTORY.splice(0, INVENTORY.length, ...rows.map(window.FT_API.fromBackend));
+  } catch (e) { if (window.ftToast) ftToast("Could not refresh inventory: " + e.message, "warn"); }
+
+  const idxs = [];
+  INVENTORY.forEach((it, i) => {
+    if (it.warehouseReceipt === wr.public_id && (it.status || "in_stock") === "in_stock") idxs.push(i);
+  });
+  if (!idxs.length) {
+    if (window.ftToast) ftToast("No in-stock items left on " + wr.public_id + " to load.", "info");
+    return;
+  }
+
+  switchView("loading_lists");
+  if (typeof openLLBuilder !== "function") { if (window.ftToast) ftToast("Loading List builder unavailable.", "error"); return; }
+  openLLBuilder();
+  LL_BUILDER_SELECTED = new Set(idxs);
+
+  const form = document.getElementById("ll-meta-form");
+  if (form && wr.vessel) {
+    const vsel = form.querySelector('[name="vessel"]');
+    if (vsel) {
+      const opt = [...vsel.options].find(o =>
+        o.value === wr.vessel || o.textContent.trim() === wr.vessel ||
+        o.value.includes(wr.vessel) || o.textContent.includes(wr.vessel));
+      if (opt) vsel.value = opt.value;
+    }
+  }
+  const search = document.getElementById("ll-pick-search");
+  if (search) search.value = wr.public_id;
+  renderPickList();
+  updateBuilderSummary();
+  if (window.ftToast) ftToast("Pulled " + idxs.length + " item(s) from " + wr.public_id + " — add truck details, then Generate.", "success");
 }
 
 function wrBuildForm() {
