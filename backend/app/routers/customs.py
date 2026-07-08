@@ -105,15 +105,19 @@ def create_record(payload: CustomsRecordCreate, request: Request, db: Session = 
     public_id = (payload.public_id or "").strip() or _next_public_id(db)
     if db.query(CustomsRecord).filter(CustomsRecord.public_id == public_id).first():
         raise HTTPException(status_code=409, detail=f"Customs record {public_id} already exists")
-    if payload.shipment_public_id and not db.query(LoadingList).filter(
-            LoadingList.public_id == payload.shipment_public_id).first():
-        raise HTTPException(status_code=400, detail=f"No shipment {payload.shipment_public_id} to link")
+    linked_ll = None
+    if payload.shipment_public_id:
+        linked_ll = db.query(LoadingList).filter(LoadingList.public_id == payload.shipment_public_id).first()
+        if not linked_ll:
+            raise HTTPException(status_code=400, detail=f"No shipment {payload.shipment_public_id} to link")
+    # Auto-fill from the linked shipment when the field is blank.
+    vessel = payload.vessel or (linked_ll.vessel if linked_ll else None)
 
     rec = CustomsRecord(
         public_id=public_id,
         shipment_public_id=payload.shipment_public_id,
         entry_number=payload.entry_number,
-        vessel=payload.vessel,
+        vessel=vessel,
         broker=payload.broker,
         firms_code=payload.firms_code or "LCS5",
         isf_status=payload.isf_status or "pending",

@@ -12743,18 +12743,30 @@ function setupLoadingLists() {
   });
 
   const previewSend = document.getElementById("ll-preview-send");
-  if (previewSend) previewSend.addEventListener("click", () => {
+  if (previewSend) previewSend.addEventListener("click", async () => {
     const ovl = document.getElementById("ll-preview-overlay");
     const idx = parseInt(ovl.dataset.idx, 10);
-    if (!isNaN(idx) && LOADING_LISTS[idx]) {
-      if (LOADING_LISTS[idx].status === "draft") {
-        LOADING_LISTS[idx].status = "dispatched";
-        saveLoadingLists();
-      }
-      renderLoadingLists();
-      alert("Loading List " + LOADING_LISTS[idx].id + " sent to MSC.\n\n(Phase 2: routes to MSC's CrunchTime + INFOSHIP automatically.)");
-      closeLLPreview();
+    if (isNaN(idx) || !LOADING_LISTS[idx]) return;
+    const ll = LOADING_LISTS[idx];
+    // Stage 1.9 hard gate: a shipment with an open/held customs record can't dispatch.
+    if (ll.status === "draft" && window.FT_API && window.FT_API.customs) {
+      try {
+        const recs = await window.FT_API.customs.list(ll.id);
+        const blocked = (recs || []).filter(r => !r.cleared);
+        if (blocked.length) {
+          const lines = blocked.map(r => "• " + r.public_id + ": " + ((r.blockers || []).join("; ") || "not cleared")).join("\n");
+          alert("Cannot dispatch " + ll.id + " — customs not cleared:\n\n" + lines + "\n\nClear customs under “Customs · Docs & clearance” before dispatch.");
+          return;
+        }
+      } catch (e) { /* don't hard-block on a customs-check network hiccup */ }
     }
+    if (ll.status === "draft") {
+      ll.status = "dispatched";
+      saveLoadingLists();
+    }
+    renderLoadingLists();
+    alert("Loading List " + ll.id + " sent to MSC.\n\n(Phase 2: routes to MSC's CrunchTime + INFOSHIP automatically.)");
+    closeLLPreview();
   });
 }
 
