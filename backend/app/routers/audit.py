@@ -5,12 +5,13 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth import require_auth
+from app.auth import require_auth, require_roles
 from app.database import get_db
 from app.models import AuditLog
 
 
-router = APIRouter(prefix="/api/audit", tags=["audit"], dependencies=[Depends(require_auth)])
+# Audit trail is management-only (admin/manager) — ops/viewer can't read it.
+router = APIRouter(prefix="/api/audit", tags=["audit"], dependencies=[Depends(require_roles("admin", "manager"))])
 
 
 class AuditOut(BaseModel):
