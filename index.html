@@ -733,6 +733,32 @@ body.view-weekly_report .pagination { display: none; }
 body.view-ops_kpi .ops-kpi-view { display: block; }
 body.view-ops_kpi .dashboard { display: none; }
 body.view-ops_kpi .pagination { display: none; }
+
+.msc-audit-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-msc_audit .msc-audit-view { display: block; }
+body.view-msc_audit .dashboard { display: none; }
+body.view-msc_audit .pagination { display: none; }
+/* MSC Audit — reuses pp-* look; adds finding rows + severity + stat tiles */
+.msca-tiles { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+.msca-tile { background: var(--bg-elevated, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 14px 18px; min-width: 150px; }
+.msca-tile__label { font-family: var(--font-mono, monospace); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim, #5b6b7f); }
+.msca-tile__value { font-size: 24px; font-weight: 700; color: var(--text-bright, #0a1622); margin-top: 4px; letter-spacing: -0.02em; }
+.msca-tile--risk .msca-tile__value { color: var(--crit, #dc2626); }
+.msca-tile--clean .msca-tile__value { color: var(--ok, #16a34a); }
+.msca-finding { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; background: var(--bg-elevated, #fff); border: 1px solid var(--border, #e2e8f0); border-left: 3px solid var(--border, #e2e8f0); border-radius: 8px; margin-bottom: 8px; }
+.msca-finding--high { border-left-color: var(--crit, #dc2626); }
+.msca-finding--med  { border-left-color: #eab308; }
+.msca-finding--low  { border-left-color: var(--accent, #1e4d7b); }
+.msca-sev { font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.msca-sev--high { background: rgba(220,38,38,0.12); color: var(--crit, #dc2626); }
+.msca-sev--med  { background: rgba(234,179,8,0.15); color: #a16207; }
+.msca-sev--low  { background: rgba(30,77,123,0.10); color: var(--accent, #1e4d7b); }
+.msca-cat { font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 700; color: var(--text-bright, #0a1622); min-width: 150px; }
+.msca-msg { font-size: 13px; color: var(--text, #0e1d2f); flex: 1; }
+.msca-ref { font-family: var(--font-mono, monospace); font-size: 11px; color: var(--text-dim, #5b6b7f); }
+.msca-amt { font-family: var(--font-mono, monospace); font-size: 12px; font-weight: 700; color: var(--crit, #dc2626); white-space: nowrap; }
+.msca-sect { font-size: 15px; font-weight: 600; color: var(--text-bright, #0a1622); margin: 18px 0 10px; }
+.msca-note { font-size: 12px; color: var(--text-dim, #5b6b7f); margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--border, #e2e8f0); border-radius: 8px; }
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; }
 .kpi-tile { background: var(--bg-elevated, #fff); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
 .kpi-tile__label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
@@ -4323,6 +4349,19 @@ body.layout-list .pagination { display: none; }
       <div id="okpi-body"></div>
     </section>
 
+    <section class="msc-audit-view" id="msc-audit-view">
+      <div class="dashboard__header">
+        <div class="dashboard__title-block">
+          <div class="dashboard__crumb">Billing · MSC agency-cost reconciliation</div>
+          <div class="dashboard__title"><h1>MSC Audit · Reconciliation</h1></div>
+        </div>
+        <div class="dashboard__actions">
+          <button class="btn btn--ghost" id="msca-refresh">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="msca-root"></div>
+    </section>
+
     <!-- INVENTORY VIEW -->
     <section class="inventory-view" id="inventory-view">
       <div class="inventory-header">
@@ -5797,6 +5836,7 @@ const SIDEBAR_DATA = {
     { label: "Invoices · Billing",   count: "4", view: "invoices" },
     { label: "Credit Memos",         count: "2", view: "credit_memos" },
     { label: "Statement of Account", count: "2", view: "soa", highlight: true },
+    { label: "MSC Audit · Reconciliation", count: "·", view: "msc_audit", highlight: true },
     { label: "CrunchTime · Requests", count: "4", view: "crunchtime" },
     { label: "Barcoding · Scan",     count: "·", view: "barcoding" },
     { label: "Pick & Pack",          count: "·", view: "pick_pack" },
@@ -9904,19 +9944,163 @@ async function renderOpsKpi() {
   body.appendChild(tCard);
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   MSC AUDIT · RECONCILIATION  ·  Stage 2.6. Replaces Magaya's agency-cost
+   audit: reconciles internal billing vs shipments + the ADS rate card and
+   flags money-losing gaps — unbilled shipments (revenue leakage), SDRs not
+   invoiced, missing / duplicate PO, rate mismatches, unknown codes.
+   Computed over the live document arrays (like Weekly Report / KPIs).
+   MSC-sheet cross-compare activates once the client sends the sheet format.
+   ═══════════════════════════════════════════════════════════════════ */
+
+function _mscaRateCard() {
+  const m = {};
+  if (typeof ADS_RATES !== "undefined") ADS_RATES.forEach(r => { m[r.code] = r; });
+  return m;
+}
+
+// Expected billable total from an SDR's qtys × rate card (+15% fuel if a fuel code is present).
+function _mscaExpectedFromSdr(sdr, card) {
+  if (!sdr || !sdr.qtys) return 0;
+  let base = 0, hasFuel = false;
+  Object.entries(sdr.qtys).forEach(([code, qty]) => {
+    const r = card[code];
+    if (!r) return;
+    if (r.percentSurcharge) { hasFuel = true; return; }
+    base += (Number(qty) || 0) * (Number(r.rate) || 0);
+  });
+  return hasFuel ? base * 1.15 : base;
+}
+
+function _mscaFinding(sev, cat, ref, msg, amount) {
+  return { sev, cat, ref: ref || "", msg, amount: amount || 0 };
+}
+
+function computeMscAudit() {
+  const lls = (typeof LOADING_LISTS !== "undefined" && Array.isArray(LOADING_LISTS)) ? LOADING_LISTS : [];
+  const invs = (typeof INVOICES !== "undefined" && Array.isArray(INVOICES)) ? INVOICES : [];
+  const sdrs = (typeof SDRS !== "undefined" && Array.isArray(SDRS)) ? SDRS : [];
+  const card = _mscaRateCard();
+  const findings = [];
+  const DISPATCHED = ["dispatched", "loaded", "sent", "received"];
+
+  // 1) Revenue leakage — a shipment that left the dock with no invoice.
+  lls.forEach(ll => {
+    if (!DISPATCHED.includes(ll.status)) return;
+    const inv = invs.find(i => i.loadingListId === ll.id);
+    if (!inv) {
+      const sdr = sdrs.find(s => s.loadingListId === ll.id);
+      const exposure = sdr ? _mscaExpectedFromSdr(sdr, card) : 0;
+      findings.push(_mscaFinding("high", "Unbilled shipment", ll.id,
+        `${ll.vessel || ll.id} was ${ll.status} but has no invoice — likely lost revenue.`, exposure));
+    }
+  });
+
+  // 2) SDR reached PO/closed but no invoice generated.
+  sdrs.forEach(s => {
+    if (!["po_received", "closed"].includes(s.status)) return;
+    const inv = invs.find(i => i.id === s.invoiceId || i.sdrId === s.id);
+    if (!inv) findings.push(_mscaFinding("high", "SDR not invoiced", s.id,
+      `${s.id} is ${s.status} but no invoice was created.`, _mscaExpectedFromSdr(s, card)));
+  });
+
+  // 3) Missing PO on an invoice ("no PO, no service" — golden rule).
+  invs.forEach(i => {
+    const pon = (i.pon || "").trim();
+    if (!pon || /^(pending|tbd|n\/a|-)?$/i.test(pon)) {
+      findings.push(_mscaFinding("med", "Missing PO", i.id, `Invoice ${i.id} has no PO number.`));
+    }
+  });
+
+  // 4) Duplicate PO across invoices — possible double-bill.
+  const ponMap = {};
+  invs.forEach(i => { const p = (i.pon || "").trim(); if (p) (ponMap[p] = ponMap[p] || []).push(i.id); });
+  Object.entries(ponMap).forEach(([pon, ids]) => {
+    if (ids.length > 1) findings.push(_mscaFinding("high", "Duplicate PO", pon,
+      `PO ${pon} appears on ${ids.length} invoices (${ids.join(", ")}) — possible double-bill.`));
+  });
+
+  // 5) Rate mismatch vs the ADS rate card + unknown codes.
+  invs.forEach(i => {
+    (i.lines || []).forEach(l => {
+      const r = card[l.code];
+      if (!r) {
+        findings.push(_mscaFinding("med", "Unknown ADS code", i.id, `${i.id}: code ${l.code} is not in the rate card.`));
+      } else if (r.rate > 0 && Math.abs((Number(l.rate) || 0) - r.rate) > 0.01) {
+        const delta = ((Number(l.rate) || 0) - r.rate) * (Number(l.qty) || 1);
+        findings.push(_mscaFinding("med", "Rate mismatch", i.id,
+          `${i.id}: ${l.code} billed $${(Number(l.rate) || 0).toFixed(2)} vs card $${r.rate.toFixed(2)}.`, delta));
+      }
+    });
+  });
+
+  const order = { high: 0, med: 1, low: 2 };
+  findings.sort((a, b) => (order[a.sev] - order[b.sev]) || a.cat.localeCompare(b.cat));
+  return { findings, counts: { lls: lls.length, invs: invs.length, sdrs: sdrs.length } };
+}
+
+function renderMscAudit() {
+  const root = document.getElementById("msca-root");
+  if (!root) return;
+  if (!window._mscaWired) {
+    window._mscaWired = true;
+    const r = document.getElementById("msca-refresh");
+    if (r) r.addEventListener("click", () => renderMscAudit());
+  }
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  const { findings, counts } = computeMscAudit();
+  const high = findings.filter(f => f.sev === "high").length;
+  const risk = findings.reduce((a, f) => a + (f.amount > 0 ? f.amount : 0), 0);
+
+  // Summary tiles
+  const tiles = el("div", { class: "msca-tiles" });
+  const tile = (label, value, mod) => el("div", { class: "msca-tile" + (mod ? " msca-tile--" + mod : "") }, [
+    el("div", { class: "msca-tile__label", text: label }),
+    el("div", { class: "msca-tile__value", text: value }),
+  ]);
+  tiles.appendChild(tile("Findings", String(findings.length), findings.length ? null : "clean"));
+  tiles.appendChild(tile("High severity", String(high), high ? "risk" : "clean"));
+  tiles.appendChild(tile("Est. revenue at risk", "$" + Math.round(risk).toLocaleString(), risk > 0 ? "risk" : "clean"));
+  tiles.appendChild(tile("Records checked", String(counts.lls + counts.invs + counts.sdrs)));
+  root.appendChild(tiles);
+
+  if (!findings.length) {
+    root.appendChild(el("div", { class: "pp-empty", text: "✓ No discrepancies found — billing reconciles against shipments and the rate card." }));
+  } else {
+    root.appendChild(el("div", { class: "msca-sect", text: "Findings (most severe first)" }));
+    findings.forEach(f => {
+      const row = el("div", { class: "msca-finding msca-finding--" + f.sev }, [
+        el("span", { class: "msca-sev msca-sev--" + f.sev, text: f.sev }),
+        el("span", { class: "msca-cat", text: f.cat }),
+        el("span", { class: "msca-msg" }, [
+          document.createTextNode(f.msg + " "),
+          f.ref ? el("span", { class: "msca-ref", text: f.ref }) : null,
+        ]),
+        (f.amount && Math.abs(f.amount) >= 0.5) ? el("span", { class: "msca-amt", text: (f.amount < 0 ? "-$" : "$") + Math.abs(Math.round(f.amount)).toLocaleString() }) : null,
+      ]);
+      root.appendChild(row);
+    });
+  }
+
+  root.appendChild(el("div", { class: "msca-note", text:
+    "Reconciles Fast Track's internal billing (invoices, SDRs, shipments) against the ADS rate card. Cross-check against MSC's agency-cost sheet activates once the client provides the sheet format — see Stage 2.2 rate matrix." }));
+}
+
 function switchView(view) {
   // Role guard: block direct navigation to a view this role may not access.
   if (typeof viewAllowed === "function" && !viewAllowed(view)) {
     if (window.ftToast) ftToast("Your role doesn't have access to that section", "info");
     view = "dashboard";
   }
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-timetracking", "view-weekly_report", "view-ops_kpi");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-msc_audit", "view-timetracking", "view-weekly_report", "view-ops_kpi");
   document.body.classList.add("view-" + view);
   if (view === "receiving") renderReceiving();
   if (view === "customs") renderCustoms();
   if (view === "timetracking") renderTimeTracking();
   if (view === "weekly_report") renderWeeklyReport();
   if (view === "ops_kpi") renderOpsKpi();
+  if (view === "msc_audit") renderMscAudit();
   if (view === "inventory") renderInventory();
   if (view === "loading_lists") renderLoadingLists();
   if (view === "discrepancies") renderDiscrepancyReports();
@@ -14091,6 +14275,7 @@ const VIEW_ROLES = {
   discrepancies: ["manager", "admin"],
   weekly_report: ["manager", "admin"],
   ops_kpi:       ["manager", "admin"],
+  msc_audit:     ["manager", "admin"],
 };
 function viewAllowed(view) {
   const roles = VIEW_ROLES[view];
