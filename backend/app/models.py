@@ -262,6 +262,46 @@ class WarehouseReceipt(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class CustomsRecord(Base):
+    """Customs status & document tracking for a shipment (Stage 1.9).
+
+    Formalizes the loose `LoadingList.customs_docs` string into a tracked record:
+    per-document status (ISF, 7512, AES/SED), entry number, bonded status +
+    3-business-day release timer, FIRMS code (LCS5), and an auditable list of
+    document requests/responses. Ties customs clearance to loading readiness —
+    a shipment shouldn't dispatch with customs open. Also the groundwork for
+    moving customs filing off Magaya (per the off-ramp direction).
+
+    `docs` is a list of dicts:
+      {type, status ["pending"|"requested"|"received"|"filed"|"cleared"|"na"],
+       requested_at, received_at, note}
+    Per-doc convenience columns (isf/7512/aes) mirror the common ISF/7512/AES-SED
+    filings; anything else lives in `docs`.
+    """
+    __tablename__ = "customs_records"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    public_id: Mapped[str] = mapped_column(String(32), unique=True, index=True)  # CE-2026-NNNN
+    shipment_public_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)  # LoadingList public_id
+    entry_number: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)  # 9Q4-XXXXXX-X
+    vessel: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    broker: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    firms_code: Mapped[str] = mapped_column(String(16), default="LCS5")  # bonded warehouse FIRMS
+    # Per-filing status: na | pending | requested | filed | cleared
+    isf_status: Mapped[str] = mapped_column(String(16), default="pending")
+    doc_7512_status: Mapped[str] = mapped_column(String(16), default="pending")
+    aes_sed_status: Mapped[str] = mapped_column(String(16), default="na")
+    bonded: Mapped[bool] = mapped_column(Boolean, default=False)
+    bonded_release_due: Mapped[Optional[date]] = mapped_column(Date, nullable=True)  # 3 business days
+    sailing_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)  # ISF due 48h before (EU)
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)  # open | cleared | hold
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    docs: Mapped[list] = mapped_column(JSON, default=list)  # request/response tracking
+    created_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class User(Base):
     __tablename__ = "users"
 

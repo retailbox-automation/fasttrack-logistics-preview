@@ -1723,6 +1723,31 @@ body.view-receiving .receiving-view { display: block; }
 body.view-receiving .dashboard,
 body.view-receiving .pagination { display: none; }
 
+.customs-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-customs .customs-view { display: block; }
+body.view-customs .dashboard,
+body.view-customs .pagination { display: none; }
+/* Customs — reuses .pp-* and .wr-* look; adds status/filing chips + readiness */
+.cx-chip { display: inline-block; font-family: var(--font-mono, monospace); font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 7px; border-radius: 10px; margin-right: 5px; border: 1px solid var(--border, #e2e8f0); color: var(--text-dim, #5b6b7f); }
+.cx-chip--cleared, .cx-chip--filed { background: rgba(22,163,74,0.12); color: var(--ok, #16a34a); border-color: rgba(22,163,74,0.35); }
+.cx-chip--pending, .cx-chip--requested { background: rgba(234,179,8,0.14); color: #a16207; border-color: rgba(234,179,8,0.4); }
+.cx-chip--na { opacity: 0.6; }
+.cx-ready { font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 700; }
+.cx-ready--ok { color: var(--ok, #16a34a); }
+.cx-ready--blocked { color: var(--crit, #dc2626); }
+.cx-blockers { margin: 6px 0 0; padding-left: 16px; font-size: 11px; color: var(--crit, #dc2626); }
+.cx-blockers li { margin: 1px 0; }
+.cx-status { font-family: var(--font-mono, monospace); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 11px; border: 1px solid transparent; }
+.cx-status--open { background: rgba(30,77,123,0.10); color: var(--accent, #1e4d7b); border-color: rgba(30,77,123,0.3); }
+.cx-status--cleared { background: rgba(22,163,74,0.14); color: var(--ok, #16a34a); border-color: rgba(22,163,74,0.35); }
+.cx-status--hold { background: rgba(220,38,38,0.12); color: var(--crit, #dc2626); border-color: rgba(220,38,38,0.35); }
+.cx-card { background: var(--bg-elevated, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+.cx-card__top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cx-card__id { font-family: var(--font-mono, monospace); font-size: 13px; font-weight: 700; color: var(--text-bright, #0a1622); }
+.cx-card__meta { font-size: 12px; color: var(--text-dim, #5b6b7f); flex: 1; }
+.cx-card__filings { margin-top: 8px; }
+.cx-card__actions { display: flex; gap: 8px; }
+
 /* Receiving / Warehouse Receipt view — reuses .pp-* look, adds a receiving form + line grid */
 .wr-form { background: var(--bg-elevated, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 18px 20px; margin-bottom: 22px; }
 .wr-form h2 { font-size: 15px; font-weight: 600; color: var(--text-bright, #0a1622); margin: 0 0 14px; }
@@ -3921,6 +3946,13 @@ body.layout-list .pagination { display: none; }
         setTimeout(() => URL.revokeObjectURL(url), 60000);
       },
     },
+    customs: {
+      list: (shipmentId) => fetchJSON('/api/customs' + (shipmentId ? '?shipment_public_id=' + encodeURIComponent(shipmentId) : '')),
+      get: (id) => fetchJSON('/api/customs/' + id),
+      create: (body) => fetchJSON('/api/customs', { method: 'POST', body: JSON.stringify(body) }),
+      update: (id, patch) => fetchJSON('/api/customs/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
+      remove: (id) => fetchJSON('/api/customs/' + id, { method: 'DELETE' }),
+    },
     fromBackend, toBackend,
   };
 
@@ -3932,6 +3964,7 @@ body.layout-list .pagination { display: none; }
       'doc.updated': null,    // set by hydrate loop below
       'inventory.changed': null,
       'warehouse_receipts.changed': null,
+      'customs.changed': null,
     };
     function connect() {
       const tok = localStorage.getItem('ft_jwt');
@@ -3964,6 +3997,14 @@ body.layout-list .pagination { display: none; }
             const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
             if (data.by_user_id && me.id && data.by_user_id === me.id) return;
             if (handlers['warehouse_receipts.changed']) handlers['warehouse_receipts.changed'](data);
+          } catch (err) { console.error(err); }
+        });
+        es.addEventListener('customs.changed', (e) => {
+          try {
+            const data = JSON.parse(e.data || '{}');
+            const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
+            if (data.by_user_id && me.id && data.by_user_id === me.id) return;
+            if (handlers['customs.changed']) handlers['customs.changed'](data);
           } catch (err) { console.error(err); }
         });
         es.onerror = () => {
@@ -4801,6 +4842,10 @@ body.layout-list .pagination { display: none; }
 
     <section class="receiving-view" id="receiving-view">
       <div id="wr-root"></div>
+    </section>
+
+    <section class="customs-view" id="customs-view">
+      <div id="cx-root"></div>
     </section>
 
     <section class="pick-pack-view" id="pick-pack-view">
@@ -5746,6 +5791,7 @@ const SIDEBAR_DATA = {
     { label: "Inventory · Warehouse", count: "29", view: "inventory" },
     { label: "Receiving · Warehouse Receipts", count: "·", view: "receiving" },
     { label: "Shipments · LL + CR + DO", count: "3", view: "loading_lists" },
+    { label: "Customs · Docs & clearance", count: "·", view: "customs" },
     { label: "Discrepancy Reports",  count: "3", view: "discrepancies" },
     { label: "Shipment Detail · MSC approval", count: "3", view: "sdr", highlight: true },
     { label: "Invoices · Billing",   count: "4", view: "invoices" },
@@ -9864,9 +9910,10 @@ function switchView(view) {
     if (window.ftToast) ftToast("Your role doesn't have access to that section", "info");
     view = "dashboard";
   }
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-timetracking", "view-weekly_report", "view-ops_kpi");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-timetracking", "view-weekly_report", "view-ops_kpi");
   document.body.classList.add("view-" + view);
   if (view === "receiving") renderReceiving();
+  if (view === "customs") renderCustoms();
   if (view === "timetracking") renderTimeTracking();
   if (view === "weekly_report") renderWeeklyReport();
   if (view === "ops_kpi") renderOpsKpi();
@@ -10162,6 +10209,228 @@ function wrBuildForm() {
   }
 
   renderRows();
+  return form;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CUSTOMS · DOCS & CLEARANCE  ·  Per-shipment customs status + document
+   tracking (Stage 1.9). ISF / 7512 / AES-SED filing status, entry number,
+   bonded 3-day release timer, FIRMS code, document request/response log, and a
+   loading-readiness verdict (cleared + blockers) that ties customs to dispatch.
+   Groundwork for moving customs filing off Magaya. Wiring mirrors Receiving.
+   ═══════════════════════════════════════════════════════════════════ */
+
+const CX_FILING_STATES = ["na", "pending", "requested", "filed", "cleared"];
+
+function cxApi() { return window.FT_API && window.FT_API.customs; }
+function cxCanEdit() { return typeof ftCan === "function" ? ftCan("edit_data") : true; }
+function cxCanDelete() { const r = (typeof ftRole === "function") ? ftRole() : "viewer"; return r === "admin" || r === "manager"; }
+
+async function renderCustoms() {
+  const root = document.getElementById("cx-root");
+  if (!root) return;
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  const header = el("div", { class: "pp-header" }, [
+    el("div", {}, [
+      el("h1", { class: "pp-title", text: "Customs · Docs & clearance" }),
+      el("div", { class: "pp-sub", text: "Track ISF / 7512 / AES filings and documents per shipment. A shipment isn't ready to load until customs clears." }),
+    ]),
+  ]);
+  if (cxCanEdit()) header.appendChild(el("button", { class: "pp-btn", text: "+ New customs record", onclick: () => cxToggleForm(null) }));
+  root.appendChild(header);
+
+  if (!cxApi()) { root.appendChild(el("div", { class: "pp-empty", text: "Backend not connected." })); return; }
+
+  root.appendChild(el("div", { id: "cx-form-slot" }));
+  root.appendChild(el("div", { class: "pp-task-list", id: "cx-list" }, [el("div", { class: "pp-empty", text: "Loading customs records…" })]));
+  cxLoadList();
+}
+
+function cxToggleForm(existing) {
+  const slot = document.getElementById("cx-form-slot");
+  if (!slot) return;
+  if (slot.firstChild && !existing && slot.getAttribute("data-mode") === "new") { slot.replaceChildren(); slot.removeAttribute("data-mode"); return; }
+  slot.replaceChildren(cxBuildForm(existing));
+  slot.setAttribute("data-mode", existing ? ("edit-" + existing.id) : "new");
+  slot.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function cxLoadList() {
+  const list = document.getElementById("cx-list");
+  if (!list) return;
+  let recs = [];
+  try { recs = await cxApi().list(); }
+  catch (e) { list.replaceChildren(el("div", { class: "pp-empty", text: "Could not load customs records: " + e.message })); return; }
+  while (list.firstChild) list.removeChild(list.firstChild);
+  if (!recs.length) { list.appendChild(el("div", { class: "pp-empty", text: "No customs records yet." })); return; }
+  recs.forEach(r => list.appendChild(cxCard(r)));
+}
+
+function cxChip(label, status) {
+  return el("span", { class: "cx-chip cx-chip--" + (status || "na"), text: label + ": " + (status || "na") });
+}
+
+function cxCard(r) {
+  const card = el("div", { class: "cx-card" });
+  const top = el("div", { class: "cx-card__top" }, [
+    el("span", { class: "cx-card__id", text: r.public_id }),
+    el("span", { class: "cx-status cx-status--" + (r.status || "open"), text: (r.status || "open").toUpperCase() }),
+    el("span", { class: "cx-card__meta", text: [
+      r.shipment_public_id ? ("shipment " + r.shipment_public_id) : null,
+      r.entry_number ? ("entry " + r.entry_number) : null,
+      r.vessel || null,
+      r.broker ? ("broker " + r.broker) : null,
+      "FIRMS " + (r.firms_code || "LCS5"),
+    ].filter(Boolean).join("   ·   ") }),
+  ]);
+  const ready = r.cleared
+    ? el("span", { class: "cx-ready cx-ready--ok", text: "✓ Cleared to load" })
+    : el("span", { class: "cx-ready cx-ready--blocked", text: "⚠ " + (r.blockers || []).length + " blocker(s)" });
+  top.appendChild(ready);
+  card.appendChild(top);
+
+  const filings = el("div", { class: "cx-card__filings" }, [
+    cxChip("ISF", r.isf_status),
+    cxChip("7512", r.doc_7512_status),
+    cxChip("AES/SED", r.aes_sed_status),
+    r.bonded ? el("span", { class: "cx-chip", text: "BONDED" + (r.bonded_release_due ? (" → " + r.bonded_release_due) : "") }) : null,
+    r.sailing_date ? el("span", { class: "cx-chip", text: "SAILS " + r.sailing_date }) : null,
+  ]);
+  card.appendChild(filings);
+
+  if (!r.cleared && (r.blockers || []).length) {
+    card.appendChild(el("ul", { class: "cx-blockers" }, r.blockers.map(b => el("li", { text: b }))));
+  }
+  if ((r.docs || []).length) {
+    card.appendChild(el("div", { style: "margin-top:6px;font-size:11px;color:var(--text-dim);", text:
+      "Docs: " + r.docs.map(d => (d.type || "doc") + " (" + (d.status || "pending") + ")").join(", ") }));
+  }
+
+  const actions = el("div", { class: "cx-card__actions", style: "margin-top:10px;" });
+  if (cxCanEdit()) actions.appendChild(el("button", { class: "pp-btn pp-btn--ghost", text: "Edit", onclick: () => cxToggleForm(r) }));
+  if (cxCanDelete()) actions.appendChild(el("button", { class: "pp-btn pp-btn--ghost", text: "Delete", onclick: () => cxDelete(r) }));
+  card.appendChild(actions);
+  return card;
+}
+
+async function cxDelete(r) {
+  if (!confirm("Delete customs record " + r.public_id + "?")) return;
+  try { await cxApi().remove(r.id); if (window.ftToast) ftToast("Deleted " + r.public_id, "info"); cxLoadList(); }
+  catch (e) { if (window.ftToast) ftToast("Delete failed: " + e.message, "error"); }
+}
+
+function cxBuildForm(existing) {
+  const isEdit = !!existing;
+  const r = existing || {};
+  const docs = (r.docs ? JSON.parse(JSON.stringify(r.docs)) : []);
+
+  const form = el("div", { class: "wr-form" });
+  form.appendChild(el("h2", { text: isEdit ? ("Edit " + r.public_id) : "New customs record" }));
+
+  const field = (label, node, cls) => el("div", { class: "wr-field" + (cls ? " " + cls : "") }, [el("label", { text: label }), node]);
+  const inp = (id, val, attrs) => el("input", Object.assign({ id, value: val == null ? "" : val }, attrs || {}));
+  const sel = (id, val, opts) => {
+    const s = el("select", { id });
+    opts.forEach(o => s.appendChild(el("option", { value: o, text: o, selected: (val || "") === o })));
+    return s;
+  };
+  const chk = (id, val) => { const c = el("input", { id, type: "checkbox" }); c.checked = !!val; return c; };
+
+  const grid = el("div", { class: "wr-grid" }, [
+    field("Shipment (LL public id)", inp("cx-shipment", r.shipment_public_id, { placeholder: "LL-2026-0049 (optional)" })),
+    field("Entry number", inp("cx-entry", r.entry_number, { placeholder: "9Q4-000000-0" })),
+    field("Vessel", inp("cx-vessel", r.vessel)),
+    field("Broker", inp("cx-broker", r.broker)),
+    field("ISF status", sel("cx-isf", r.isf_status || "pending", CX_FILING_STATES)),
+    field("7512 status", sel("cx-7512", r.doc_7512_status || "pending", CX_FILING_STATES)),
+    field("AES / SED status", sel("cx-aes", r.aes_sed_status || "na", CX_FILING_STATES)),
+    field("FIRMS code", inp("cx-firms", r.firms_code || "LCS5")),
+    field("Bonded", chk("cx-bonded", r.bonded)),
+    field("Bonded release due", inp("cx-bonded-due", r.bonded_release_due, { type: "date" })),
+    field("Sailing date", inp("cx-sailing", r.sailing_date, { type: "date" })),
+    field("Notes", el("textarea", { id: "cx-notes", rows: 2 }, [r.notes || ""]), "wr-field--full"),
+  ]);
+  form.appendChild(grid);
+
+  // Documents request/response tracker
+  const docWrap = el("div", { class: "wr-lines" });
+  docWrap.appendChild(el("div", { class: "wr-lines-head" }, [
+    el("h3", { text: "Documents (request / response log)" }),
+    el("button", { class: "pp-btn pp-btn--ghost", text: "+ Add document", onclick: () => { syncDocs(); docs.push({ type: "", status: "pending", note: "" }); renderDocs(); } }),
+  ]));
+  const docTable = el("table", { class: "wr-line-table" });
+  docTable.appendChild(el("thead", {}, [el("tr", {}, ["Type", "Status", "Requested", "Received", "Note", ""].map(h => el("th", { text: h })))]));
+  const docBody = el("tbody", {});
+  docTable.appendChild(docBody);
+  docWrap.appendChild(docTable);
+  form.appendChild(docWrap);
+
+  function syncDocs() {
+    docs.forEach((d, i) => {
+      const q = (f) => docBody.querySelector('[data-d="' + i + '"][data-f="' + f + '"]');
+      ["type", "status", "note", "requested_at", "received_at"].forEach(f => { const n = q(f); if (n) d[f] = n.value || null; });
+    });
+  }
+  function renderDocs() {
+    while (docBody.firstChild) docBody.removeChild(docBody.firstChild);
+    docs.forEach((d, i) => {
+      const cell = (f, node) => { node.setAttribute("data-d", i); node.setAttribute("data-f", f); return el("td", {}, [node]); };
+      const statusSel = el("select", {}, ["pending", "requested", "received", "filed", "cleared", "na"].map(o => el("option", { value: o, text: o, selected: (d.status || "pending") === o })));
+      docBody.appendChild(el("tr", {}, [
+        cell("type", el("input", { value: d.type || "", placeholder: "e.g. 7512, ISF, invoice" })),
+        cell("status", statusSel),
+        cell("requested_at", el("input", { type: "date", value: d.requested_at || "" })),
+        cell("received_at", el("input", { type: "date", value: d.received_at || "" })),
+        cell("note", el("input", { value: d.note || "" })),
+        el("td", {}, [el("button", { class: "wr-line-rm", text: "✕", title: "Remove", onclick: () => { syncDocs(); docs.splice(i, 1); renderDocs(); } })]),
+      ]));
+    });
+  }
+  renderDocs();
+
+  const msg = el("div", { class: "wr-msg" });
+  const btn = el("button", { class: "pp-btn", text: isEdit ? "Save changes" : "Create record", onclick: submit });
+  form.appendChild(el("div", { class: "wr-actions" }, [
+    btn,
+    el("button", { class: "pp-btn pp-btn--ghost", text: "Cancel", onclick: () => { const s = document.getElementById("cx-form-slot"); if (s) { s.replaceChildren(); s.removeAttribute("data-mode"); } } }),
+    msg,
+  ]));
+
+  async function submit() {
+    syncDocs();
+    msg.className = "wr-msg";
+    const gv = (id) => { const n = document.getElementById(id); return n ? (n.value || "").trim() : ""; };
+    const body = {
+      shipment_public_id: gv("cx-shipment") || null,
+      entry_number: gv("cx-entry") || null,
+      vessel: gv("cx-vessel") || null,
+      broker: gv("cx-broker") || null,
+      firms_code: gv("cx-firms") || "LCS5",
+      isf_status: gv("cx-isf") || "pending",
+      doc_7512_status: gv("cx-7512") || "pending",
+      aes_sed_status: gv("cx-aes") || "na",
+      bonded: !!(document.getElementById("cx-bonded") || {}).checked,
+      bonded_release_due: gv("cx-bonded-due") || null,
+      sailing_date: gv("cx-sailing") || null,
+      notes: gv("cx-notes") || null,
+      docs: docs.filter(d => (d.type || "").trim()).map(d => ({
+        type: d.type.trim(), status: d.status || "pending",
+        requested_at: d.requested_at || null, received_at: d.received_at || null, note: d.note || null,
+      })),
+    };
+    btn.disabled = true;
+    try {
+      const saved = isEdit ? await cxApi().update(r.id, body) : await cxApi().create(body);
+      if (window.ftToast) ftToast(saved.public_id + (isEdit ? " updated" : " created") + (saved.cleared ? " — cleared to load" : " — " + (saved.blockers || []).length + " blocker(s)"), "success");
+      const s = document.getElementById("cx-form-slot"); if (s) { s.replaceChildren(); s.removeAttribute("data-mode"); }
+      cxLoadList();
+    } catch (e) {
+      msg.textContent = (isEdit ? "Save" : "Create") + " failed: " + e.message;
+      msg.className = "wr-msg wr-msg--err";
+    } finally { btn.disabled = false; }
+  }
+
   return form;
 }
 
@@ -16391,6 +16660,11 @@ if (window.ftRealtime) {
   window.ftRealtime.on('warehouse_receipts.changed', () => {
     if (document.body.classList.contains('view-receiving') && typeof wrLoadList === 'function') {
       try { wrLoadList(); } catch (e) {}
+    }
+  });
+  window.ftRealtime.on('customs.changed', () => {
+    if (document.body.classList.contains('view-customs') && typeof renderCustoms === 'function') {
+      try { renderCustoms(); } catch (e) {}
     }
   });
 }

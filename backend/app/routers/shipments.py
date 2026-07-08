@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import LoadingList, InventoryItem
+from app.models import LoadingList, InventoryItem, CustomsRecord
 from app.schemas import ShipmentCreate, ShipmentUpdate, ShipmentOut, ShipmentBulk
 from app.auth import require_auth, require_roles
 from app.audit import log_audit
@@ -139,6 +139,9 @@ def delete_shipment(ll_id: int, request: Request, db: Session = Depends(get_db),
     if not ll:
         raise HTTPException(status_code=404, detail="Loading list not found")
     pid = ll.public_id
+    # Null any customs record's soft-link to this shipment so it doesn't dangle.
+    db.query(CustomsRecord).filter(CustomsRecord.shipment_public_id == pid).update(
+        {CustomsRecord.shipment_public_id: None}, synchronize_session=False)
     db.delete(ll)
     db.commit()
     log_audit(db, claims, "delete", "shipment", entity_id=str(ll_id), summary=f"Deleted {pid}",

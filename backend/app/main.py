@@ -30,6 +30,7 @@ from app.routers import emails as emails_router
 from app.routers import timetracking as time_router
 from app.routers import shipments as shipments_router
 from app.routers import warehouse_receipts as wr_router
+from app.routers import customs as customs_router
 from app.routers import reference as reference_router
 from app.routers import attachments as attachments_router
 from app.routers import picks as picks_router
@@ -256,6 +257,7 @@ app.include_router(emails_router.router)
 app.include_router(time_router.router)
 app.include_router(shipments_router.router)
 app.include_router(wr_router.router)
+app.include_router(customs_router.router)
 app.include_router(reference_router.router)
 app.include_router(attachments_router.router)
 app.include_router(picks_router.router)

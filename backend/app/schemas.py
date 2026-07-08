@@ -212,6 +212,79 @@ class WarehouseReceiptOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ── Customs status & document tracking (Stage 1.9) ──
+_CUSTOMS_FILING_STATES = {"na", "pending", "requested", "filed", "cleared"}
+
+
+class CustomsDoc(BaseModel):
+    type: str
+    status: str = "pending"          # pending | requested | received | filed | cleared | na
+    requested_at: Optional[date] = None
+    received_at: Optional[date] = None
+    note: Optional[str] = None
+
+
+class CustomsRecordCreate(BaseModel):
+    public_id: Optional[str] = None          # auto CE-YYYY-NNNN
+    shipment_public_id: Optional[str] = None
+    entry_number: Optional[str] = None
+    vessel: Optional[str] = None
+    broker: Optional[str] = None
+    firms_code: str = "LCS5"
+    isf_status: str = "pending"
+    doc_7512_status: str = "pending"
+    aes_sed_status: str = "na"
+    bonded: bool = False
+    bonded_release_due: Optional[date] = None
+    sailing_date: Optional[date] = None
+    notes: Optional[str] = None
+    docs: list[CustomsDoc] = []
+
+
+class CustomsRecordUpdate(BaseModel):
+    shipment_public_id: Optional[str] = None
+    entry_number: Optional[str] = None
+    vessel: Optional[str] = None
+    broker: Optional[str] = None
+    firms_code: Optional[str] = None
+    isf_status: Optional[str] = None
+    doc_7512_status: Optional[str] = None
+    aes_sed_status: Optional[str] = None
+    bonded: Optional[bool] = None
+    bonded_release_due: Optional[date] = None
+    sailing_date: Optional[date] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    docs: Optional[list[CustomsDoc]] = None
+
+
+class CustomsRecordOut(BaseModel):
+    id: int
+    public_id: str
+    shipment_public_id: Optional[str] = None
+    entry_number: Optional[str] = None
+    vessel: Optional[str] = None
+    broker: Optional[str] = None
+    firms_code: str
+    isf_status: str
+    doc_7512_status: str
+    aes_sed_status: str
+    bonded: bool
+    bonded_release_due: Optional[date] = None
+    sailing_date: Optional[date] = None
+    status: str
+    notes: Optional[str] = None
+    docs: list = []
+    created_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    # computed
+    cleared: bool = False
+    blockers: list[str] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class HealthOut(BaseModel):
     status: str
     db: str
