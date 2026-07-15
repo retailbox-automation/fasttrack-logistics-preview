@@ -37,12 +37,14 @@ from app.routers import picks as picks_router
 from app.routers import approvals as approvals_router
 from app.routers import billing as billing_router
 from app.routers import statement as statement_router
+from app.routers import rates as rates_router
 from app.schemas import HealthOut
 from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
 from app import graph, email_ingest
 from app.reference_seed import seed_reference_if_empty
 from app.billing_seed import seed_billing_if_empty
+from app.rate_seed import seed_rates_if_empty
 
 
 # ── Structured JSON logging (per-request id, latency) ──
@@ -132,6 +134,7 @@ async def lifespan(app: FastAPI):
         seed_users_if_empty()
         seed_reference_if_empty()
         seed_billing_if_empty()
+        seed_rates_if_empty()
     except Exception as e:
         log.exception("db_init_failed: %s", e)
     sync_task = asyncio.create_task(_auto_sync_loop())
@@ -270,6 +273,7 @@ app.include_router(billing_router.router)
 app.include_router(billing_router.sdr_router)
 app.include_router(billing_router.cm_router)
 app.include_router(statement_router.router)
+app.include_router(rates_router.router)
 
 
 # Serve frontend index.html bundled into the image

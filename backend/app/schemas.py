@@ -480,6 +480,68 @@ class CreditMemoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ── Rate matrix (Stage 2.2): ADS code × ship × port ──
+RATE_OPS = {"trucking", "import", "other"}
+
+
+class RateCardCreate(BaseModel):
+    ads_code: str
+    description: Optional[str] = None
+    ship: Optional[str] = None          # None = any ship
+    port: Optional[str] = None          # None = any port
+    rate: float = 0.0
+    op: Optional[str] = None
+    percent_surcharge: Optional[float] = None
+    currency: str = "USD"
+    effective_from: Optional[date] = None
+    effective_to: Optional[date] = None
+    active: bool = True
+
+
+class RateCardUpdate(BaseModel):
+    ads_code: Optional[str] = None
+    description: Optional[str] = None
+    ship: Optional[str] = None
+    port: Optional[str] = None
+    rate: Optional[float] = None
+    op: Optional[str] = None
+    percent_surcharge: Optional[float] = None
+    currency: Optional[str] = None
+    effective_from: Optional[date] = None
+    effective_to: Optional[date] = None
+    active: Optional[bool] = None
+
+
+class RateCardOut(BaseModel):
+    id: int
+    ads_code: str
+    description: Optional[str] = None
+    ship: Optional[str] = None
+    port: Optional[str] = None
+    rate: float
+    op: Optional[str] = None
+    percent_surcharge: Optional[float] = None
+    currency: str
+    effective_from: Optional[date] = None
+    effective_to: Optional[date] = None
+    active: bool
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RateLookupOut(BaseModel):
+    ads_code: str
+    ship: Optional[str] = None
+    port: Optional[str] = None
+    found: bool
+    rate: Optional[float] = None
+    op: Optional[str] = None
+    percent_surcharge: Optional[float] = None
+    match: Optional[str] = None          # exact | ship | port | baseline | none
+    rate_card_id: Optional[int] = None
+
+
 class HealthOut(BaseModel):
     status: str
     db: str

@@ -420,3 +420,29 @@ class ReferenceItem(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class RateCard(Base):
+    """Rate matrix (Stage 2.2): ADS service code × ship × port → rate.
+
+    Baseline rows have ship=NULL and port=NULL (apply to any). Ship/port-specific
+    overrides (from MSC's rate sheet) take precedence — see the lookup resolver in
+    routers/rates.py (exact ship+port > ship-only > port-only > baseline). Rows can be
+    effective-dated (NULL = always). Pricing varies by ship×port — same service can be
+    $612 at one port and $3,000 at another (memory: pricing-varies-by-ship-port)."""
+    __tablename__ = "rate_cards"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ads_code: Mapped[str] = mapped_column(String(32), index=True)
+    description: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    ship: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)   # NULL = any
+    port: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)   # NULL = any
+    rate: Mapped[float] = mapped_column(Float, default=0.0)
+    op: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)                 # trucking/import/other
+    percent_surcharge: Mapped[Optional[float]] = mapped_column(Float, nullable=True)     # e.g. 0.15 fuel
+    currency: Mapped[str] = mapped_column(String(8), default="USD")
+    effective_from: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    effective_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
