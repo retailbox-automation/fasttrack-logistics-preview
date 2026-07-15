@@ -1813,6 +1813,31 @@ body.view-pick_pack .crunchtime-view,
 body.view-pick_pack .barcoding-view,
 body.view-pick_pack .pagination { display: none; }
 
+/* Rate Card view (admin/manager) — net-new; mirrors receiving-view show/hide */
+.rate-card-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-rates .rate-card-view { display: block; }
+body.view-rates .dashboard,
+body.view-rates .pagination { display: none; }
+.rc-form { background: var(--bg-elevated, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 8px; padding: 16px 18px; margin-bottom: 22px; }
+.rc-form h2 { font-size: 15px; margin: 0 0 14px; color: var(--text-bright, #0a1622); }
+.rc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.rc-form-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rc-msg { font-size: 12px; color: var(--text-dim, #5b6b7f); }
+.rc-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 8px 0 12px; flex-wrap: wrap; }
+.rc-toolbar #rc-search { max-width: 240px; }
+.rc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rc-table th { text-align: left; padding: 9px 10px; font-family: var(--font-mono, monospace); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim, #5b6b7f); border-bottom: 1px solid var(--border, #e2e8f0); white-space: nowrap; }
+.rc-table td { padding: 9px 10px; border-bottom: 1px solid var(--border, #e2e8f0); color: var(--text, #0e1d2f); vertical-align: middle; }
+.rc-table tbody tr:hover td { background: rgba(30,77,123,0.04); }
+.rc-code { font-family: var(--font-mono, monospace); font-weight: 700; color: var(--text-bright, #0a1622); }
+.rc-badge { display: inline-block; margin-left: 8px; font-family: var(--font-mono, monospace); font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 10px; background: rgba(234,88,12,0.12); color: #c2410c; border: 1px solid rgba(234,88,12,0.3); vertical-align: middle; }
+.rc-badge--base { background: rgba(30,77,123,0.10); color: var(--accent, #1e4d7b); border-color: rgba(30,77,123,0.3); }
+.rc-muted { color: var(--text-dim, #5b6b7f); }
+.rc-actions { white-space: nowrap; }
+.rc-actions .pp-btn { padding: 6px 10px; margin-left: 6px; }
+.rc-actions .pp-btn:first-child { margin-left: 0; }
+.rc-actions .rc-del { color: var(--crit, #dc2626); border-color: rgba(220,38,38,0.4); }
+
 .pp-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; gap: 16px; flex-wrap: wrap; }
 .pp-title { font-family: var(--font-display, inherit); font-size: 22px; font-weight: 600; color: var(--text-bright, #0a1622); letter-spacing: -0.02em; margin: 0; }
 .pp-sub { font-size: 12px; color: var(--text-dim, #5b6b7f); margin-top: 4px; }
@@ -4041,6 +4066,28 @@ body.layout-list .pagination { display: none; }
       update: (id, patch) => fetchJSON('/api/users/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
       remove: (id) => fetchJSON('/api/users/' + id, { method: 'DELETE' }),
     },
+    // Rate matrix (Stage 2.2) — authoritative DB rate card the billing audit
+    // reconciles against (see billing note above). {id} = row id. Authed
+    // GET/POST/PATCH/DELETE via fetchJSON, same as the typed endpoints. Roles:
+    // admin/manager create/update; admin-only delete (backend enforces too).
+    rates: {
+      list: (params) => {
+        let q = '';
+        if (params) {
+          const usp = new URLSearchParams();
+          Object.entries(params).forEach(([k, v]) => {
+            if (v !== undefined && v !== null && v !== '') usp.append(k, v);
+          });
+          const s = usp.toString();
+          if (s) q = '?' + s;
+        }
+        return fetchJSON('/api/rates' + q);
+      },
+      get: (id) => fetchJSON('/api/rates/' + id),
+      create: (body) => fetchJSON('/api/rates', { method: 'POST', body: JSON.stringify(body) }),
+      update: (id, patch) => fetchJSON('/api/rates/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
+      remove: (id) => fetchJSON('/api/rates/' + id, { method: 'DELETE' }),
+    },
     audit: {
       list: (params) => {
         const q = params ? '?' + new URLSearchParams(params).toString() : '';
@@ -5050,6 +5097,10 @@ body.layout-list .pagination { display: none; }
     <section class="pick-pack-view" id="pick-pack-view">
       <div id="pp-root"></div>
     </section>
+
+    <section class="rate-card-view" id="rate-card-view">
+      <div id="rc-root"></div>
+    </section>
   </main>
 
   <!-- PICK & PACK · NEW PICK MODAL -->
@@ -5997,6 +6048,7 @@ const SIDEBAR_DATA = {
     { label: "Credit Memos",         count: "2", view: "credit_memos" },
     { label: "Statement of Account", count: "2", view: "soa", highlight: true },
     { label: "MSC Audit · Reconciliation", count: "·", view: "msc_audit", highlight: true },
+    { label: "Rate Card · Billing rates", count: "·", view: "rates" },
     { label: "CrunchTime · Requests", count: "4", view: "crunchtime" },
     { label: "Barcoding · Scan",     count: "·", view: "barcoding" },
     { label: "Pick & Pack",          count: "·", view: "pick_pack" },
@@ -10321,7 +10373,7 @@ function switchView(view) {
     if (window.ftToast) ftToast("Your role doesn't have access to that section", "info");
     view = "dashboard";
   }
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-msc_audit", "view-timetracking", "view-weekly_report", "view-ops_kpi");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-msc_audit", "view-timetracking", "view-weekly_report", "view-ops_kpi", "view-rates");
   document.body.classList.add("view-" + view);
   if (view === "receiving") renderReceiving();
   if (view === "customs") renderCustoms();
@@ -10339,6 +10391,241 @@ function switchView(view) {
   if (view === "sdr") renderSDRs();
   if (view === "credit_memos") renderCreditMemos();
   if (view === "soa") renderSOA();
+  if (view === "rates") renderRates();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RATE CARD  ·  Admin management of the authoritative rate matrix (Stage 2.2)
+   via the /api/rates backend. Baseline rows (ship=null AND port=null) apply to
+   any ship/port; rows with a ship and/or port are OVERRIDES that win for that
+   ship/port at billing lookup. Distinct from the client-side ADS_RATES mock
+   (which can drift) — this edits the server source of truth the billing audit
+   reconciles against. Wiring mirrors Receiving (sidebar → switchView →
+   renderRates → #rc-root). Gated to admin/manager via VIEW_ROLES; DELETE is
+   admin-only (backend enforces too). NET-NEW view — touches nothing else.
+   ═══════════════════════════════════════════════════════════════════ */
+
+function rcApi() { return window.FT_API && window.FT_API.rates; }
+function rcRole() { return typeof ftRole === "function" ? ftRole() : "viewer"; }
+function rcCanEdit() { const r = rcRole(); return r === "admin" || r === "manager"; }
+function rcCanDelete() { return rcRole() === "admin"; }
+function rcToast(msg, kind) { if (window.ftToast) ftToast(msg, kind); }
+
+const RC_OPS = ["trucking", "import", "other"];
+let RC_EDIT_ID = null;   // null = create mode; otherwise the row id being edited
+let RC_FILTER = "";      // ADS-code / description search filter (client-side)
+let RC_ROWS = [];        // last-loaded rows (filter/sort without refetch)
+
+async function renderRates() {
+  const root = document.getElementById("rc-root");
+  if (!root) return;
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  root.appendChild(el("div", { class: "pp-header" }, [
+    el("div", {}, [
+      el("h1", { class: "pp-title", text: "Rate Card" }),
+      el("div", { class: "pp-sub", text: "Baseline rates apply to any ship/port. Ship/port rows are overrides that win at billing lookup time." }),
+    ]),
+  ]));
+
+  if (!rcCanEdit()) { root.appendChild(el("div", { class: "pp-empty", text: "Your role doesn't have access to the Rate Card." })); return; }
+  if (!rcApi()) { root.appendChild(el("div", { class: "pp-empty", text: "Backend not connected." })); return; }
+
+  RC_EDIT_ID = null;
+  root.appendChild(rcBuildForm());
+
+  const search = el("input", { class: "pp-input", id: "rc-search", type: "search", placeholder: "Filter by ADS code…", value: RC_FILTER });
+  search.addEventListener("input", () => { RC_FILTER = search.value; rcRenderList(); });
+  root.appendChild(el("div", { class: "rc-toolbar" }, [
+    el("h3", { class: "pp-title", text: "Rates", style: "font-size:15px;margin:0;" }),
+    search,
+  ]));
+
+  root.appendChild(el("div", { id: "rc-list" }, [el("div", { class: "pp-empty", text: "Loading rates…" })]));
+  rcLoadList();
+}
+
+async function rcLoadList() {
+  const listWrap = document.getElementById("rc-list");
+  if (!listWrap) return;
+  try {
+    RC_ROWS = (await rcApi().list()) || [];
+  } catch (e) {
+    listWrap.replaceChildren(el("div", { class: "pp-empty", text: "Could not load rates: " + e.message }));
+    return;
+  }
+  rcRenderList();
+}
+
+function rcRenderList() {
+  const listWrap = document.getElementById("rc-list");
+  if (!listWrap) return;
+  const f = (RC_FILTER || "").trim().toLowerCase();
+  let rows = RC_ROWS.slice();
+  if (f) rows = rows.filter(r =>
+    String(r.ads_code || "").toLowerCase().includes(f) ||
+    String(r.description || "").toLowerCase().includes(f));
+
+  // Sort by ads_code, then baseline-first within each code.
+  rows.sort((a, b) => {
+    const c = String(a.ads_code || "").localeCompare(String(b.ads_code || ""));
+    if (c !== 0) return c;
+    const aBase = (!a.ship && !a.port) ? 0 : 1;
+    const bBase = (!b.ship && !b.port) ? 0 : 1;
+    return aBase - bBase;
+  });
+
+  while (listWrap.firstChild) listWrap.removeChild(listWrap.firstChild);
+  if (!rows.length) {
+    listWrap.appendChild(el("div", { class: "pp-empty", text: RC_ROWS.length ? "No rates match your filter." : "No rates yet. Add the first one above." }));
+    return;
+  }
+
+  const money = (v, cur) => (cur || "USD") + " " + Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const thead = el("thead", {}, [el("tr", {}, ["ADS code", "Description", "Ship", "Port", "Rate", "Op", "Fuel %", "Active", ""].map(h => el("th", { text: h })))]);
+  const tbody = el("tbody", {});
+  rows.forEach(r => {
+    const isBase = !r.ship && !r.port;
+    const codeCell = el("td", {}, [
+      el("span", { class: "rc-code", text: r.ads_code || "—" }),
+      el("span", { class: "rc-badge" + (isBase ? " rc-badge--base" : ""), text: isBase ? "baseline" : "override" }),
+    ]);
+    const activeBox = el("input", { type: "checkbox", checked: !!r.active, title: "Toggle active" });
+    activeBox.addEventListener("change", () => rcToggleActive(r, activeBox));
+    const actions = el("td", { class: "rc-actions" }, [
+      el("button", { class: "pp-btn pp-btn--ghost", text: "Edit", onclick: () => rcEdit(r) }),
+    ]);
+    if (rcCanDelete()) actions.appendChild(el("button", { class: "pp-btn pp-btn--ghost rc-del", text: "Delete", onclick: () => rcDelete(r) }));
+    tbody.appendChild(el("tr", {}, [
+      codeCell,
+      el("td", { text: r.description || "—" }),
+      el("td", {}, [r.ship ? document.createTextNode(r.ship) : el("span", { class: "rc-muted", text: "Any" })]),
+      el("td", {}, [r.port ? document.createTextNode(r.port) : el("span", { class: "rc-muted", text: "Any" })]),
+      el("td", { text: money(r.rate, r.currency) }),
+      el("td", { text: r.op || "—" }),
+      el("td", {}, [r.percent_surcharge != null ? document.createTextNode((Math.round(r.percent_surcharge * 1000) / 10) + "%") : el("span", { class: "rc-muted", text: "—" })]),
+      el("td", {}, [activeBox]),
+      actions,
+    ]));
+  });
+  listWrap.appendChild(el("table", { class: "rc-table" }, [thead, tbody]));
+}
+
+function rcBuildForm() {
+  const form = el("div", { class: "rc-form", id: "rc-form" });
+  form.appendChild(el("h2", { id: "rc-form-title", text: "Add rate" }));
+
+  const field = (label, node) => el("div", { class: "pp-field" }, [el("label", { text: label }), node]);
+  const inp = (id, attrs) => el("input", Object.assign({ id, class: "pp-input" }, attrs || {}));
+  const opSel = el("select", { id: "rc-op", class: "pp-input" }, RC_OPS.map(o => el("option", { value: o, text: o })));
+
+  form.appendChild(el("div", { class: "rc-grid" }, [
+    field("ADS code *", inp("rc-ads_code", { placeholder: "e.g. ADS-002655" })),
+    field("Description", inp("rc-description", { placeholder: "e.g. Truck delivery at port" })),
+    field("Ship (blank = Any)", inp("rc-ship", { placeholder: "Any ship" })),
+    field("Port (blank = Any)", inp("rc-port", { placeholder: "Any port" })),
+    field("Rate *", inp("rc-rate", { type: "number", step: "0.01", placeholder: "0.00" })),
+    field("Op", opSel),
+    field("Fuel surcharge (e.g. 0.15)", inp("rc-percent_surcharge", { type: "number", step: "0.01", placeholder: "optional" })),
+    field("Currency", inp("rc-currency", { value: "USD" })),
+    field("Effective from", inp("rc-effective_from", { type: "date" })),
+    field("Effective to", inp("rc-effective_to", { type: "date" })),
+  ]));
+
+  const submitBtn = el("button", { class: "pp-btn", id: "rc-submit", text: "Add rate", onclick: rcSubmit });
+  const cancelBtn = el("button", { class: "pp-btn pp-btn--ghost", id: "rc-cancel", text: "Cancel edit", style: "display:none;", onclick: rcCancelEdit });
+  form.appendChild(el("div", { class: "rc-form-actions" }, [submitBtn, cancelBtn, el("div", { class: "rc-msg", id: "rc-form-msg" })]));
+  return form;
+}
+
+function rcVal(id) { const n = document.getElementById(id); return n ? String(n.value).trim() : ""; }
+function rcSetVal(id, v) { const n = document.getElementById(id); if (n) n.value = (v == null ? "" : v); }
+
+function rcFormBody() {
+  const ads_code = rcVal("rc-ads_code");
+  const rate = rcVal("rc-rate");
+  if (!ads_code) { rcToast("ADS code is required", "error"); return null; }
+  if (rate === "" || isNaN(parseFloat(rate))) { rcToast("A numeric rate is required", "error"); return null; }
+  const ps = rcVal("rc-percent_surcharge");
+  return {
+    ads_code,
+    description: rcVal("rc-description"),
+    ship: rcVal("rc-ship") || null,
+    port: rcVal("rc-port") || null,
+    rate: parseFloat(rate),
+    op: rcVal("rc-op") || "other",
+    percent_surcharge: (ps === "" ? null : parseFloat(ps)),
+    currency: rcVal("rc-currency") || "USD",
+    effective_from: rcVal("rc-effective_from") || null,
+    effective_to: rcVal("rc-effective_to") || null,
+  };
+}
+
+async function rcSubmit() {
+  const body = rcFormBody();
+  if (!body) return;
+  const editing = RC_EDIT_ID != null;
+  if (!editing) body.active = true;
+  try {
+    if (editing) { await rcApi().update(RC_EDIT_ID, body); rcToast("Rate updated", "ok"); }
+    else { await rcApi().create(body); rcToast("Rate added", "ok"); }
+    rcCancelEdit();
+    rcLoadList();
+  } catch (e) {
+    rcToast((editing ? "Update" : "Create") + " failed: " + e.message, "error");
+  }
+}
+
+function rcEdit(r) {
+  RC_EDIT_ID = r.id;
+  rcSetVal("rc-ads_code", r.ads_code);
+  rcSetVal("rc-description", r.description);
+  rcSetVal("rc-ship", r.ship);
+  rcSetVal("rc-port", r.port);
+  rcSetVal("rc-rate", r.rate);
+  rcSetVal("rc-op", r.op || "other");
+  rcSetVal("rc-percent_surcharge", r.percent_surcharge == null ? "" : r.percent_surcharge);
+  rcSetVal("rc-currency", r.currency || "USD");
+  rcSetVal("rc-effective_from", r.effective_from || "");
+  rcSetVal("rc-effective_to", r.effective_to || "");
+  const title = document.getElementById("rc-form-title"); if (title) title.textContent = "Edit rate #" + r.id + " · " + (r.ads_code || "");
+  const submit = document.getElementById("rc-submit"); if (submit) submit.textContent = "Save changes";
+  const cancel = document.getElementById("rc-cancel"); if (cancel) cancel.style.display = "";
+  const form = document.getElementById("rc-form"); if (form && form.scrollIntoView) form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function rcCancelEdit() {
+  RC_EDIT_ID = null;
+  ["rc-ads_code", "rc-description", "rc-ship", "rc-port", "rc-rate", "rc-percent_surcharge", "rc-effective_from", "rc-effective_to"].forEach(id => rcSetVal(id, ""));
+  rcSetVal("rc-currency", "USD");
+  rcSetVal("rc-op", RC_OPS[0]);
+  const title = document.getElementById("rc-form-title"); if (title) title.textContent = "Add rate";
+  const submit = document.getElementById("rc-submit"); if (submit) submit.textContent = "Add rate";
+  const cancel = document.getElementById("rc-cancel"); if (cancel) cancel.style.display = "none";
+}
+
+async function rcToggleActive(r, box) {
+  try {
+    await rcApi().update(r.id, { active: box.checked });
+    r.active = box.checked;
+    rcToast("Rate " + (box.checked ? "activated" : "deactivated"), "ok");
+  } catch (e) {
+    box.checked = !box.checked;
+    rcToast("Update failed: " + e.message, "error");
+  }
+}
+
+async function rcDelete(r) {
+  if (!rcCanDelete()) { rcToast("Only admins can delete rates", "error"); return; }
+  const scope = (r.ship || r.port) ? (" (" + (r.ship || "Any") + " / " + (r.port || "Any") + ")") : " (baseline)";
+  if (!confirm("Delete rate " + (r.ads_code || "") + scope + "?\nThis cannot be undone.")) return;
+  try {
+    await rcApi().remove(r.id);
+    if (RC_EDIT_ID === r.id) rcCancelEdit();
+    rcToast("Rate deleted", "info");
+    rcLoadList();
+  } catch (e) { rcToast("Delete failed: " + e.message, "error"); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -14504,6 +14791,7 @@ const VIEW_ROLES = {
   weekly_report: ["manager", "admin"],
   ops_kpi:       ["manager", "admin"],
   msc_audit:     ["manager", "admin"],
+  rates:         ["admin", "manager"],
 };
 function viewAllowed(view) {
   const roles = VIEW_ROLES[view];
