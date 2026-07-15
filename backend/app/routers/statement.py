@@ -23,7 +23,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Invoice, CreditMemo
+from app.models import Invoice, CreditMemo, ShipmentDetailReport, LoadingList, RateCard
 from app.auth import require_roles
 
 router = APIRouter(prefix="/api/billing", tags=["billing-statement"])
@@ -159,3 +159,110 @@ def statement_summary(db: Session = Depends(get_db)):
         g["due_soon_count"] += due_soon
     g = {k: (round(v, 2) if isinstance(v, float) else v) for k, v in g.items()}
     return {"global": g, "entities": ents}
+
+
+# ── MSC agency-cost audit / reconciliation (Stage 2.6) ──
+_MISSING_PO = re.compile(r"^(pending|tbd|n/?a|-)?$", re.I)
+_DISPATCHED = {"dispatched", "loaded", "received", "sent"}
+_SDR_BILLABLE = {"po_received", "closed"}
+
+
+def _rate_map(db: Session) -> dict:
+    """Baseline rate card (ship/port NULL) keyed by ADS code."""
+    rows = db.query(RateCard).filter(
+        RateCard.ship.is_(None), RateCard.port.is_(None), RateCard.active.is_(True)).all()
+    return {r.ads_code: r for r in rows}
+
+
+def _expected_from_sdr(sdr, rmap: dict) -> float:
+    """Expected billable = Σ(qty × baseline rate) + fuel% if a surcharge code is present."""
+    base, fuel_pct = 0.0, 0.0
+    for code, qty in (sdr.qtys or {}).items():
+        r = rmap.get(code)
+        if not r:
+            continue
+        if r.percent_surcharge:
+            fuel_pct = max(fuel_pct, float(r.percent_surcharge))
+        else:
+            base += float(qty or 0) * float(r.rate or 0)
+    return round(base * (1 + fuel_pct), 2)
+
+
+@router.get("/audit", dependencies=[Depends(require_roles("admin", "manager"))])
+def audit(db: Session = Depends(get_db)):
+    invoices = db.query(Invoice).all()
+    sdrs = db.query(ShipmentDetailReport).all()
+    lls = db.query(LoadingList).all()
+    rmap = _rate_map(db)
+    findings: list[dict] = []
+
+    def add(sev, cat, ref, msg, amount=0.0):
+        findings.append({"severity": sev, "category": cat, "ref": ref,
+                         "message": msg, "amount": round(float(amount), 2)})
+
+    inv_by_ll, inv_by_sdr = {}, {}
+    for inv in invoices:
+        if inv.loading_list_public_id:
+            inv_by_ll.setdefault(inv.loading_list_public_id, []).append(inv)
+        if inv.sdr_public_id:
+            inv_by_sdr.setdefault(inv.sdr_public_id, []).append(inv)
+    sdr_by_ll = {s.loading_list_public_id: s for s in sdrs if s.loading_list_public_id}
+
+    # 1 — unbilled loading list (revenue leakage)
+    for ll in lls:
+        if (ll.status or "draft") in _DISPATCHED and ll.public_id not in inv_by_ll:
+            sdr = sdr_by_ll.get(ll.public_id)
+            add("high", "Unbilled shipment", ll.public_id,
+                f"{ll.vessel or ll.public_id} was dispatched but has no invoice — likely lost revenue.",
+                _expected_from_sdr(sdr, rmap) if sdr else 0.0)
+
+    # 2 — SDR not invoiced
+    for s in sdrs:
+        if (s.status or "draft") in _SDR_BILLABLE and not s.invoice_public_id and s.public_id not in inv_by_sdr:
+            add("high", "SDR not invoiced", s.public_id,
+                f"{s.public_id} is {s.status} but has no invoice.", _expected_from_sdr(s, rmap))
+
+    # 3 — missing PO
+    for inv in invoices:
+        if _MISSING_PO.match((inv.pon or "").strip()):
+            add("med", "Missing PO", inv.public_id, f"{inv.public_id} has no PO number (no PO, no service).")
+
+    # 4 — duplicate PO
+    pon_map: dict[str, list] = {}
+    for inv in invoices:
+        p = (inv.pon or "").strip()
+        if p and not _MISSING_PO.match(p):
+            pon_map.setdefault(p, []).append(inv.public_id)
+    for p, ids in pon_map.items():
+        if len(ids) > 1:
+            add("high", "Duplicate PO", p,
+                f"PO {p} appears on {len(ids)} invoices ({', '.join(ids)}) — possible double-bill.")
+
+    # 5 — rate mismatch / unknown ADS code
+    for inv in invoices:
+        for ln in (inv.lines or []):
+            code = (ln or {}).get("code")
+            if not code:
+                continue
+            r = rmap.get(code)
+            if not r:
+                add("med", "Unknown ADS code", inv.public_id, f"{inv.public_id}: {code} is not in the rate card.")
+            elif not r.percent_surcharge and abs(float(ln.get("rate") or 0) - float(r.rate or 0)) > 0.01:
+                billed, card = float(ln.get("rate") or 0), float(r.rate or 0)
+                add("med", "Rate mismatch", inv.public_id,
+                    f"{inv.public_id}: {code} billed ${billed:.2f} vs card ${card:.2f}.",
+                    (billed - card) * float(ln.get("qty") or 0))
+
+    order = {"high": 0, "med": 1, "low": 2}
+    findings.sort(key=lambda f: (order.get(f["severity"], 3), f["category"]))
+    return {
+        "findings": findings,
+        "summary": {
+            "findings_count": len(findings),
+            "high_severity_count": sum(1 for f in findings if f["severity"] == "high"),
+            "est_revenue_at_risk": round(sum(max(f["amount"], 0) for f in findings)),
+            "records_checked": {"loading_lists": len(lls), "invoices": len(invoices),
+                                "sdrs": len(sdrs), "total": len(lls) + len(invoices) + len(sdrs)},
+        },
+    }
+
