@@ -4100,6 +4100,15 @@ body.layout-list .pagination { display: none; }
       update: (id, patch) => fetchJSON('/api/customs/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
       remove: (id) => fetchJSON('/api/customs/' + id, { method: 'DELETE' }),
     },
+    // Read-only billing report endpoints. Server is the source of truth: the audit
+    // reconciles against the DB rate card (not the client-side ADS_RATES, which can
+    // drift), and the statement returns server-computed running balances + totals.
+    // Authed GET via fetchJSON, same as the typed endpoints above. Roles: admin/manager.
+    billing: {
+      statement: (billTo) => fetchJSON('/api/billing/statement?bill_to=' + encodeURIComponent(billTo)),
+      statementSummary: () => fetchJSON('/api/billing/statement/summary'),
+      audit: () => fetchJSON('/api/billing/audit'),
+    },
     fromBackend, toBackend,
     fromInvoiceBackend, toInvoiceBackend,
     fromSdrBackend, toSdrBackend,
@@ -10190,7 +10199,12 @@ function computeMscAudit() {
   return { findings, counts: { lls: lls.length, invs: invs.length, sdrs: sdrs.length } };
 }
 
-function renderMscAudit() {
+/* ─── SERVER-FED MSC AUDIT (source of truth) ─────────────────────────
+   renderMscAudit() now fetches FT_API.billing.audit(), which reconciles
+   against the DB rate card (not the client-side ADS_RATES that can drift).
+   Renders identical DOM (4 tiles + findings list) to the client-side path.
+   On any fetch error it falls back to renderMscAuditClientSide(). */
+async function renderMscAudit() {
   const root = document.getElementById("msca-root");
   if (!root) return;
   if (!window._mscaWired) {
@@ -10198,6 +10212,69 @@ function renderMscAudit() {
     const r = document.getElementById("msca-refresh");
     if (r) r.addEventListener("click", () => renderMscAudit());
   }
+  const billing = window.FT_API && window.FT_API.billing;
+  if (!billing) { renderMscAuditClientSide(); return; }
+  try {
+    const data = await billing.audit();
+    renderMscAuditFromServer(data);
+  } catch (e) {
+    console.warn("[MSC Audit] server fetch failed — falling back to client-side compute:", e);
+    renderMscAuditClientSide();
+  }
+}
+
+function renderMscAuditFromServer(data) {
+  const root = document.getElementById("msca-root");
+  if (!root) return;
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  const findings = (data && data.findings) || [];
+  const summary = (data && data.summary) || {};
+  const rc = summary.records_checked || {};
+  const findingsCount = summary.findings_count != null ? summary.findings_count : findings.length;
+  const highCount = Number(summary.high_severity_count || 0);
+  const risk = Number(summary.est_revenue_at_risk || 0);
+  const recordsChecked = rc.total != null ? rc.total : 0;
+
+  // Summary tiles
+  const tiles = el("div", { class: "msca-tiles" });
+  const tile = (label, value, mod) => el("div", { class: "msca-tile" + (mod ? " msca-tile--" + mod : "") }, [
+    el("div", { class: "msca-tile__label", text: label }),
+    el("div", { class: "msca-tile__value", text: value }),
+  ]);
+  tiles.appendChild(tile("Findings", String(findingsCount), findingsCount ? null : "clean"));
+  tiles.appendChild(tile("High severity", String(highCount), highCount ? "risk" : "clean"));
+  tiles.appendChild(tile("Est. revenue at risk", "$" + Math.round(risk).toLocaleString(), risk > 0 ? "risk" : "clean"));
+  tiles.appendChild(tile("Records checked", String(recordsChecked)));
+  root.appendChild(tiles);
+
+  if (!findings.length) {
+    root.appendChild(el("div", { class: "pp-empty", text: "✓ No discrepancies found — billing reconciles against shipments and the rate card." }));
+  } else {
+    root.appendChild(el("div", { class: "msca-sect", text: "Findings (most severe first)" }));
+    findings.forEach(f => {
+      const sev = f.severity;
+      const amt = Number(f.amount || 0);
+      const row = el("div", { class: "msca-finding msca-finding--" + sev }, [
+        el("span", { class: "msca-sev msca-sev--" + sev, text: sev }),
+        el("span", { class: "msca-cat", text: f.category }),
+        el("span", { class: "msca-msg" }, [
+          document.createTextNode((f.message || "") + " "),
+          f.ref ? el("span", { class: "msca-ref", text: f.ref }) : null,
+        ]),
+        (amt && Math.abs(amt) >= 0.5) ? el("span", { class: "msca-amt", text: (amt < 0 ? "-$" : "$") + Math.abs(Math.round(amt)).toLocaleString() }) : null,
+      ]);
+      root.appendChild(row);
+    });
+  }
+
+  root.appendChild(el("div", { class: "msca-note", text:
+    "Reconciles Fast Track's internal billing (invoices, SDRs, shipments) against the ADS rate card. Cross-check against MSC's agency-cost sheet activates once the client provides the sheet format — see Stage 2.2 rate matrix." }));
+}
+
+function renderMscAuditClientSide() {
+  const root = document.getElementById("msca-root");
+  if (!root) return;
   while (root.firstChild) root.removeChild(root.firstChild);
 
   const { findings, counts } = computeMscAudit();
@@ -16672,7 +16749,204 @@ function renderAPSummary() {
   _apOverdueReminderOnce(gOverdue, gOverdueAmt);
 }
 
-function renderSOA() {
+/* ─── SERVER-FED SOA (source of truth) ───────────────────────────────
+   renderSOA() now fetches the Statement of Account from the backend:
+   FT_API.billing.statementSummary() (global + per-entity AP rollup) and
+   FT_API.billing.statement(entity) (ledger lines + running balance + totals).
+   Renders identical DOM to the client-side path. On any fetch error it falls
+   back to renderSOAClientSide() (in-memory INVOICES/CREDIT_MEMOS compute). */
+async function renderSOA() {
+  const billing = window.FT_API && window.FT_API.billing;
+  if (!billing) { renderSOAClientSide(); return; }
+  try {
+    const summary = await billing.statementSummary();
+    const entityList = ((summary && summary.entities) || []).map(e => e.bill_to).filter(Boolean);
+    if (!SOA_CURRENT_ENTITY || !entityList.includes(SOA_CURRENT_ENTITY)) {
+      SOA_CURRENT_ENTITY = entityList[0] || null;
+    }
+    let statement = null;
+    if (SOA_CURRENT_ENTITY) statement = await billing.statement(SOA_CURRENT_ENTITY);
+    renderSOAFromServer(statement, summary);
+  } catch (e) {
+    console.warn("[SOA] server fetch failed — falling back to client-side compute:", e);
+    renderSOAClientSide();
+  }
+}
+
+// Overdue / due-soon flags for a server invoice line (uses server due_date + status).
+function _soaSrvDueFlags(dueDate, status) {
+  if (!dueDate) return { overdue: false, dueSoon: false };
+  const paid = status === "paid";
+  const dueT = new Date(dueDate + "T00:00:00").getTime();
+  const todayT = new Date(new Date().toISOString().slice(0, 10) + "T00:00:00").getTime();
+  const days = Math.round((dueT - todayT) / 86400000);
+  return { overdue: !paid && days < 0, dueSoon: !paid && days >= 0 && days <= 7 };
+}
+
+function renderAPSummaryFromServer(summary) {
+  const root = document.getElementById("soa-ap-summary");
+  if (!root) return;
+  while (root.firstChild) root.removeChild(root.firstChild);
+  const g = (summary && summary.global) || {};
+  const ents = (summary && summary.entities) || [];
+
+  const strip = el("div", { class: "ap-strip" });
+  const stat = (label, val, cls) => {
+    const d = el("div", { class: "ap-stat" });
+    d.appendChild(el("div", { class: "ap-stat__label", text: label }));
+    d.appendChild(el("div", { class: "ap-stat__value" + (cls ? " " + cls : ""), text: val }));
+    return d;
+  };
+  const gOutstanding = Number(g.outstanding || 0);
+  const gOverdue = Number(g.overdue_count || 0);
+  const gOverdueAmt = Number(g.overdue_amount || 0);
+  const gDueSoon = Number(g.due_soon_count || 0);
+  const gInvoiced = Number(g.total_invoiced || 0);
+  const gPaid = Number(g.paid || 0);
+  strip.appendChild(stat("Outstanding (all)", "$" + Math.round(gOutstanding).toLocaleString(), "ap-warn"));
+  strip.appendChild(stat("Overdue", gOverdue + (gOverdueAmt ? " · $" + Math.round(gOverdueAmt).toLocaleString() : ""), gOverdue ? "ap-crit" : ""));
+  strip.appendChild(stat("Due in 7 days", String(gDueSoon), gDueSoon ? "ap-warn" : ""));
+  strip.appendChild(stat("Total invoiced", "$" + Math.round(gInvoiced).toLocaleString()));
+  strip.appendChild(stat("Paid", "$" + Math.round(gPaid).toLocaleString(), "ap-ok"));
+  root.appendChild(strip);
+
+  const grid = el("div", { class: "ap-cards" });
+  ents.forEach(c => {
+    const overdue = Number(c.overdue_count || 0);
+    const dueSoon = Number(c.due_soon_count || 0);
+    const card = el("div", { class: "ap-card" });
+    card.appendChild(el("div", { class: "ap-card__entity", text: c.bill_to }));
+    card.appendChild(el("div", { class: "ap-card__out", text: "$" + Math.round(Number(c.outstanding || 0)).toLocaleString() + " outstanding" }));
+    const badges = el("div", { class: "ap-card__badges" });
+    if (overdue) badges.appendChild(el("span", { class: "ap-badge ap-badge--crit", text: overdue + " overdue" }));
+    if (dueSoon) badges.appendChild(el("span", { class: "ap-badge ap-badge--warn", text: dueSoon + " due soon" }));
+    if (!overdue && !dueSoon) badges.appendChild(el("span", { class: "ap-badge ap-badge--ok", text: "on track" }));
+    card.appendChild(badges);
+    grid.appendChild(card);
+  });
+  root.appendChild(grid);
+
+  _apOverdueReminderOnce(gOverdue, gOverdueAmt);
+}
+
+function renderSOAEntityTabsFromServer(summary) {
+  const tabs = document.getElementById("soa-entity-tabs");
+  if (!tabs) return;
+  while (tabs.firstChild) tabs.removeChild(tabs.firstChild);
+  const ents = (summary && summary.entities) || [];
+  if (ents.length === 0) {
+    tabs.appendChild(el("div", { style: "padding: 16px; color: var(--text-dim); font-family: var(--font-mono); font-size: 11px;", text: "No invoices yet — SOA populates when invoices exist" }));
+    return;
+  }
+  ents.forEach(e => {
+    const entity = e.bill_to;
+    const invCount = Number(e.invoice_count || 0);
+    const outstanding = Number(e.outstanding || 0);
+    const credits = Number(e.credits || 0);
+    const tab = el("button", { class: "soa-entity-tab" + (entity === SOA_CURRENT_ENTITY ? " soa-entity-tab--active" : "") });
+    tab.appendChild(el("span", { class: "soa-entity-tab__name", text: entity }));
+    tab.appendChild(el("span", { class: "soa-entity-tab__stats", text: invCount + " inv · $" + Math.round(outstanding).toLocaleString() + " open · -$" + Math.round(credits).toLocaleString() + " credits" }));
+    tab.addEventListener("click", () => {
+      SOA_CURRENT_ENTITY = entity;
+      renderSOA();
+    });
+    tabs.appendChild(tab);
+  });
+}
+
+function renderSOAFromServer(statement, summary) {
+  renderAPSummaryFromServer(summary);
+  renderSOAEntityTabsFromServer(summary);
+
+  const tbody = document.getElementById("soa-tbody");
+  const totalsEl = document.getElementById("soa-totals");
+  if (!tbody || !totalsEl) return;
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+  while (totalsEl.firstChild) totalsEl.removeChild(totalsEl.firstChild);
+
+  const titleEl = document.getElementById("soa-title-count");
+  if (!statement || !SOA_CURRENT_ENTITY) {
+    if (titleEl) titleEl.textContent = "no entities";
+    return;
+  }
+
+  const lines = statement.lines || [];
+  lines.forEach(line => {
+    if (line.kind === "invoice") {
+      const paid = line.status === "paid";
+      const tr = el("tr", { class: "row-invoice" + (paid ? " row-paid" : "") });
+      tr.appendChild(el("td", {}, [el("span", { class: "soa-week", text: "W" + (line.week != null ? line.week : "") })]));
+      tr.appendChild(el("td", {}, [el("span", { class: "soa-doc-type-tag soa-doc-type-tag--invoice", text: "Invoice" })]));
+      tr.appendChild(el("td", {}, [el("span", { class: "soa-doc-id soa-doc-id--invoice", text: line.doc_id })]));
+      tr.appendChild(el("td", { class: "mono", text: line.source || "— manual —" }));
+      tr.appendChild(el("td", { class: "mono", text: line.date || "" }));
+      tr.appendChild(el("td", { class: "mono", text: line.due_date || "" }));
+      const notes = line.notes || "";
+      tr.appendChild(el("td", { text: notes.slice(0, 60) + (notes.length > 60 ? "…" : "") }));
+      tr.appendChild(el("td", { class: "num" }, [el("span", { class: "soa-amount-positive", text: "$" + Number(line.amount || 0).toFixed(2) })]));
+      const stTd = el("td", {});
+      if (paid) {
+        stTd.appendChild(el("span", { class: "soa-paid-tag", text: "PAID" }));
+      } else {
+        stTd.appendChild(el("span", { class: "soa-open-tag", text: INVC_STATUS_LABELS[line.status] || line.status }));
+        const d = _soaSrvDueFlags(line.due_date, line.status);
+        if (d.overdue) stTd.appendChild(el("span", { class: "ap-badge ap-badge--crit", style: "margin-left:6px;", text: "OVERDUE" }));
+        else if (d.dueSoon) stTd.appendChild(el("span", { class: "ap-badge ap-badge--warn", style: "margin-left:6px;", text: "DUE SOON" }));
+      }
+      tr.appendChild(stTd);
+      tr.appendChild(el("td", { class: "num" }, [el("span", { class: "soa-balance", text: "$" + Number(line.running_balance || 0).toFixed(2) })]));
+      tr.addEventListener("click", () => {
+        const idx = INVOICES.findIndex(i => i.id === line.doc_id);
+        if (idx >= 0) {
+          switchView("invoices");
+          setTimeout(() => openInvcPreview(idx), 100);
+        }
+      });
+      tbody.appendChild(tr);
+    } else if (line.kind === "credit_memo") {
+      const applied = line.status === "applied";
+      const tr = el("tr", { class: "row-credit-memo" + (applied ? " row-paid" : "") });
+      tr.appendChild(el("td", {}, [el("span", { class: "soa-week", text: "W" + (line.week != null ? line.week : "") })]));
+      tr.appendChild(el("td", {}, [el("span", { class: "soa-doc-type-tag soa-doc-type-tag--credit", text: "Credit memo" })]));
+      tr.appendChild(el("td", {}, [el("span", { class: "soa-doc-id soa-doc-id--credit", text: line.doc_id })]));
+      tr.appendChild(el("td", { class: "mono", text: "Applied to " + (line.applied_to || "") }));
+      tr.appendChild(el("td", { class: "mono", text: line.date || "" }));
+      tr.appendChild(el("td", { class: "mono", text: line.due_date || "" }));
+      tr.appendChild(el("td", { text: line.reason || "" }));
+      tr.appendChild(el("td", { class: "num" }, [el("span", { class: "soa-amount-negative", text: "-$" + Math.abs(Number(line.amount || 0)).toFixed(2) })]));
+      tr.appendChild(el("td", {}, [
+        applied
+          ? el("span", { class: "soa-paid-tag", text: "APPLIED" })
+          : el("span", { class: "soa-open-tag", text: "OPEN" })
+      ]));
+      tr.appendChild(el("td", { class: "num" }, [el("span", { class: "soa-balance", text: "$" + Number(line.running_balance || 0).toFixed(2) })]));
+      tr.addEventListener("click", () => {
+        const idx = CREDIT_MEMOS.findIndex(cm => cm.id === line.doc_id);
+        if (idx >= 0) {
+          switchView("credit_memos");
+          setTimeout(() => openCMPreview(idx), 100);
+        }
+      });
+      tbody.appendChild(tr);
+    }
+  });
+
+  const totals = statement.totals || {};
+  const mkCell = (label, value, klass) => {
+    const c = el("div", { class: "soa-totals__cell" });
+    c.appendChild(el("div", { class: "soa-totals__label", text: label }));
+    c.appendChild(el("div", { class: "soa-totals__value" + (klass ? " " + klass : ""), text: value }));
+    return c;
+  };
+  totalsEl.appendChild(mkCell("Total invoiced", "$" + Number(totals.total_invoiced || 0).toFixed(2)));
+  totalsEl.appendChild(mkCell("Credits applied", "-$" + Math.abs(Number(totals.credits_applied || 0)).toFixed(2), "soa-totals__value--credit"));
+  totalsEl.appendChild(mkCell("Paid", "$" + Number(totals.paid || 0).toFixed(2), "soa-totals__value--paid"));
+  totalsEl.appendChild(mkCell("Outstanding balance", "$" + Math.max(0, Number(totals.outstanding_balance || 0)).toFixed(2), "soa-totals__value--balance"));
+
+  if (titleEl) titleEl.textContent = (statement.bill_to || SOA_CURRENT_ENTITY) + " · " + (statement.line_count != null ? statement.line_count : lines.length) + " line items";
+}
+
+function renderSOAClientSide() {
   renderAPSummary();
   renderSOAEntityTabs();
 
