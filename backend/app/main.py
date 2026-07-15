@@ -41,6 +41,7 @@ from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
 from app import graph, email_ingest
 from app.reference_seed import seed_reference_if_empty
+from app.billing_seed import seed_billing_if_empty
 
 
 # ── Structured JSON logging (per-request id, latency) ──
@@ -129,6 +130,7 @@ async def lifespan(app: FastAPI):
         log.info("db_init_ok")
         seed_users_if_empty()
         seed_reference_if_empty()
+        seed_billing_if_empty()
     except Exception as e:
         log.exception("db_init_failed: %s", e)
     sync_task = asyncio.create_task(_auto_sync_loop())
