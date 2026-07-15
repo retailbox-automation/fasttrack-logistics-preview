@@ -35,6 +35,7 @@ from app.routers import reference as reference_router
 from app.routers import attachments as attachments_router
 from app.routers import picks as picks_router
 from app.routers import approvals as approvals_router
+from app.routers import billing as billing_router
 from app.schemas import HealthOut
 from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
@@ -262,6 +263,9 @@ app.include_router(reference_router.router)
 app.include_router(attachments_router.router)
 app.include_router(picks_router.router)
 app.include_router(approvals_router.router)
+app.include_router(billing_router.router)
+app.include_router(billing_router.sdr_router)
+app.include_router(billing_router.cm_router)
 
 
 # Serve frontend index.html bundled into the image

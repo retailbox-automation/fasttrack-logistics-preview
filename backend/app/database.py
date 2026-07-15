@@ -45,6 +45,9 @@ def init_db():
         ("loading_lists", "meta", "JSONB"),
         ("loading_lists", "totals", "JSONB"),
         ("users", "must_change_password", "BOOLEAN NOT NULL DEFAULT FALSE"),
+        ("invoices", "sdr_public_id", "VARCHAR(32)"),
+        ("invoices", "loading_list_public_id", "VARCHAR(32)"),
+        ("shipment_detail_reports", "loading_list_public_id", "VARCHAR(32)"),
     ]
     with engine.begin() as conn:
         for tbl, col, defn in add_column_if_missing:

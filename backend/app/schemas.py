@@ -285,6 +285,201 @@ class CustomsRecordOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ── Billing: typed Invoices (Stage 2.1) ──
+INVOICE_STATES = {"draft", "pending_approval", "sent", "paid", "void"}
+
+
+class InvoiceLine(BaseModel):
+    code: str
+    desc: str = ""
+    qty: float = 0
+    rate: float = 0
+
+
+class InvoiceCreate(BaseModel):
+    public_id: Optional[str] = None              # auto FT-INV-NNNNN if omitted
+    sdr_public_id: Optional[str] = None          # links by public id (SDR-YYYY-NNNN)
+    loading_list_public_id: Optional[str] = None  # LL-YYYY-NNNN
+    pon: str
+    invoice_date: Optional[date] = None          # defaults to today
+    bill_to: str
+    attn: Optional[str] = None
+    terms: str = "NET 30"
+    currency: str = "USD"
+    fuel: float = 15.0                            # fuel surcharge, percent
+    gwx: Optional[str] = None
+    cruise_id: Optional[str] = None
+    issued_by: Optional[str] = None              # defaults to signed-in user
+    out_of_scope: bool = False
+    status: str = "draft"
+    notes: Optional[str] = None
+    lines: list[InvoiceLine] = []
+
+
+class InvoiceUpdate(BaseModel):
+    sdr_public_id: Optional[str] = None
+    loading_list_public_id: Optional[str] = None
+    pon: Optional[str] = None
+    invoice_date: Optional[date] = None
+    bill_to: Optional[str] = None
+    attn: Optional[str] = None
+    terms: Optional[str] = None
+    currency: Optional[str] = None
+    fuel: Optional[float] = None
+    gwx: Optional[str] = None
+    cruise_id: Optional[str] = None
+    issued_by: Optional[str] = None
+    out_of_scope: Optional[bool] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    lines: Optional[list[InvoiceLine]] = None
+
+
+class InvoiceOut(BaseModel):
+    id: int
+    public_id: str
+    sdr_public_id: Optional[str] = None
+    loading_list_public_id: Optional[str] = None
+    pon: str
+    invoice_date: Optional[date] = None
+    bill_to: str
+    attn: Optional[str] = None
+    terms: str
+    currency: str
+    fuel: float
+    gwx: Optional[str] = None
+    cruise_id: Optional[str] = None
+    issued_by: Optional[str] = None
+    out_of_scope: bool
+    status: str
+    notes: Optional[str] = None
+    lines: list = []
+    issue_date: datetime
+    # computed server-side (Σ qty×rate, + fuel%)
+    subtotal: float = 0
+    fuel_amt: float = 0
+    total: float = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ── Billing: typed Shipment Detail Report (SDR) ──
+SDR_STATES = {"draft", "sent_to_msc", "variables_added", "po_received", "closed"}
+
+
+class SDRCreate(BaseModel):
+    public_id: Optional[str] = None              # auto SDR-YYYY-NNNN
+    gwx: str
+    loading_list_public_id: Optional[str] = None
+    bill_to: str
+    ms_contact: Optional[str] = None
+    prepared_by: Optional[str] = None            # defaults to signed-in user
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    pon: Optional[str] = None
+    status: str = "draft"
+    notes: Optional[str] = None
+    variables: Optional[str] = None
+    invoice_public_id: Optional[str] = None
+    qtys: dict = {}                              # ADS code → qty
+    sent_at: Optional[datetime] = None
+    variables_at: Optional[datetime] = None
+    po_received_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+
+
+class SDRUpdate(BaseModel):
+    gwx: Optional[str] = None
+    loading_list_public_id: Optional[str] = None
+    bill_to: Optional[str] = None
+    ms_contact: Optional[str] = None
+    prepared_by: Optional[str] = None
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    pon: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    variables: Optional[str] = None
+    invoice_public_id: Optional[str] = None
+    qtys: Optional[dict] = None
+    sent_at: Optional[datetime] = None
+    variables_at: Optional[datetime] = None
+    po_received_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+
+
+class SDROut(BaseModel):
+    id: int
+    public_id: str
+    gwx: str
+    loading_list_public_id: Optional[str] = None
+    bill_to: str
+    ms_contact: Optional[str] = None
+    prepared_by: str
+    period_start: Optional[date] = None
+    period_end: Optional[date] = None
+    sent_at: Optional[datetime] = None
+    variables_at: Optional[datetime] = None
+    po_received_at: Optional[datetime] = None
+    pon: Optional[str] = None
+    closed_at: Optional[datetime] = None
+    status: str
+    notes: Optional[str] = None
+    variables: Optional[str] = None
+    invoice_public_id: Optional[str] = None
+    qtys: dict = {}
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ── Billing: typed Credit Memo ──
+CM_STATES = {"open", "applied", "void"}
+SOA_POSITIONS = {"above", "below"}
+
+
+class CreditMemoCreate(BaseModel):
+    public_id: Optional[str] = None              # auto FT-CM-NNNN
+    applied_to_invoice_public_id: str
+    amount: float
+    issue_date: Optional[date] = None            # defaults today
+    due_date: Optional[date] = None
+    reason: str
+    description: Optional[str] = None
+    issued_by: Optional[str] = None              # defaults to signed-in user
+    status: str = "open"
+    soa_position: str = "below"
+
+
+class CreditMemoUpdate(BaseModel):
+    applied_to_invoice_public_id: Optional[str] = None
+    amount: Optional[float] = None
+    issue_date: Optional[date] = None
+    due_date: Optional[date] = None
+    reason: Optional[str] = None
+    description: Optional[str] = None
+    issued_by: Optional[str] = None
+    status: Optional[str] = None
+    soa_position: Optional[str] = None
+
+
+class CreditMemoOut(BaseModel):
+    id: int
+    public_id: str
+    applied_to_invoice_public_id: str
+    amount: float
+    issue_date: date
+    due_date: Optional[date] = None
+    reason: str
+    description: Optional[str] = None
+    issued_by: Optional[str] = None
+    status: str
+    soa_position: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class HealthOut(BaseModel):
     status: str
     db: str

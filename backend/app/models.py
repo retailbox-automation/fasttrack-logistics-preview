@@ -70,6 +70,7 @@ class ShipmentDetailReport(Base):
     public_id: Mapped[str] = mapped_column(String(32), unique=True, index=True)  # SDR-2026-NNNN
     gwx: Mapped[str] = mapped_column(String(32), index=True)
     loading_list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("loading_lists.id"), nullable=True)
+    loading_list_public_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     bill_to: Mapped[str] = mapped_column(String(128))
     ms_contact: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     prepared_by: Mapped[str] = mapped_column(String(64))
@@ -95,6 +96,9 @@ class Invoice(Base):
     public_id: Mapped[str] = mapped_column(String(32), unique=True, index=True)  # FT-INV-NNNNN
     sdr_id: Mapped[Optional[int]] = mapped_column(ForeignKey("shipment_detail_reports.id"), nullable=True)
     loading_list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("loading_lists.id"), nullable=True)
+    # Business links are by public id (like CustomsRecord.shipment_public_id); the int FKs above are legacy stubs.
+    sdr_public_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    loading_list_public_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     pon: Mapped[str] = mapped_column(String(64), index=True)
     invoice_date: Mapped[date] = mapped_column(Date)
     bill_to: Mapped[str] = mapped_column(String(128))
