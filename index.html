@@ -3820,6 +3820,103 @@ body.layout-list .pagination { display: none; }
     return out;
   }
 
+  /* ── Billing field maps (camelCase ↔ snake_case) — typed /api/invoices,
+        /api/sdrs, /api/credit-memos. Same shape as inventory F2B/B2F above.
+        The in-memory arrays stay camelCase; we adapt only at the API boundary.
+        `from*Backend` stashes backendId = row.id (internal int) and keeps the
+        public .id = row.public_id, so PATCH/DELETE address by backendId. */
+  // Normalize ISO datetime "2026-05-31T16:08:00" → "2026-05-31 16:08" to match the
+  // UI's timestamp format. Date-only strings and non-datetimes pass through unchanged.
+  function _ftDt(v) {
+    if (typeof v !== 'string' || !v) return v;
+    const m = v.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    return m ? (m[1] + ' ' + m[2]) : v;
+  }
+
+  const INV_F2B = {
+    id: 'public_id', sdrId: 'sdr_public_id', loadingListId: 'loading_list_public_id',
+    pon: 'pon', invoiceDate: 'invoice_date', issueDate: 'issue_date', billTo: 'bill_to',
+    attn: 'attn', terms: 'terms', currency: 'currency', fuel: 'fuel', gwx: 'gwx',
+    cruiseId: 'cruise_id', issuedBy: 'issued_by', outOfScope: 'out_of_scope',
+    status: 'status', notes: 'notes', lines: 'lines',
+  };
+  const INV_B2F = Object.fromEntries(Object.entries(INV_F2B).map(([k, v]) => [v, k]));
+  const INV_DT = { issue_date: 1 }; // datetime-typed backend fields
+  function toInvoiceBackend(item) {
+    const out = {};
+    for (const fk in INV_F2B) {
+      if (fk === 'id' || fk === 'issueDate') continue; // public_id auto-assigned; issue_date server-set
+      const v = item[fk];
+      if (v !== undefined && v !== null && v !== '') out[INV_F2B[fk]] = v;
+    }
+    return out;
+  }
+  function fromInvoiceBackend(row) {
+    const out = {};
+    for (const bk in row) {
+      const fk = INV_B2F[bk];
+      if (fk) out[fk] = INV_DT[bk] ? _ftDt(row[bk]) : row[bk];
+    }
+    if (row.id !== undefined) out.backendId = row.id;
+    // server-computed totals (see invoiceTotals())
+    ['subtotal', 'fuel_amt', 'total'].forEach(k => { if (row[k] !== undefined) out[k] = row[k]; });
+    return out;
+  }
+
+  const SDR_F2B = {
+    id: 'public_id', gwx: 'gwx', loadingListId: 'loading_list_public_id', billTo: 'bill_to',
+    msContact: 'ms_contact', preparedBy: 'prepared_by', periodStart: 'period_start',
+    periodEnd: 'period_end', createdAt: 'created_at', sentAt: 'sent_at', variablesAt: 'variables_at',
+    poReceivedAt: 'po_received_at', pon: 'pon', closedAt: 'closed_at', status: 'status',
+    notes: 'notes', variables: 'variables', invoiceId: 'invoice_public_id', qtys: 'qtys',
+  };
+  const SDR_B2F = Object.fromEntries(Object.entries(SDR_F2B).map(([k, v]) => [v, k]));
+  const SDR_DT = { created_at: 1, sent_at: 1, variables_at: 1, po_received_at: 1, closed_at: 1 };
+  function toSdrBackend(item) {
+    const out = {};
+    for (const fk in SDR_F2B) {
+      if (fk === 'id' || fk === 'createdAt') continue; // public_id auto-assigned; created_at server-set
+      const v = item[fk];
+      if (v !== undefined && v !== null && v !== '') out[SDR_F2B[fk]] = v;
+    }
+    return out;
+  }
+  function fromSdrBackend(row) {
+    const out = {};
+    for (const bk in row) {
+      const fk = SDR_B2F[bk];
+      if (fk) out[fk] = SDR_DT[bk] ? _ftDt(row[bk]) : row[bk];
+    }
+    if (row.id !== undefined) out.backendId = row.id;
+    return out;
+  }
+
+  const CM_F2B = {
+    id: 'public_id', appliedToInvoiceId: 'applied_to_invoice_public_id', amount: 'amount',
+    issueDate: 'issue_date', dueDate: 'due_date', reason: 'reason', description: 'description',
+    issuedBy: 'issued_by', status: 'status', soaPosition: 'soa_position', createdAt: 'created_at',
+  };
+  const CM_B2F = Object.fromEntries(Object.entries(CM_F2B).map(([k, v]) => [v, k]));
+  const CM_DT = { created_at: 1 };
+  function toCmBackend(item) {
+    const out = {};
+    for (const fk in CM_F2B) {
+      if (fk === 'id' || fk === 'createdAt') continue; // public_id auto-assigned; created_at server-set
+      const v = item[fk];
+      if (v !== undefined && v !== null && v !== '') out[CM_F2B[fk]] = v;
+    }
+    return out;
+  }
+  function fromCmBackend(row) {
+    const out = {};
+    for (const bk in row) {
+      const fk = CM_B2F[bk];
+      if (fk) out[fk] = CM_DT[bk] ? _ftDt(row[bk]) : row[bk];
+    }
+    if (row.id !== undefined) out.backendId = row.id;
+    return out;
+  }
+
   async function fetchJSON(path, opts) {
     // Show spinner only if the request actually takes >300ms (avoids flicker)
     let spinnerShown = false;
@@ -3914,6 +4011,30 @@ body.layout-list .pagination { display: none; }
         return body;
       },
     },
+    // Typed billing endpoints (Slice A + C.1). {id} = internal integer row id (backendId),
+    // NOT public_id. create/update wrap bodies through the mappers; list/get return raw
+    // snake_case rows — callers map via FT_API.from*Backend.
+    invoices: {
+      list: () => fetchJSON('/api/invoices'),
+      get: (id) => fetchJSON('/api/invoices/' + id),
+      create: (item) => fetchJSON('/api/invoices', { method: 'POST', body: JSON.stringify(toInvoiceBackend(item)) }),
+      update: (id, patch) => fetchJSON('/api/invoices/' + id, { method: 'PATCH', body: JSON.stringify(toInvoiceBackend(patch)) }),
+      remove: (id) => fetchJSON('/api/invoices/' + id, { method: 'DELETE' }),
+    },
+    sdrs: {
+      list: () => fetchJSON('/api/sdrs'),
+      get: (id) => fetchJSON('/api/sdrs/' + id),
+      create: (item) => fetchJSON('/api/sdrs', { method: 'POST', body: JSON.stringify(toSdrBackend(item)) }),
+      update: (id, patch) => fetchJSON('/api/sdrs/' + id, { method: 'PATCH', body: JSON.stringify(toSdrBackend(patch)) }),
+      remove: (id) => fetchJSON('/api/sdrs/' + id, { method: 'DELETE' }),
+    },
+    creditMemos: {
+      list: () => fetchJSON('/api/credit-memos'),
+      get: (id) => fetchJSON('/api/credit-memos/' + id),
+      create: (item) => fetchJSON('/api/credit-memos', { method: 'POST', body: JSON.stringify(toCmBackend(item)) }),
+      update: (id, patch) => fetchJSON('/api/credit-memos/' + id, { method: 'PATCH', body: JSON.stringify(toCmBackend(patch)) }),
+      remove: (id) => fetchJSON('/api/credit-memos/' + id, { method: 'DELETE' }),
+    },
     users: {
       list: () => fetchJSON('/api/users'),
       create: (u) => fetchJSON('/api/users', { method: 'POST', body: JSON.stringify(u) }),
@@ -3980,6 +4101,9 @@ body.layout-list .pagination { display: none; }
       remove: (id) => fetchJSON('/api/customs/' + id, { method: 'DELETE' }),
     },
     fromBackend, toBackend,
+    fromInvoiceBackend, toInvoiceBackend,
+    fromSdrBackend, toSdrBackend,
+    fromCmBackend, toCmBackend,
   };
 
   // ── Realtime SSE subscription — re-hydrate kinds when other users mutate ──
@@ -3991,6 +4115,9 @@ body.layout-list .pagination { display: none; }
       'inventory.changed': null,
       'warehouse_receipts.changed': null,
       'customs.changed': null,
+      'invoices.changed': null,
+      'sdrs.changed': null,
+      'credit_memos.changed': null,
     };
     function connect() {
       const tok = localStorage.getItem('ft_jwt');
@@ -4031,6 +4158,30 @@ body.layout-list .pagination { display: none; }
             const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
             if (data.by_user_id && me.id && data.by_user_id === me.id) return;
             if (handlers['customs.changed']) handlers['customs.changed'](data);
+          } catch (err) { console.error(err); }
+        });
+        es.addEventListener('invoices.changed', (e) => {
+          try {
+            const data = JSON.parse(e.data || '{}');
+            const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
+            if (data.by_user_id && me.id && data.by_user_id === me.id) return;
+            if (handlers['invoices.changed']) handlers['invoices.changed'](data);
+          } catch (err) { console.error(err); }
+        });
+        es.addEventListener('sdrs.changed', (e) => {
+          try {
+            const data = JSON.parse(e.data || '{}');
+            const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
+            if (data.by_user_id && me.id && data.by_user_id === me.id) return;
+            if (handlers['sdrs.changed']) handlers['sdrs.changed'](data);
+          } catch (err) { console.error(err); }
+        });
+        es.addEventListener('credit_memos.changed', (e) => {
+          try {
+            const data = JSON.parse(e.data || '{}');
+            const me = (window.ftCurrentUser && window.ftCurrentUser()) || {};
+            if (data.by_user_id && me.id && data.by_user_id === me.id) return;
+            if (handlers['credit_memos.changed']) handlers['credit_memos.changed'](data);
           } catch (err) { console.error(err); }
         });
         es.onerror = () => {
@@ -9751,8 +9902,8 @@ async function renderWeeklyReport() {
   // 3) Billing
   const invs = (typeof INVOICES !== "undefined" ? INVOICES : []);
   const wkInvs = invs.filter(i => _wrInWeek((i.invoiceDate || "").slice(0, 10), start, end));
-  let wkInvoiced = 0; wkInvs.forEach(i => { wkInvoiced += (typeof calcInvoiceTotals === "function" ? calcInvoiceTotals(i).total : 0); });
-  let outstanding = 0; invs.forEach(i => { if (i.status !== "paid") outstanding += (typeof calcInvoiceTotals === "function" ? calcInvoiceTotals(i).total : 0); });
+  let wkInvoiced = 0; wkInvs.forEach(i => { wkInvoiced += (typeof invoiceTotals === "function" ? invoiceTotals(i).total : 0); });
+  let outstanding = 0; invs.forEach(i => { if (i.status !== "paid") outstanding += (typeof invoiceTotals === "function" ? invoiceTotals(i).total : 0); });
   (typeof CREDIT_MEMOS !== "undefined" ? CREDIT_MEMOS : []).forEach(cm => { const i = invs.find(x => x.id === cm.appliedToInvoiceId); if (i && i.status !== "paid") outstanding -= (cm.amount || 0); });
   const bCard = el("div", { class: "wr-card" });
   bCard.appendChild(el("div", { class: "wr-section-title", text: "Billing" }));
@@ -14421,6 +14572,20 @@ function calcInvoiceTotals(inv) {
   return { subtotal, truckingSub, importSub, otherSub, fuelAmt, total };
 }
 
+/* Display/KPI/SOA totals: prefer server-authoritative values (attached by
+   fromInvoiceBackend), fall back to the client op-split calc when absent
+   (e.g. mock-seed invoices with no backendId). Callers that need the
+   trucking/import/other breakdown must keep using calcInvoiceTotals directly. */
+function invoiceTotals(inv) {
+  const calc = calcInvoiceTotals(inv);
+  const pick = (v, d) => (v === undefined || v === null) ? d : v;
+  return {
+    subtotal: pick(inv.subtotal, calc.subtotal),
+    fuelAmt: pick(inv.fuel_amt, calc.fuelAmt),
+    total: pick(inv.total, calc.total),
+  };
+}
+
 function renderInvoices() {
   const tbody = document.getElementById("invc-tbody");
   if (!tbody) return;
@@ -14432,7 +14597,7 @@ function renderInvoices() {
   }) : INVOICES;
 
   filtered.forEach(inv => {
-    const totals = calcInvoiceTotals(inv);
+    const totals = invoiceTotals(inv);
     const ll = inv.loadingListId ? LOADING_LISTS.find(l => l.id === inv.loadingListId) : null;
     const tr = el("tr");
     tr.appendChild(el("td", {}, [el("span", { class: "inv-id", text: inv.id })]));
@@ -14464,7 +14629,7 @@ function renderInvoices() {
   const paidCount = INVOICES.filter(i => i.status === "paid").length;
   const outstanding = INVOICES
     .filter(i => i.status === "sent" || i.status === "approved" || i.status === "pending_approval")
-    .reduce((s, i) => s + calcInvoiceTotals(i).total, 0);
+    .reduce((s, i) => s + invoiceTotals(i).total, 0);
 
   document.getElementById("invc-title-count").textContent = q
     ? filtered.length + " matching"
@@ -14654,17 +14819,14 @@ function generateInvoice() {
     return;
   }
 
-  // Next invoice number
-  const maxNum = Math.max(...INVOICES.map(i => parseInt(i.id.replace(/\D/g, ""), 10) || 0));
   const sourceLLSelect = document.getElementById("invc-source-ll");
   const sourceLL = sourceLLSelect.value ? LOADING_LISTS[parseInt(sourceLLSelect.value, 10)] : null;
 
+  // public_id (FT-INV-NNNNN) is assigned server-side; adopt the returned object.
   const newInv = {
-    id: "FT-INV-" + (maxNum + 1),
     loadingListId: sourceLL ? sourceLL.id : null,
     pon: meta.pon,
     invoiceDate: meta.invoiceDate,
-    issueDate: new Date().toISOString().slice(0, 16).replace("T", " "),
     billTo: meta.billTo || "MSC Procurement & Logistics",
     attn: meta.attn || "Jorge Vega · Logistics Manager USA",
     terms: meta.terms || "NET 30",
@@ -14679,11 +14841,16 @@ function generateInvoice() {
     notes: meta.notes || "",
     lines: INVC_BUILDER_LINES.slice(),
   };
-  INVOICES.unshift(newInv);
-  persistDocs('invoices', () => INVOICES);
-  closeInvcBuilder();
-  renderInvoices();
-  openInvcPreview(0);
+  ftSyncStatus('saving', 'Creating invoice…');
+  window.FT_API.invoices.create(newInv)
+    .then(row => {
+      INVOICES.unshift(window.FT_API.fromInvoiceBackend(row));
+      ftSyncStatus('saved', '✓ Saved');
+      closeInvcBuilder();
+      renderInvoices();
+      openInvcPreview(0);
+    })
+    .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Invoice not saved: ' + err.message); });
 }
 
 /* ─── Invoice preview document ─── */
@@ -14964,8 +15131,13 @@ function setupInvoices() {
     const inv = INVOICES[idx];
     if (inv.status === "draft" || inv.status === "pending_approval") {
       inv.status = "approved";
-      persistDocs('invoices', () => INVOICES);
       renderInvoices();
+      if (window.FT_API && inv.backendId) {
+        ftSyncStatus('saving', 'Approving…');
+        window.FT_API.invoices.update(inv.backendId, { status: "approved" })
+          .then(row => { Object.assign(inv, window.FT_API.fromInvoiceBackend(row)); renderInvoices(); ftSyncStatus('saved', '✓ Approved'); })
+          .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Approval not saved: ' + err.message); });
+      }
       alert("Invoice " + inv.id + " marked APPROVED.\nReady to send to MSC.");
       openInvcPreview(idx);
     } else {
@@ -15098,8 +15270,13 @@ function setupInvoices() {
     setTimeout(() => {
       inv.status = "sent";
       inv.issuedBy = CURRENT_USER ? CURRENT_USER.name : inv.issuedBy;
-      persistDocs('invoices', () => INVOICES);
       renderInvoices();
+      if (window.FT_API && inv.backendId) {
+        ftSyncStatus('saving', 'Sending invoice…');
+        window.FT_API.invoices.update(inv.backendId, { status: "sent", issuedBy: inv.issuedBy })
+          .then(row => { Object.assign(inv, window.FT_API.fromInvoiceBackend(row)); renderInvoices(); ftSyncStatus('saved', '✓ Sent'); })
+          .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Invoice status not saved: ' + err.message); });
+      }
       if (confirm("Invoice " + inv.id + " marked SENT (by " + (CURRENT_USER ? CURRENT_USER.name : "—") + ").\n\n" +
         "Your mail client should have opened with a pre-filled draft to:\n" +
         "  " + primaryEmail + "\n  CC: " + ccEmails.join(", ") + "\n\n" +
@@ -15542,7 +15719,17 @@ function generateSDR() {
     if (sdr.status === "sent_to_msc" || sdr.status === "variables_added") {
       sdr.status = "variables_added";
     }
-    persistDocs('sdrs', () => SDRS);
+    if (window.FT_API && sdr.backendId) {
+      ftSyncStatus('saving', 'Saving SDR…');
+      window.FT_API.sdrs.update(sdr.backendId, {
+        gwx: sdr.gwx, loadingListId: sdr.loadingListId, billTo: sdr.billTo, msContact: sdr.msContact,
+        preparedBy: sdr.preparedBy, periodStart: sdr.periodStart, periodEnd: sdr.periodEnd,
+        notes: sdr.notes, variables: sdr.variables, qtys: sdr.qtys, variablesAt: sdr.variablesAt,
+        status: sdr.status,
+      })
+        .then(row => { Object.assign(sdr, window.FT_API.fromSdrBackend(row)); renderSDRs(); ftSyncStatus('saved', '✓ Saved'); })
+        .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('SDR edit not saved: ' + err.message); });
+    }
     // Clear edit flag + reset modal title/button
     delete modal.dataset.editIdx;
     const titleEl = document.querySelector(".sdr-modal__title");
@@ -15556,10 +15743,8 @@ function generateSDR() {
     return;
   }
 
-  // CREATE MODE — new SDR
-  const maxNum = Math.max(...SDRS.map(s => parseInt(s.id.split("-").pop(), 10) || 0));
+  // CREATE MODE — new SDR. public_id (SDR-YYYY-NNNN) + created_at are server-assigned.
   const newSDR = {
-    id: "SDR-2026-" + String(maxNum + 1).padStart(4, "0"),
     gwx: meta.gwx,
     loadingListId: meta.loadingListId,
     billTo: meta.billTo || "MSC Procurement & Logistics",
@@ -15567,23 +15752,22 @@ function generateSDR() {
     preparedBy: meta.preparedBy || "Gabriela Pita",
     periodStart: meta.periodStart || "",
     periodEnd: meta.periodEnd || "",
-    createdAt: new Date().toISOString().slice(0, 16).replace("T", " "),
-    sentAt: "",
-    variablesAt: "",
-    poReceivedAt: "",
-    pon: "",
-    closedAt: "",
     status: "draft",
     notes: meta.notes || "",
     variables: variables,
     invoiceId: null,
     qtys: Object.assign({}, SDR_BUILDER_QTYS),
   };
-  SDRS.unshift(newSDR);
-  persistDocs('sdrs', () => SDRS);
-  closeSDRBuilder();
-  renderSDRs();
-  openSDRPreview(0);
+  ftSyncStatus('saving', 'Creating SDR…');
+  window.FT_API.sdrs.create(newSDR)
+    .then(row => {
+      SDRS.unshift(window.FT_API.fromSdrBackend(row));
+      ftSyncStatus('saved', '✓ Saved');
+      closeSDRBuilder();
+      renderSDRs();
+      openSDRPreview(0);
+    })
+    .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('SDR not saved: ' + err.message); });
 }
 
 /* ─── SDR preview document (Excel-style) ─── */
@@ -15926,8 +16110,13 @@ function setupSDR() {
     setTimeout(() => {
       sdr.status = "sent_to_msc";
       sdr.sentAt = new Date().toISOString().slice(0, 16).replace("T", " ");
-      persistDocs('sdrs', () => SDRS);
       renderSDRs();
+      if (window.FT_API && sdr.backendId) {
+        ftSyncStatus('saving', 'Sending SDR…');
+        window.FT_API.sdrs.update(sdr.backendId, { status: "sent_to_msc", sentAt: sdr.sentAt })
+          .then(row => { Object.assign(sdr, window.FT_API.fromSdrBackend(row)); renderSDRs(); ftSyncStatus('saved', '✓ Sent'); })
+          .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('SDR status not saved: ' + err.message); });
+      }
       if (confirm("SDR " + sdr.id + " marked SENT TO MSC.\n\n" +
         "Your mail client should have opened with a pre-filled draft to:\n" +
         "  " + primaryEmail + "\n  CC: " + ccEmails.join(", ") + "\n\n" +
@@ -15951,8 +16140,13 @@ function setupSDR() {
     sdr.pon = pon.trim();
     sdr.poReceivedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
     sdr.status = "po_received";
-    persistDocs('sdrs', () => SDRS);
     renderSDRs();
+    if (window.FT_API && sdr.backendId) {
+      ftSyncStatus('saving', 'Saving PO…');
+      window.FT_API.sdrs.update(sdr.backendId, { pon: sdr.pon, poReceivedAt: sdr.poReceivedAt, status: "po_received" })
+        .then(row => { Object.assign(sdr, window.FT_API.fromSdrBackend(row)); renderSDRs(); ftSyncStatus('saved', '✓ Saved'); })
+        .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('PO not saved: ' + err.message); });
+    }
     openSDRPreview(idx);
   });
 
@@ -15980,15 +16174,12 @@ function setupSDR() {
     const fuel = ((sdr.qtys || {})["ADS-001456"] || 0) > 0 || ((sdr.qtys || {})["ADS-001886"] || 0) > 0 ? 15 : 0;
 
     const ll = sdr.loadingListId ? LOADING_LISTS.find(l => l.id === sdr.loadingListId) : null;
-    const maxInv = Math.max(...INVOICES.map(i => parseInt(i.id.replace(/\D/g, ""), 10) || 0));
 
     const newInv = {
-      id: "FT-INV-" + (maxInv + 1),
       sdrId: sdr.id,
       loadingListId: sdr.loadingListId,
       pon: sdr.pon,
       invoiceDate: new Date().toISOString().slice(0, 10),
-      issueDate: new Date().toISOString().slice(0, 16).replace("T", " "),
       billTo: sdr.billTo,
       attn: "Jorge Vega · Logistics Manager USA",
       terms: "NET 30",
@@ -16000,17 +16191,28 @@ function setupSDR() {
       notes: "Generated from " + sdr.id + " · " + sdr.notes,
       lines,
     };
-    INVOICES.unshift(newInv);
-    sdr.status = "closed";
-    sdr.closedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
-    sdr.invoiceId = newInv.id;
-    persistDocs('invoices', () => INVOICES);
-    persistDocs('sdrs', () => SDRS);
-
-    renderSDRs();
-    closeSDRPreview();
-    switchView("invoices");
-    setTimeout(() => openInvcPreview(0), 200);
+    // Cross-resource: POST the invoice first, then close the SDR against its new
+    // public_id. On partial failure (PATCH fails after POST) the invoice stays created.
+    ftSyncStatus('saving', 'Creating invoice…');
+    window.FT_API.invoices.create(newInv)
+      .then(row => {
+        const mappedInv = window.FT_API.fromInvoiceBackend(row);
+        INVOICES.unshift(mappedInv);
+        ftSyncStatus('saved', '✓ Saved');
+        renderInvoices();
+        const closedAt = new Date().toISOString().slice(0, 16).replace("T", " ");
+        if (window.FT_API && sdr.backendId) {
+          window.FT_API.sdrs.update(sdr.backendId, { status: "closed", closedAt: closedAt, invoiceId: mappedInv.id })
+            .then(srow => { Object.assign(sdr, window.FT_API.fromSdrBackend(srow)); renderSDRs(); })
+            .catch(err => { ftToast('Invoice ' + mappedInv.id + ' created, but SDR ' + sdr.id + ' not closed: ' + err.message); renderSDRs(); });
+        } else {
+          sdr.status = "closed"; sdr.closedAt = closedAt; sdr.invoiceId = mappedInv.id; renderSDRs();
+        }
+        closeSDRPreview();
+        switchView("invoices");
+        setTimeout(() => openInvcPreview(0), 200);
+      })
+      .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Invoice not created from ' + sdr.id + ': ' + err.message); });
   });
 }
 
@@ -16109,7 +16311,7 @@ function openCMBuilder() {
   while (select.firstChild) select.removeChild(select.firstChild);
   select.appendChild(el("option", { value: "", text: "— select invoice to credit —" }));
   INVOICES.forEach(inv => {
-    const totals = calcInvoiceTotals(inv);
+    const totals = invoiceTotals(inv);
     const opt = el("option", { value: inv.id, text: inv.id + " · " + inv.billTo + " · $" + totals.total.toFixed(2) + " · " + INVC_STATUS_LABELS[inv.status] });
     select.appendChild(opt);
   });
@@ -16123,7 +16325,7 @@ function openCMBuilder() {
   select.addEventListener("change", () => {
     const inv = INVOICES.find(i => i.id === select.value);
     if (inv) {
-      const totals = calcInvoiceTotals(inv);
+      const totals = invoiceTotals(inv);
       document.querySelector('#cm-form [name="amount"]').value = totals.total.toFixed(2);
     }
   }, { once: true });
@@ -16157,11 +16359,10 @@ function generateCM() {
     inheritedDue = d.toISOString().slice(0, 10);
   }
 
-  const maxNum = Math.max(...CREDIT_MEMOS.map(c => parseInt(c.id.split("-").pop(), 10) || 0));
   const description = (meta.description ? meta.description + "\n\n" : "") + "Applied to INV #" + meta.appliedToInvoiceId + ".";
 
+  // public_id (FT-CM-NNNN) is assigned server-side; adopt the returned object.
   const newCM = {
-    id: "FT-CM-" + String(maxNum + 1).padStart(4, "0"),
     appliedToInvoiceId: meta.appliedToInvoiceId,
     amount: parseFloat(meta.amount),
     issueDate: meta.issueDate,
@@ -16172,11 +16373,16 @@ function generateCM() {
     status: "open",
     soaPosition: "below",
   };
-  CREDIT_MEMOS.unshift(newCM);
-  persistDocs('credit_memos', () => CREDIT_MEMOS);
-  closeCMBuilder();
-  renderCreditMemos();
-  openCMPreview(0);
+  ftSyncStatus('saving', 'Creating credit memo…');
+  window.FT_API.creditMemos.create(newCM)
+    .then(row => {
+      CREDIT_MEMOS.unshift(window.FT_API.fromCmBackend(row));
+      ftSyncStatus('saved', '✓ Saved');
+      closeCMBuilder();
+      renderCreditMemos();
+      openCMPreview(0);
+    })
+    .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Credit memo not saved: ' + err.message); });
 }
 
 function openCMPreview(idx) {
@@ -16325,7 +16531,7 @@ function buildSOALinesForEntity(entity) {
 
   const lines = [];
   entityInvoices.forEach(inv => {
-    const totals = calcInvoiceTotals(inv);
+    const totals = invoiceTotals(inv);
     const cmsForThis = CREDIT_MEMOS.filter(cm => cm.appliedToInvoiceId === inv.id);
     const cmsAbove = cmsForThis.filter(cm => cm.soaPosition === "above");
     const cmsBelow = cmsForThis.filter(cm => cm.soaPosition !== "above");
@@ -16361,7 +16567,7 @@ function renderSOAEntityTabs() {
     const entityInvoices = INVOICES.filter(i => i.billTo === entity);
     const outstanding = entityInvoices
       .filter(i => i.status !== "paid")
-      .reduce((s, i) => s + calcInvoiceTotals(i).total, 0);
+      .reduce((s, i) => s + invoiceTotals(i).total, 0);
     const credits = CREDIT_MEMOS
       .filter(cm => {
         const inv = INVOICES.find(i => i.id === cm.appliedToInvoiceId);
@@ -16412,7 +16618,7 @@ function renderAPSummary() {
     const invs = INVOICES.filter(i => i.billTo === entity);
     let invoiced = 0, paid = 0, outstanding = 0, overdue = 0, overdueAmt = 0, dueSoon = 0;
     invs.forEach(i => {
-      const total = (typeof calcInvoiceTotals === "function") ? calcInvoiceTotals(i).total : 0;
+      const total = (typeof invoiceTotals === "function") ? invoiceTotals(i).total : 0;
       invoiced += total;
       if (i.status === "paid") { paid += total; }
       else {
@@ -16595,7 +16801,7 @@ function setupSOA() {
     let csv = header.join(",") + "\n";
     lines.forEach(line => {
       if (line.kind === "inv") {
-        const totals = calcInvoiceTotals(line.inv);
+        const totals = invoiceTotals(line.inv);
         const wk = "W" + getWeekOfYear(line.inv.invoiceDate);
         const due = calcInvoiceDueDate(line.inv);
         const cleanNotes = (line.inv.notes || "").replace(/[\r\n,]/g, " ");
@@ -16774,11 +16980,29 @@ setInterval(tickClock, 1000);
         return rows.length;
       }).catch(err => { ftToast('Could not load loading lists: ' + err.message); return null; }));
     }
+    // Billing modules use dedicated typed endpoints (invoices/sdrs/credit-memos),
+    // like inventory. Server is seeded → the typed list replaces the mock seed;
+    // seed is kept only when the list is empty or the request errors.
+    tasks.push(window.FT_API.invoices.list().then(rows => {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      INVOICES.splice(0, INVOICES.length, ...rows.map(window.FT_API.fromInvoiceBackend));
+      try { renderInvoices(); } catch(e) {}
+      return rows.length;
+    }).catch(err => { ftToast('Could not load invoices: ' + err.message); return null; }));
+    tasks.push(window.FT_API.sdrs.list().then(rows => {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      SDRS.splice(0, SDRS.length, ...rows.map(window.FT_API.fromSdrBackend));
+      try { renderSDRs(); } catch(e) {}
+      return rows.length;
+    }).catch(err => { ftToast('Could not load SDRs: ' + err.message); return null; }));
+    tasks.push(window.FT_API.creditMemos.list().then(rows => {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      CREDIT_MEMOS.splice(0, CREDIT_MEMOS.length, ...rows.map(window.FT_API.fromCmBackend));
+      try { renderCreditMemos(); } catch(e) {}
+      return rows.length;
+    }).catch(err => { ftToast('Could not load credit memos: ' + err.message); return null; }));
     // Generic docs for the rest — each module's frontend uses these globals
     const generic = [
-      ['SDRS',          'sdrs',          () => typeof renderSDRs === 'function' && renderSDRs()],
-      ['INVOICES',      'invoices',      () => typeof renderInvoices === 'function' && renderInvoices()],
-      ['CREDIT_MEMOS',  'credit_memos',  () => typeof renderCreditMemos === 'function' && renderCreditMemos()],
       ['DISCREPANCY_REPORTS', 'discrepancy_reports', () => typeof renderDiscrepancyReports === 'function' && renderDiscrepancyReports()],
       ['NOTIFICATIONS', 'notifications', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
       ['BC_HISTORY',    'barcode_history', () => typeof renderBarcoding === 'function' && renderBarcoding()],
@@ -16817,11 +17041,36 @@ setInterval(tickClock, 1000);
       }).catch(() => {});
       return;
     }
+    // Billing kinds re-hydrate from their typed endpoints (mirrors the inventory branch).
+    if (kind === 'invoices') {
+      window.FT_API.invoices.list().then(rows => {
+        if (!Array.isArray(rows)) return;
+        INVOICES.splice(0, INVOICES.length, ...rows.map(window.FT_API.fromInvoiceBackend));
+        try { renderInvoices(); } catch(e) {}
+        if (window.ftToast) ftToast('Invoices updated by another user', 'info');
+      }).catch(() => {});
+      return;
+    }
+    if (kind === 'sdrs') {
+      window.FT_API.sdrs.list().then(rows => {
+        if (!Array.isArray(rows)) return;
+        SDRS.splice(0, SDRS.length, ...rows.map(window.FT_API.fromSdrBackend));
+        try { renderSDRs(); } catch(e) {}
+        if (window.ftToast) ftToast('SDRs updated by another user', 'info');
+      }).catch(() => {});
+      return;
+    }
+    if (kind === 'credit_memos') {
+      window.FT_API.creditMemos.list().then(rows => {
+        if (!Array.isArray(rows)) return;
+        CREDIT_MEMOS.splice(0, CREDIT_MEMOS.length, ...rows.map(window.FT_API.fromCmBackend));
+        try { renderCreditMemos(); } catch(e) {}
+        if (window.ftToast) ftToast('Credit memos updated by another user', 'info');
+      }).catch(() => {});
+      return;
+    }
     const map = {
       loading_lists:        ['LOADING_LISTS', () => typeof renderLoadingLists === 'function' && renderLoadingLists()],
-      sdrs:                 ['SDRS',          () => typeof renderSDRs === 'function' && renderSDRs()],
-      invoices:             ['INVOICES',      () => typeof renderInvoices === 'function' && renderInvoices()],
-      credit_memos:         ['CREDIT_MEMOS',  () => typeof renderCreditMemos === 'function' && renderCreditMemos()],
       discrepancy_reports:  ['DISCREPANCY_REPORTS', () => typeof renderDiscrepancyReports === 'function' && renderDiscrepancyReports()],
       notifications:        ['NOTIFICATIONS', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
       ct_requests:          ['CT_REQUESTS',   () => typeof renderCrunchTime === 'function' && renderCrunchTime()],
@@ -16853,6 +17102,9 @@ setInterval(tickClock, 1000);
 if (window.ftRealtime) {
   window.ftRealtime.on('doc.updated', (d) => window.ftReHydrateKind(d.kind));
   window.ftRealtime.on('inventory.changed', () => window.ftReHydrateKind('inventory'));
+  window.ftRealtime.on('invoices.changed', () => window.ftReHydrateKind('invoices'));
+  window.ftRealtime.on('sdrs.changed', () => window.ftReHydrateKind('sdrs'));
+  window.ftRealtime.on('credit_memos.changed', () => window.ftReHydrateKind('credit_memos'));
   // Receiving list live-refresh when another user creates/deletes a warehouse receipt.
   window.ftRealtime.on('warehouse_receipts.changed', () => {
     if (document.body.classList.contains('view-receiving') && typeof wrLoadList === 'function') {

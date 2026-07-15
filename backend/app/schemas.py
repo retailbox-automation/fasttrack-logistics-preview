@@ -286,7 +286,7 @@ class CustomsRecordOut(BaseModel):
 
 
 # ── Billing: typed Invoices (Stage 2.1) ──
-INVOICE_STATES = {"draft", "pending_approval", "sent", "paid", "void"}
+INVOICE_STATES = {"draft", "pending_approval", "approved", "rejected", "sent", "paid", "void"}
 
 
 class InvoiceLine(BaseModel):
