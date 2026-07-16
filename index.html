@@ -1509,6 +1509,8 @@ body.view-discrepancies .pagination { display: none; }
 .dr-status--resolved     { background: rgba(16,185,129,0.12); color: var(--ok);    border: 1px solid rgba(16,185,129,0.25); }
 .dr-status--credit_issued{ background: rgba(96,165,250,0.12); color: var(--info);  border: 1px solid rgba(96,165,250,0.25); }
 .dr-status--rejected     { background: rgba(148,163,184,0.12); color: var(--text-dim); border: 1px solid rgba(148,163,184,0.25); }
+.dr-status--needs_review { background: rgba(245,158,11,0.12); color: #b45309;       border: 1px solid rgba(245,158,11,0.25); }
+.dr-status--closed       { background: rgba(16,185,129,0.12); color: var(--ok);     border: 1px solid rgba(16,185,129,0.25); }
 .dr-impact { font-family: var(--font-mono); font-feature-settings: "tnum"; color: var(--crit); font-weight: 500; }
 .dr-impact--zero { color: var(--text-dim); }
 
@@ -3942,6 +3944,44 @@ body.layout-list .pagination { display: none; }
     return out;
   }
 
+  /* ── Discrepancy field map (camelCase ↔ snake_case) — typed /api/discrepancies.
+        Same shape as the billing mappers above; the in-memory DISCREPANCY_REPORTS
+        array stays camelCase and we adapt only at the API boundary. `lines` is
+        passed through as an opaque JSON blob (like invoice lines). The server
+        status enum (open|investigating|resolved|needs_review|closed) is coarser
+        than the client's (adds credit_issued|rejected), so client-only statuses
+        map to the nearest server value on write; reads pass through unchanged. */
+  const DR_F2B = {
+    id: 'public_id', loadingListId: 'loading_list_public_id', reportedAt: 'reported_at',
+    reportedBy: 'reported_by', ftRespondent: 'ft_respondent', status: 'status',
+    severity: 'severity', notes: 'notes', resolutionNotes: 'resolution_notes', lines: 'lines',
+  };
+  const DR_B2F = Object.fromEntries(Object.entries(DR_F2B).map(([k, v]) => [v, k]));
+  const DR_STATUS_F2B = { credit_issued: 'resolved', rejected: 'closed' }; // client-only → server enum
+  function toDiscrepancyBackend(item) {
+    const out = {};
+    for (const fk in DR_F2B) {
+      if (fk === 'id') continue; // public_id auto-assigned
+      let v = item[fk];
+      if (fk === 'status' && v && DR_STATUS_F2B[v]) v = DR_STATUS_F2B[v];
+      if (v !== undefined && v !== null && v !== '') out[DR_F2B[fk]] = v;
+    }
+    return out;
+  }
+  function fromDiscrepancyBackend(row) {
+    const out = {};
+    for (const bk in row) {
+      const fk = DR_B2F[bk];
+      if (fk) out[fk] = row[bk];
+    }
+    if (row.created_at !== undefined) out.createdAt = _ftDt(row.created_at);
+    // The preview doc wants a full timestamp; fall back to the (date-only) reported_at.
+    if (!out.reportedAtFull) out.reportedAtFull = _ftDt(row.reported_at) || out.reportedAt || '';
+    if (!Array.isArray(out.lines)) out.lines = [];
+    if (row.id !== undefined) out.backendId = row.id;
+    return out;
+  }
+
   async function fetchJSON(path, opts) {
     // Show spinner only if the request actually takes >300ms (avoids flicker)
     let spinnerShown = false;
@@ -4060,6 +4100,17 @@ body.layout-list .pagination { display: none; }
       update: (id, patch) => fetchJSON('/api/credit-memos/' + id, { method: 'PATCH', body: JSON.stringify(toCmBackend(patch)) }),
       remove: (id) => fetchJSON('/api/credit-memos/' + id, { method: 'DELETE' }),
     },
+    // Typed discrepancy-report CRUD. {id} = internal integer row id (backendId),
+    // NOT public_id. create/update wrap bodies through toDiscrepancyBackend;
+    // list/get return raw snake_case rows — callers map via fromDiscrepancyBackend.
+    // Roles: manager/admin (backend enforces too).
+    discrepancies: {
+      list: () => fetchJSON('/api/discrepancies'),
+      get: (id) => fetchJSON('/api/discrepancies/' + id),
+      create: (item) => fetchJSON('/api/discrepancies', { method: 'POST', body: JSON.stringify(toDiscrepancyBackend(item)) }),
+      update: (id, patch) => fetchJSON('/api/discrepancies/' + id, { method: 'PATCH', body: JSON.stringify(toDiscrepancyBackend(patch)) }),
+      remove: (id) => fetchJSON('/api/discrepancies/' + id, { method: 'DELETE' }),
+    },
     users: {
       list: () => fetchJSON('/api/users'),
       create: (u) => fetchJSON('/api/users', { method: 'POST', body: JSON.stringify(u) }),
@@ -4156,10 +4207,19 @@ body.layout-list .pagination { display: none; }
       statementSummary: () => fetchJSON('/api/billing/statement/summary'),
       audit: () => fetchJSON('/api/billing/audit'),
     },
+    // Read-only management report endpoints (server is the source of truth).
+    // weekly(start) → dispatches/receipts/billing/customs/staff_hours/exceptions
+    // for the Mon–Sun week containing `start`; kpis() → live ops snapshot
+    // (staff/throughput/audit/time). Authed GET via fetchJSON. Roles: manager/admin.
+    reports: {
+      weekly: (start) => fetchJSON('/api/reports/weekly' + (start ? ('?start=' + encodeURIComponent(start)) : '')),
+      kpis: () => fetchJSON('/api/reports/kpis'),
+    },
     fromBackend, toBackend,
     fromInvoiceBackend, toInvoiceBackend,
     fromSdrBackend, toSdrBackend,
     fromCmBackend, toCmBackend,
+    fromDiscrepancyBackend, toDiscrepancyBackend,
   };
 
   // ── Realtime SSE subscription — re-hydrate kinds when other users mutate ──
@@ -9892,7 +9952,6 @@ async function renderWeeklyReport() {
   }
 
   while (body.firstChild) body.removeChild(body.firstChild);
-  const stat = (l, v) => { const d = el("div", { class: "wr-stat" }); d.appendChild(el("div", { class: "wr-stat__label", text: l })); d.appendChild(el("div", { class: "wr-stat__value", text: String(v) })); return d; };
 
   body.appendChild(el("div", { class: "wr-card" }, [
     el("div", { class: "wr-section-title", text: "Week" }),
@@ -9930,6 +9989,139 @@ async function renderWeeklyReport() {
     }
     body.appendChild(ac);
   } catch (e) { /* backend not connected — skip approval card */ }
+
+  // ── Data sections: server-fed (FT_API.reports.weekly) with client-side fallback.
+  //    The Approval card above stays on FT_API.approvals; CSV export reads window._wrLast. ──
+  let served = false;
+  if (window.FT_API && window.FT_API.reports && window.FT_API.reports.weekly) {
+    try {
+      const data = await window.FT_API.reports.weekly(start);
+      renderWeeklyReportSectionsFromServer(body, start, end, data);
+      served = true;
+    } catch (e) {
+      console.warn("[Weekly Report] server fetch failed — client-side fallback:", e);
+    }
+  }
+  if (!served) await renderWeeklyReportSectionsClientSide(body, start, end);
+}
+
+/* Server-fed weekly sections (source of truth). Renders dispatches/trucking,
+   receipts, billing, customs, staff hours and exceptions from the payload of
+   GET /api/reports/weekly, reusing the same wr-card / wr-grid / wr-table DOM as
+   the client-side fallback. Also populates window._wrLast so the (client-side)
+   CSV export keeps working. */
+function renderWeeklyReportSectionsFromServer(body, start, end, data) {
+  data = data || {};
+  const num = (n) => Number(n || 0);
+  const stat = (l, v) => { const d = el("div", { class: "wr-stat" }); d.appendChild(el("div", { class: "wr-stat__label", text: l })); d.appendChild(el("div", { class: "wr-stat__value", text: String(v) })); return d; };
+
+  // 1) Dispatches / trucking
+  const disp = data.dispatches || {};
+  const items = Array.isArray(disp.items) ? disp.items : [];
+  const dCard = el("div", { class: "wr-card" });
+  dCard.appendChild(el("div", { class: "wr-section-title", text: "Dispatches / trucking" }));
+  const dGrid = el("div", { class: "wr-grid" });
+  dGrid.appendChild(stat("Loads dispatched", num(disp.loads)));
+  dGrid.appendChild(stat("Vessels", num(disp.vessels)));
+  dGrid.appendChild(stat("Trucks", num(disp.trucks)));
+  dCard.appendChild(dGrid);
+  if (items.length) {
+    const t = el("table", { class: "wr-table" });
+    t.appendChild(el("tr", {}, [el("th", { text: "LL" }), el("th", { text: "Vessel" }), el("th", { text: "Truck" }), el("th", { text: "Departure" }), el("th", { text: "Status" })]));
+    items.forEach(l => t.appendChild(el("tr", {}, [el("td", { text: l.public_id || "" }), el("td", { text: l.vessel || "" }), el("td", { text: l.truck || "" }), el("td", { text: (l.departure || "").slice(0, 10) }), el("td", { text: l.status || "" })])));
+    dCard.appendChild(t);
+  } else dCard.appendChild(el("div", { class: "wr-pending", text: "No dispatches in this week." }));
+  body.appendChild(dCard);
+
+  // 2) Receipts
+  const rec = data.receipts || {};
+  const rCard = el("div", { class: "wr-card" });
+  rCard.appendChild(el("div", { class: "wr-section-title", text: "Receipts" }));
+  const rGrid = el("div", { class: "wr-grid" });
+  rGrid.appendChild(stat("Receipts", num(rec.count)));
+  rGrid.appendChild(stat("Pieces", num(rec.pieces)));
+  rGrid.appendChild(stat("Pallets", num(rec.pallets)));
+  rGrid.appendChild(stat("Weight (lb)", Math.round(num(rec.weight_lb)).toLocaleString()));
+  rCard.appendChild(rGrid);
+  body.appendChild(rCard);
+
+  // 3) Billing
+  const bill = data.billing || {};
+  const bCard = el("div", { class: "wr-card" });
+  bCard.appendChild(el("div", { class: "wr-section-title", text: "Billing" }));
+  const bGrid = el("div", { class: "wr-grid" });
+  bGrid.appendChild(stat("Invoices issued", num(bill.invoices)));
+  bGrid.appendChild(stat("Invoiced (week)", _wrMoney(num(bill.invoiced_total))));
+  bGrid.appendChild(stat("Credit memos", num(bill.credit_memos)));
+  bGrid.appendChild(stat("Credits", _wrMoney(num(bill.credits_total))));
+  bCard.appendChild(bGrid);
+  const byStatus = bill.by_status || {};
+  const statuses = Object.keys(byStatus);
+  if (statuses.length) {
+    const t = el("table", { class: "wr-table" });
+    t.appendChild(el("tr", {}, [el("th", { text: "Invoice status" }), el("th", { text: "Amount" })]));
+    statuses.forEach(s => t.appendChild(el("tr", {}, [el("td", { text: String(s).replace(/_/g, " ") }), el("td", { text: _wrMoney(num(byStatus[s])) })])));
+    bCard.appendChild(t);
+  }
+  body.appendChild(bCard);
+
+  // 4) Customs
+  const cust = data.customs || {};
+  const cCard = el("div", { class: "wr-card" });
+  cCard.appendChild(el("div", { class: "wr-section-title", text: "Customs" }));
+  const cGrid = el("div", { class: "wr-grid" });
+  cGrid.appendChild(stat("Entries", num(cust.count)));
+  cGrid.appendChild(stat("Cleared", num(cust.cleared)));
+  cGrid.appendChild(stat("Open", num(cust.open)));
+  cGrid.appendChild(stat("Hold", num(cust.hold)));
+  cCard.appendChild(cGrid);
+  body.appendChild(cCard);
+
+  // 5) Staff hours
+  const sh = data.staff_hours || {};
+  const sCard = el("div", { class: "wr-card" });
+  sCard.appendChild(el("div", { class: "wr-section-title", text: "Staff hours" }));
+  const sGrid = el("div", { class: "wr-grid" });
+  sGrid.appendChild(stat("Entries", num(sh.entries)));
+  sGrid.appendChild(stat("Total hours", (Math.round(num(sh.total_hours) * 100) / 100) + " h"));
+  sCard.appendChild(sGrid);
+  const byUser = sh.by_user || {};
+  const users = Object.keys(byUser);
+  if (users.length) {
+    const t = el("table", { class: "wr-table" });
+    t.appendChild(el("tr", {}, [el("th", { text: "Employee" }), el("th", { text: "Hours" })]));
+    users.sort((a, b) => num(byUser[b]) - num(byUser[a])).forEach(u => t.appendChild(el("tr", {}, [el("td", { text: u }), el("td", { text: num(byUser[u]) + " h" })])));
+    sCard.appendChild(t);
+  } else sCard.appendChild(el("div", { class: "wr-pending", text: "No closed shifts this week." }));
+  body.appendChild(sCard);
+
+  // 6) Exceptions
+  const exc = data.exceptions || {};
+  const eCard = el("div", { class: "wr-card" });
+  eCard.appendChild(el("div", { class: "wr-section-title", text: "Exceptions" }));
+  const eGrid = el("div", { class: "wr-grid" });
+  eGrid.appendChild(stat("Invoices pending", num(exc.invoices_pending)));
+  eGrid.appendChild(stat("Pending $", _wrMoney(num(exc.invoices_pending_total))));
+  eGrid.appendChild(stat("Customs open/hold", num(exc.customs_open_or_hold)));
+  eCard.appendChild(eGrid);
+  body.appendChild(eCard);
+
+  // Keep the (client-side) CSV export working — it reads window._wrLast.
+  window._wrLast = {
+    start, end,
+    dispatches: items.map(i => ({ id: i.public_id, vessel: i.vessel, truck: i.truck, departure: i.departure, status: i.status })),
+    invTotal: num(rec.count),
+    wkInvs: num(bill.invoices),
+    wkInvoiced: num(bill.invoiced_total),
+    outstanding: num(exc.invoices_pending_total),
+    laborHours: Math.round(num(sh.total_hours) * 100) / 100,
+  };
+}
+
+/* Client-side weekly sections — original in-memory compute, kept verbatim as the
+   fallback for when FT_API.reports.weekly is unavailable or errors. */
+async function renderWeeklyReportSectionsClientSide(body, start, end) {
+  const stat = (l, v) => { const d = el("div", { class: "wr-stat" }); d.appendChild(el("div", { class: "wr-stat__label", text: l })); d.appendChild(el("div", { class: "wr-stat__value", text: String(v) })); return d; };
 
   // 1) Dispatches / trucking
   const lls = (typeof LOADING_LISTS !== "undefined" ? LOADING_LISTS : []).filter(ll =>
@@ -10040,6 +10232,96 @@ async function renderOpsKpi() {
     const r = document.getElementById("okpi-refresh");
     if (r) r.addEventListener("click", () => renderOpsKpi());
   }
+
+  // Server-fed KPIs (source of truth) with client-side fallback (mirrors renderMscAudit).
+  if (window.FT_API && window.FT_API.reports && window.FT_API.reports.kpis) {
+    try {
+      const data = await window.FT_API.reports.kpis();
+      renderOpsKpiFromServer(body, data);
+      return;
+    } catch (e) {
+      console.warn("[Ops KPIs] server fetch failed — client-side fallback:", e);
+    }
+  }
+  renderOpsKpiClientSide();
+}
+
+/* Server-fed KPIs from GET /api/reports/kpis. Tiles (total actions / active users /
+   total staff hours / time entries) + staff table (user / hours / actions) +
+   throughput (creates by entity) + audit breakdown (by action / by entity).
+   Reuses the KPI/wr DOM vocabulary. Renders a neutral state on an empty payload. */
+function renderOpsKpiFromServer(body, data) {
+  while (body.firstChild) body.removeChild(body.firstChild);
+  data = data || {};
+  const num = (n) => Number(n || 0);
+  const audit = data.audit || {};
+  const time = data.time || {};
+  const staff = Array.isArray(data.staff) ? data.staff : [];
+  const throughput = (data.throughput && data.throughput.creates_by_entity) || {};
+
+  // ── KPI tiles row ──
+  const tilesCard = el("div", { class: "wr-card" });
+  tilesCard.appendChild(el("div", { class: "wr-section-title", text: "Live snapshot" }));
+  const grid = el("div", { class: "kpi-grid" });
+  grid.appendChild(_okpiTile("Total actions", num(audit.total_actions)));
+  grid.appendChild(_okpiTile("Active users", num(audit.active_users)));
+  grid.appendChild(_okpiTile("Total staff hours", (Math.round(num(time.total_hours) * 100) / 100) + " h"));
+  grid.appendChild(_okpiTile("Time entries", num(time.entries)));
+  tilesCard.appendChild(grid);
+  body.appendChild(tilesCard);
+
+  // ── Staff activity (user / hours / actions) ──
+  const sCard = el("div", { class: "wr-card" });
+  sCard.appendChild(el("div", { class: "wr-section-title", text: "Staff activity" }));
+  if (!staff.length) {
+    sCard.appendChild(el("div", { class: "wr-pending", text: "No staff activity in this period." }));
+  } else {
+    const t = el("table", { class: "wr-table" });
+    t.appendChild(el("tr", {}, [el("th", { text: "User" }), el("th", { text: "Hours" }), el("th", { text: "Actions" })]));
+    staff.slice().sort((a, b) => num(b.hours) - num(a.hours)).forEach(r => {
+      t.appendChild(el("tr", {}, [el("td", { text: r.user || "—" }), el("td", { text: (Math.round(num(r.hours) * 100) / 100) + " h" }), el("td", { text: String(num(r.actions)) })]));
+    });
+    sCard.appendChild(t);
+  }
+  body.appendChild(sCard);
+
+  // ── Throughput · creates by entity ──
+  const tCard = el("div", { class: "wr-card" });
+  tCard.appendChild(el("div", { class: "wr-section-title", text: "Throughput · creates by entity" }));
+  const entities = Object.keys(throughput);
+  if (!entities.length) {
+    tCard.appendChild(el("div", { class: "wr-pending", text: "No records created in this period." }));
+  } else {
+    const tgrid = el("div", { class: "kpi-grid" });
+    entities.sort((a, b) => num(throughput[b]) - num(throughput[a])).forEach(k => tgrid.appendChild(_okpiTile(String(k).replace(/_/g, " "), num(throughput[k]))));
+    tCard.appendChild(tgrid);
+  }
+  body.appendChild(tCard);
+
+  // ── Audit breakdown (by action / by entity) ──
+  const aCard = el("div", { class: "wr-card" });
+  aCard.appendChild(el("div", { class: "wr-section-title", text: "Audit breakdown" }));
+  const mkBreak = (title, obj) => {
+    const keys = Object.keys(obj || {});
+    const t = el("table", { class: "wr-table" });
+    t.appendChild(el("tr", {}, [el("th", { text: title }), el("th", { text: "Count" })]));
+    if (!keys.length) {
+      t.appendChild(el("tr", {}, [el("td", { text: "—" }), el("td", { text: "0" })]));
+    } else {
+      keys.sort((a, b) => num(obj[b]) - num(obj[a])).forEach(k => t.appendChild(el("tr", {}, [el("td", { text: String(k).replace(/_/g, " ") }), el("td", { text: String(num(obj[k])) })])));
+    }
+    return t;
+  };
+  aCard.appendChild(mkBreak("By action", audit.by_action));
+  aCard.appendChild(mkBreak("By entity", audit.by_entity));
+  body.appendChild(aCard);
+}
+
+/* Client-side KPIs — original mixed-source (shipments/picks/inventory/time) compute,
+   kept verbatim as the fallback for when FT_API.reports.kpis is unavailable or errors. */
+async function renderOpsKpiClientSide() {
+  const body = document.getElementById("okpi-body");
+  if (!body) return;
 
   while (body.firstChild) body.removeChild(body.firstChild);
 
@@ -13493,6 +13775,8 @@ const DR_STATUS_LABELS = {
   resolved: "Resolved",
   credit_issued: "Credit issued",
   rejected: "Rejected",
+  needs_review: "Needs review", // server-only enum (typed /api/discrepancies)
+  closed: "Closed",             // server-only enum
 };
 
 // Rough per-unit cost estimate for financial impact (Phase 2: from Magaya invoice line)
@@ -13616,7 +13900,7 @@ function renderDiscrepancyReports() {
 
   const openCount = DISCREPANCY_REPORTS.filter(d => d.status === "open").length;
   const invCount = DISCREPANCY_REPORTS.filter(d => d.status === "investigating").length;
-  const resolvedCount = DISCREPANCY_REPORTS.filter(d => d.status === "resolved" || d.status === "credit_issued").length;
+  const resolvedCount = DISCREPANCY_REPORTS.filter(d => d.status === "resolved" || d.status === "credit_issued" || d.status === "closed").length;
   const openImpact = DISCREPANCY_REPORTS
     .filter(d => d.status === "open" || d.status === "investigating")
     .reduce((s, d) => s + computeDRImpact(d).financial, 0);
@@ -13839,11 +14123,29 @@ function generateDiscrepancyReport() {
     resolutionNotes: "",
     lines: lines,
   };
-  DISCREPANCY_REPORTS.unshift(newDR);
-  persistDocs('discrepancy_reports', () => DISCREPANCY_REPORTS);
-  closeDRBuilder();
-  renderDiscrepancyReports();
-  openDRPreview(0);
+  // Server-first create via the typed endpoint (mirrors billing C.2). On error we
+  // keep the client-side seed/offline path (persistDocs) so the report isn't lost.
+  const finishLocal = () => { closeDRBuilder(); renderDiscrepancyReports(); openDRPreview(0); };
+  if (window.FT_API && window.FT_API.discrepancies) {
+    ftSyncStatus('saving', 'Creating discrepancy…');
+    window.FT_API.discrepancies.create(newDR)
+      .then(row => {
+        DISCREPANCY_REPORTS.unshift(window.FT_API.fromDiscrepancyBackend(row));
+        ftSyncStatus('saved', '✓ Saved');
+        finishLocal();
+      })
+      .catch(err => {
+        ftSyncStatus('error', 'Sync failed');
+        DISCREPANCY_REPORTS.unshift(newDR);
+        persistDocs('discrepancy_reports', () => DISCREPANCY_REPORTS);
+        finishLocal();
+        ftToast('Discrepancy saved locally (backend unreachable): ' + err.message);
+      });
+  } else {
+    DISCREPANCY_REPORTS.unshift(newDR);
+    persistDocs('discrepancy_reports', () => DISCREPANCY_REPORTS);
+    finishLocal();
+  }
 }
 
 /* ─── DR Preview document ─── */
@@ -14051,16 +14353,27 @@ function setupDiscrepancyReports() {
     const idx = parseInt(ovl.dataset.idx, 10);
     if (!isNaN(idx) && DISCREPANCY_REPORTS[idx]) {
       const dr = DISCREPANCY_REPORTS[idx];
-      if (dr.status === "resolved" || dr.status === "credit_issued" || dr.status === "rejected") {
-        alert("Already closed (" + DR_STATUS_LABELS[dr.status] + ").");
+      if (dr.status === "resolved" || dr.status === "credit_issued" || dr.status === "rejected" || dr.status === "closed") {
+        alert("Already closed (" + (DR_STATUS_LABELS[dr.status] || dr.status) + ").");
         return;
       }
       const impact = computeDRImpact(dr);
       dr.status = impact.financial > 0 ? "credit_issued" : "resolved";
       dr.resolutionNotes = "Closed via prototype · " + new Date().toISOString().slice(0, 10) + ". Auto-routed to billing for credit reconciliation.";
-      persistDocs('discrepancy_reports', () => DISCREPANCY_REPORTS);
+      // Status change via the typed PATCH (mirrors billing C.2). Address by the server
+      // row id (backendId). We keep the richer client status label locally rather than
+      // overwriting from the response (the server enum is coarser). Seed rows with no
+      // backendId fall back to the client-side persistDocs path.
+      if (window.FT_API && window.FT_API.discrepancies && dr.backendId) {
+        ftSyncStatus('saving', 'Saving discrepancy…');
+        window.FT_API.discrepancies.update(dr.backendId, { status: dr.status, resolutionNotes: dr.resolutionNotes })
+          .then(() => { ftSyncStatus('saved', '✓ Saved'); })
+          .catch(err => { ftSyncStatus('error', 'Sync failed'); ftToast('Status not saved: ' + err.message); });
+      } else {
+        persistDocs('discrepancy_reports', () => DISCREPANCY_REPORTS);
+      }
       renderDiscrepancyReports();
-      alert("Report " + dr.id + " marked " + DR_STATUS_LABELS[dr.status] + ".\n\n(Phase 2: auto-creates credit memo in Magaya invoicing.)");
+      alert("Report " + dr.id + " marked " + (DR_STATUS_LABELS[dr.status] || dr.status) + ".\n\n(Phase 2: auto-creates credit memo in Magaya invoicing.)");
       closeDRPreview();
     }
   });
@@ -17563,9 +17876,16 @@ setInterval(tickClock, 1000);
       try { renderCreditMemos(); } catch(e) {}
       return rows.length;
     }).catch(err => { ftToast('Could not load credit memos: ' + err.message); return null; }));
+    // Discrepancy reports use the dedicated typed endpoint (like the billing modules).
+    // Empty/error keeps the client-side DISCREPANCY_REPORTS seed so the view isn't blank.
+    tasks.push(window.FT_API.discrepancies.list().then(rows => {
+      if (!Array.isArray(rows) || rows.length === 0) return null;
+      DISCREPANCY_REPORTS.splice(0, DISCREPANCY_REPORTS.length, ...rows.map(window.FT_API.fromDiscrepancyBackend));
+      try { renderDiscrepancyReports(); } catch(e) {}
+      return rows.length;
+    }).catch(err => { ftToast('Could not load discrepancies: ' + err.message); return null; }));
     // Generic docs for the rest — each module's frontend uses these globals
     const generic = [
-      ['DISCREPANCY_REPORTS', 'discrepancy_reports', () => typeof renderDiscrepancyReports === 'function' && renderDiscrepancyReports()],
       ['NOTIFICATIONS', 'notifications', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
       ['BC_HISTORY',    'barcode_history', () => typeof renderBarcoding === 'function' && renderBarcoding()],
       ['CT_REQUESTS',   'ct_requests',   () => typeof renderCrunchTime === 'function' && renderCrunchTime()],
@@ -17631,9 +17951,19 @@ setInterval(tickClock, 1000);
       }).catch(() => {});
       return;
     }
+    // Discrepancy reports re-hydrate from the typed endpoint (mirrors the billing branches).
+    // Skip when the typed table is empty so an empty prod table doesn't wipe the seed.
+    if (kind === 'discrepancy_reports' || kind === 'discrepancies') {
+      window.FT_API.discrepancies.list().then(rows => {
+        if (!Array.isArray(rows) || rows.length === 0) return;
+        DISCREPANCY_REPORTS.splice(0, DISCREPANCY_REPORTS.length, ...rows.map(window.FT_API.fromDiscrepancyBackend));
+        try { renderDiscrepancyReports(); } catch(e) {}
+        if (window.ftToast) ftToast('Discrepancies updated by another user', 'info');
+      }).catch(() => {});
+      return;
+    }
     const map = {
       loading_lists:        ['LOADING_LISTS', () => typeof renderLoadingLists === 'function' && renderLoadingLists()],
-      discrepancy_reports:  ['DISCREPANCY_REPORTS', () => typeof renderDiscrepancyReports === 'function' && renderDiscrepancyReports()],
       notifications:        ['NOTIFICATIONS', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
       ct_requests:          ['CT_REQUESTS',   () => typeof renderCrunchTime === 'function' && renderCrunchTime()],
       ct_audit_trail:       ['CT_AUDIT_TRAIL',() => typeof renderCrunchTime === 'function' && renderCrunchTime()],
