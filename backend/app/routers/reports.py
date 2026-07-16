@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import LoadingList, WarehouseReceipt, Invoice, CreditMemo, CustomsRecord, TimeEntry
+from app.models import LoadingList, WarehouseReceipt, Invoice, CreditMemo, CustomsRecord, TimeEntry, AuditLog
 from app.auth import require_roles
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -107,5 +107,41 @@ def weekly(start: str | None = Query(default=None), db: Session = Depends(get_db
         "week": {"start": wk_start.isoformat(), "end": wk_end.isoformat()},
         "dispatches": dispatches, "receipts": receipts, "billing": billing,
         "customs": customs, "staff_hours": staff_hours, "exceptions": exceptions,
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@router.get("/kpis", dependencies=[Depends(require_roles("admin", "manager"))])
+def kpis(db: Session = Depends(get_db)):
+    """Operations KPIs snapshot (all-time): staff hours + activity, throughput, audit coverage."""
+    hours_by_user: dict[str, int] = {}
+    tes = db.query(TimeEntry).all()
+    for t in tes:
+        m = int(((t.clock_out_at or t.clock_in_at) - t.clock_in_at).total_seconds() // 60)
+        hours_by_user[t.user_name] = hours_by_user.get(t.user_name, 0) + m
+
+    audits = db.query(AuditLog).all()
+    actions_by_user: dict[str, int] = {}
+    by_action: dict[str, int] = {}
+    by_entity: dict[str, int] = {}
+    creates_by_entity: dict[str, int] = {}
+    for a in audits:
+        u = a.user_name or "—"
+        actions_by_user[u] = actions_by_user.get(u, 0) + 1
+        by_action[a.action] = by_action.get(a.action, 0) + 1
+        by_entity[a.entity_kind] = by_entity.get(a.entity_kind, 0) + 1
+        if a.action == "create":
+            creates_by_entity[a.entity_kind] = creates_by_entity.get(a.entity_kind, 0) + 1
+
+    staff_names = sorted(set(hours_by_user) | set(actions_by_user) - {"—"})
+    staff = [{"user": u, "hours": round(hours_by_user.get(u, 0) / 60, 1),
+              "actions": actions_by_user.get(u, 0)} for u in staff_names]
+
+    return {
+        "staff": staff,
+        "throughput": {"creates_by_entity": creates_by_entity},
+        "audit": {"total_actions": len(audits), "by_action": by_action,
+                  "by_entity": by_entity, "active_users": len([u for u in actions_by_user if u != "—"])},
+        "time": {"total_hours": round(sum(hours_by_user.values()) / 60, 1), "entries": len(tes)},
         "generated_at": datetime.utcnow().isoformat() + "Z",
     }

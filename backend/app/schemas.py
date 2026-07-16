@@ -542,6 +542,52 @@ class RateLookupOut(BaseModel):
     rate_card_id: Optional[int] = None
 
 
+# ── Discrepancy reports (Stage 4.1) ──
+DISCREPANCY_STATES = {"open", "investigating", "resolved", "needs_review", "closed"}
+DISCREPANCY_SEVERITIES = {"minor", "major", "critical"}
+
+
+class DiscrepancyCreate(BaseModel):
+    public_id: Optional[str] = None          # auto DR-YYYY-NNNN
+    loading_list_public_id: Optional[str] = None
+    reported_at: Optional[date] = None       # defaults today
+    reported_by: str
+    ft_respondent: Optional[str] = None       # defaults to signed-in user
+    status: str = "open"
+    severity: str = "minor"
+    notes: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    lines: list = []
+
+
+class DiscrepancyUpdate(BaseModel):
+    loading_list_public_id: Optional[str] = None
+    reported_at: Optional[date] = None
+    reported_by: Optional[str] = None
+    ft_respondent: Optional[str] = None
+    status: Optional[str] = None
+    severity: Optional[str] = None
+    notes: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    lines: Optional[list] = None
+
+
+class DiscrepancyOut(BaseModel):
+    id: int
+    public_id: str
+    loading_list_public_id: Optional[str] = None
+    reported_at: date
+    reported_by: str
+    ft_respondent: str
+    status: str
+    severity: str
+    notes: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    lines: list = []
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
 class HealthOut(BaseModel):
     status: str
     db: str

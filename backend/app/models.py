@@ -139,6 +139,7 @@ class DiscrepancyReport(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     public_id: Mapped[str] = mapped_column(String(32), unique=True, index=True)  # DR-2026-NNNN
     loading_list_id: Mapped[Optional[int]] = mapped_column(ForeignKey("loading_lists.id"), nullable=True)
+    loading_list_public_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     reported_at: Mapped[date] = mapped_column(Date)
     reported_by: Mapped[str] = mapped_column(String(128))
     ft_respondent: Mapped[str] = mapped_column(String(64))
