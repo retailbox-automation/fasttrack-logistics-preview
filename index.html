@@ -3569,6 +3569,19 @@ body.layout-list .pagination { display: none; }
   font-size: 11px; color: #9ca3af;
   text-align: center;
 }
+#auth-gate .gate-link {
+  color: #2d6da3; font-size: 12.5px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  background: none; border: none; padding: 0;
+}
+#auth-gate .gate-link:hover { text-decoration: underline; }
+#auth-gate .gate-msg {
+  margin-top: 14px; padding: 9px 12px;
+  background: #eff6ff; color: #1e40af;
+  border: 1px solid #bfdbfe; border-radius: 6px;
+  font-size: 12.5px; line-height: 1.45; display: none;
+}
+#auth-gate .gate-msg.show { display: block; }
 .signout-btn {
   background: transparent; border: 1px solid rgba(0,0,0,.15);
   color: var(--text-dim); cursor: pointer;
@@ -3596,8 +3609,40 @@ body.layout-list .pagination { display: none; }
     <label for="auth-gate-password">Password</label>
     <input id="auth-gate-password" type="password" autocomplete="current-password" required>
     <div class="gate-err" id="auth-gate-err"></div>
+    <div class="gate-msg" id="auth-gate-msg"></div>
     <button type="submit" class="gate-submit" id="auth-gate-submit">Sign in</button>
+    <div style="text-align:center;margin-top:14px;"><a href="#" id="auth-gate-forgot" class="gate-link">Forgot password?</a></div>
     <div class="gate-footer">FT MSC operations · Sign in with your Fast Track account.</div>
+  </form>
+  <!-- Reset request: send a reset link (hidden until "Forgot password?" clicked) -->
+  <form class="gate-card" id="auth-gate-reset" autocomplete="off" style="display:none;">
+    <div class="gate-brand">
+      <div class="ft-logo" role="img" aria-label="Fast Track Worldwide Logistics" style="height:42px;width:112px;"></div>
+    </div>
+    <h1>Reset your password</h1>
+    <p class="gate-sub">Enter your account email. We will send a reset link if it is registered.</p>
+    <label for="auth-gate-reset-email">Email</label>
+    <input id="auth-gate-reset-email" type="email" placeholder="your.name@fasttrackgroup.us" autocomplete="username" required>
+    <div class="gate-err" id="auth-gate-reset-err"></div>
+    <div class="gate-msg" id="auth-gate-reset-msg"></div>
+    <button type="submit" class="gate-submit" id="auth-gate-reset-submit">Send reset link</button>
+    <div class="gate-footer"><a href="#" id="auth-gate-reset-back" class="gate-link">&larr; back to sign in</a></div>
+  </form>
+  <!-- Reset landing: set a new password from an emailed link (shown when ?reset=&email= present) -->
+  <form class="gate-card" id="auth-gate-newpw" autocomplete="off" style="display:none;">
+    <div class="gate-brand">
+      <div class="ft-logo" role="img" aria-label="Fast Track Worldwide Logistics" style="height:42px;width:112px;"></div>
+    </div>
+    <h1>Set a new password</h1>
+    <p class="gate-sub">Choose a new password for your Fast Track account.</p>
+    <label for="auth-gate-newpw-pw">New password</label>
+    <input id="auth-gate-newpw-pw" type="password" minlength="8" autocomplete="new-password" required style="margin-bottom:14px;">
+    <label for="auth-gate-newpw-confirm">Confirm password</label>
+    <input id="auth-gate-newpw-confirm" type="password" minlength="8" autocomplete="new-password" required>
+    <div class="gate-err" id="auth-gate-newpw-err"></div>
+    <div class="gate-msg" id="auth-gate-newpw-msg"></div>
+    <button type="submit" class="gate-submit" id="auth-gate-newpw-submit">Set password</button>
+    <div class="gate-footer"><a href="#" id="auth-gate-newpw-forgot" class="gate-link" style="display:none;">Request a new reset link</a></div>
   </form>
 </div>
 
@@ -3648,6 +3693,23 @@ body.layout-list .pagination { display: none; }
   const input = document.getElementById('auth-gate-password');
   const errBox = document.getElementById('auth-gate-err');
   const submitBtn = document.getElementById('auth-gate-submit');
+  const msgBox = document.getElementById('auth-gate-msg');
+  const forgotLink = document.getElementById('auth-gate-forgot');
+  // Reset-request (forgot password) form
+  const resetForm = document.getElementById('auth-gate-reset');
+  const resetEmail = document.getElementById('auth-gate-reset-email');
+  const resetErr = document.getElementById('auth-gate-reset-err');
+  const resetMsg = document.getElementById('auth-gate-reset-msg');
+  const resetSubmit = document.getElementById('auth-gate-reset-submit');
+  const resetBack = document.getElementById('auth-gate-reset-back');
+  // Reset-landing (set new password) form
+  const newpwForm = document.getElementById('auth-gate-newpw');
+  const newpwPw = document.getElementById('auth-gate-newpw-pw');
+  const newpwConfirm = document.getElementById('auth-gate-newpw-confirm');
+  const newpwErr = document.getElementById('auth-gate-newpw-err');
+  const newpwMsg = document.getElementById('auth-gate-newpw-msg');
+  const newpwSubmit = document.getElementById('auth-gate-newpw-submit');
+  const newpwForgot = document.getElementById('auth-gate-newpw-forgot');
 
   function showError(msg) {
     errBox.textContent = msg;
@@ -3681,6 +3743,8 @@ body.layout-list .pagination { display: none; }
     clearToken();
     localStorage.removeItem(USER_KEY);
     gate.classList.remove('hidden');
+    showGateView('login');
+    if (msgBox) msgBox.classList.remove('show');
     input.value = '';
     input.focus();
   }
@@ -3757,8 +3821,150 @@ body.layout-list .pagination { display: none; }
     lock();
   };
 
-  // Initial gate check
-  if (isTokenValid()) {
+  /* ===== Password reset UI (pre-auth; NO Authorization header) ===== */
+  // Toggle which card is visible inside the gate: 'login' | 'reset' | 'newpw'
+  function showGateView(which) {
+    if (form) form.style.display = (which === 'login') ? '' : 'none';
+    if (resetForm) resetForm.style.display = (which === 'reset') ? '' : 'none';
+    if (newpwForm) newpwForm.style.display = (which === 'newpw') ? '' : 'none';
+  }
+
+  // Remove reset/email params so a refresh does not re-trigger the reset screen.
+  function stripResetParams() {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.delete('reset');
+      u.searchParams.delete('email');
+      history.replaceState(null, '', u.pathname + u.search + u.hash);
+    } catch (e) {}
+  }
+
+  // "Forgot password?" → reveal reset-request form
+  if (forgotLink) forgotLink.addEventListener('click', function(e){
+    e.preventDefault();
+    hideError();
+    if (msgBox) msgBox.classList.remove('show');
+    if (resetErr) resetErr.classList.remove('show');
+    if (resetMsg) resetMsg.classList.remove('show');
+    if (resetEmail) resetEmail.value = (emailInput.value || '').trim();
+    showGateView('reset');
+    if (resetEmail) resetEmail.focus();
+  });
+
+  // "← back to sign in" from reset-request form
+  if (resetBack) resetBack.addEventListener('click', function(e){
+    e.preventDefault();
+    if (resetErr) resetErr.classList.remove('show');
+    if (resetMsg) resetMsg.classList.remove('show');
+    showGateView('login');
+    if (emailInput) emailInput.focus();
+  });
+
+  // Submit reset-request → POST /api/auth/forgot-password (no auth header)
+  if (resetForm) resetForm.addEventListener('submit', async function(e){
+    e.preventDefault();
+    resetErr.classList.remove('show');
+    resetMsg.classList.remove('show');
+    const email = (resetEmail.value || '').trim().toLowerCase();
+    if (!email) { resetErr.textContent = 'Enter your email.'; resetErr.classList.add('show'); return; }
+    resetSubmit.disabled = true;
+    resetSubmit.textContent = 'Sending…';
+    try {
+      const resp = await fetch(window.FT_API_BASE + '/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email }),
+      });
+      if (resp.ok) {
+        let m = 'If that email is registered, a password reset link has been sent.';
+        try { const d = await resp.json(); if (d && d.message) m = d.message; } catch (e2) {}
+        resetMsg.textContent = m;
+        resetMsg.classList.add('show');
+      } else {
+        resetErr.textContent = 'Could not send reset link (' + resp.status + '). Try again.';
+        resetErr.classList.add('show');
+      }
+    } catch (err) {
+      resetErr.textContent = 'Cannot reach backend: ' + err.message;
+      resetErr.classList.add('show');
+    } finally {
+      resetSubmit.disabled = false;
+      resetSubmit.textContent = 'Send reset link';
+    }
+  });
+
+  // "Request a new reset link" from a failed reset-landing → reset-request form
+  if (newpwForgot) newpwForgot.addEventListener('click', function(e){
+    e.preventDefault();
+    if (newpwErr) newpwErr.classList.remove('show');
+    if (resetErr) resetErr.classList.remove('show');
+    if (resetMsg) resetMsg.classList.remove('show');
+    showGateView('reset');
+    if (resetEmail) resetEmail.focus();
+  });
+
+  // Reset-landing: set a new password using the emailed token (?reset=&email=)
+  function showResetLanding(email, token) {
+    showGateView('newpw');
+    if (newpwErr) newpwErr.classList.remove('show');
+    if (newpwMsg) newpwMsg.classList.remove('show');
+    if (newpwForgot) newpwForgot.style.display = 'none';
+    if (newpwPw) newpwPw.value = '';
+    if (newpwConfirm) newpwConfirm.value = '';
+    if (newpwPw) newpwPw.focus();
+    newpwForm.onsubmit = async function(e) {
+      e.preventDefault();
+      newpwErr.classList.remove('show');
+      newpwMsg.classList.remove('show');
+      const p1 = newpwPw.value;
+      const p2 = newpwConfirm.value;
+      if (p1.length < 8) { newpwErr.textContent = 'At least 8 characters.'; newpwErr.classList.add('show'); return; }
+      if (p1 !== p2) { newpwErr.textContent = 'Passwords do not match.'; newpwErr.classList.add('show'); return; }
+      newpwSubmit.disabled = true;
+      newpwSubmit.textContent = 'Setting…';
+      try {
+        const resp = await fetch(window.FT_API_BASE + '/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, token: token, new_password: p1 }),
+        });
+        if (resp.status === 204 || resp.ok) {
+          stripResetParams();
+          // Any prior session is stale after a password change — force a fresh sign-in.
+          clearToken();
+          localStorage.removeItem(USER_KEY);
+          showGateView('login');
+          if (emailInput) emailInput.value = email;
+          if (input) input.value = '';
+          if (msgBox) { msgBox.textContent = 'Password updated — please sign in.'; msgBox.classList.add('show'); }
+          if (input) input.focus();
+        } else if (resp.status === 400) {
+          let detail = 'Invalid or expired reset link. Request a new one.';
+          try { const d = await resp.json(); if (d && d.detail) detail = d.detail; } catch (e2) {}
+          newpwErr.textContent = detail;
+          newpwErr.classList.add('show');
+          if (newpwForgot) newpwForgot.style.display = 'inline';
+        } else {
+          newpwErr.textContent = 'Reset failed (' + resp.status + '). Try again.';
+          newpwErr.classList.add('show');
+        }
+      } catch (err) {
+        newpwErr.textContent = 'Cannot reach backend: ' + err.message;
+        newpwErr.classList.add('show');
+      } finally {
+        newpwSubmit.disabled = false;
+        newpwSubmit.textContent = 'Set password';
+      }
+    };
+  }
+
+  // Initial gate check — an emailed reset link (?reset=&email=) takes priority.
+  const _resetToken = qs.get('reset');
+  const _resetEmailParam = qs.get('email');
+  if (_resetToken && _resetEmailParam) {
+    gate.classList.remove('hidden');
+    showResetLanding(_resetEmailParam, _resetToken);
+  } else if (isTokenValid()) {
     unlock();
   } else {
     clearToken();
@@ -4146,6 +4352,7 @@ body.layout-list .pagination { display: none; }
       create: (u) => fetchJSON('/api/users', { method: 'POST', body: JSON.stringify(u) }),
       update: (id, patch) => fetchJSON('/api/users/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
       remove: (id) => fetchJSON('/api/users/' + id, { method: 'DELETE' }),
+      resetLink: (id) => fetchJSON('/api/users/' + id + '/reset-link', { method: 'POST' }),
     },
     // Rate matrix (Stage 2.2) — authoritative DB rate card the billing audit
     // reconciles against (see billing note above). {id} = row id. Authed
@@ -18465,8 +18672,9 @@ if (window.ftRealtime) {
             <label style="font-size:11px;color:#94a3b8;cursor:pointer;"><input type="checkbox" data-field="is_active" ${u.is_active?'checked':''}> active</label>
           </td>
           <td style="padding:8px 10px;font-size:11px;color:#94a3b8;font-family:monospace;">${u.last_login ? u.last_login.replace('T',' ').slice(0,16) : '—'}</td>
-          <td style="padding:8px 10px;">
-            <button data-act="reset" style="padding:3px 8px;font-size:11px;background:rgba(45,109,163,.2);color:#93c5fd;border:1px solid rgba(45,109,163,.4);border-radius:4px;cursor:pointer;">Reset PW</button>
+          <td style="padding:8px 10px;white-space:nowrap;">
+            <button data-act="resetlink" title="Generate a link the user opens to set their own password (share via WhatsApp — no email needed)" style="padding:3px 8px;font-size:11px;background:rgba(16,122,87,.2);color:#6ee7b7;border:1px solid rgba(16,122,87,.4);border-radius:4px;cursor:pointer;">Reset link</button>
+            <button data-act="reset" title="Set a temporary password yourself" style="padding:3px 8px;font-size:11px;background:rgba(45,109,163,.2);color:#93c5fd;border:1px solid rgba(45,109,163,.4);border-radius:4px;cursor:pointer;margin-left:4px;">Set PW</button>
             ${u.id !== me.id ? `<button data-act="delete" style="padding:3px 8px;font-size:11px;background:rgba(220,38,38,.15);color:#fca5a5;border:1px solid rgba(220,38,38,.35);border-radius:4px;cursor:pointer;margin-left:4px;">Delete</button>` : ''}
           </td>
         </tr>`).join('');
@@ -18475,7 +18683,8 @@ if (window.ftRealtime) {
           <h3 style="font-size:14px;color:#fff;margin:0;">Users (${users.length})</h3>
           <button id="ft-new-user" style="padding:6px 12px;background:linear-gradient(135deg,#1e4d7b,#2d6da3);color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;">+ New user</button>
         </div>
-        <table id="ft-users-tbl" style="width:100%;border-collapse:collapse;font-size:12px;">
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table id="ft-users-tbl" style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px;">
           <thead>
             <tr style="background:rgba(148,163,184,.08);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;">
               <th style="padding:8px 10px;text-align:left;">Email</th>
@@ -18488,6 +18697,7 @@ if (window.ftRealtime) {
           </thead>
           <tbody>${rows}</tbody>
         </table>
+        </div>
       `;
       content.querySelector('#ft-new-user').addEventListener('click', newUser);
       content.querySelectorAll('#ft-users-tbl tbody tr').forEach(tr => {
@@ -18496,6 +18706,8 @@ if (window.ftRealtime) {
         tr.querySelector('[data-field="is_active"]').addEventListener('change', (e) => updateUser(uid, { is_active: e.target.checked }));
         const reset = tr.querySelector('[data-act="reset"]');
         if (reset) reset.addEventListener('click', () => resetPw(uid));
+        const rlink = tr.querySelector('[data-act="resetlink"]');
+        if (rlink) rlink.addEventListener('click', () => resetLinkFor(uid));
         const del = tr.querySelector('[data-act="delete"]');
         if (del) del.addEventListener('click', () => deleteUser(uid));
       });
@@ -18523,10 +18735,27 @@ if (window.ftRealtime) {
     catch (err) { alert('Update failed: ' + err.message); renderUsers(); }
   }
   async function resetPw(uid) {
-    const np = prompt('New password (min 8 chars):');
+    const np = prompt('Set a temporary password (min 8 chars). The user must change it on next login:');
     if (!np || np.length < 8) return;
-    try { await window.FT_API.users.update(uid, { password: np }); alert('Password reset.'); }
+    try { await window.FT_API.users.update(uid, { password: np }); alert('Temporary password set. The user will be asked to change it on next login.'); }
     catch (err) { alert('Failed: ' + err.message); }
+  }
+  async function resetLinkFor(uid) {
+    try {
+      const r = await window.FT_API.users.resetLink(uid);
+      const emailed = r.delivery === 'smtp';
+      let copied = false;
+      try { await navigator.clipboard.writeText(r.reset_url); copied = true; } catch (e) {}
+      const note = emailed
+        ? 'A reset email was also sent to ' + r.email + '.'
+        : 'Email is not configured — copy this link and send it to ' + r.name + ' (e.g. via WhatsApp).';
+      // prompt() shows a selectable field so the admin can copy even if clipboard was blocked
+      prompt(
+        (copied ? '✓ Link copied to clipboard. ' : '') +
+        note + '\n\nExpires in ' + r.expires_in_minutes + ' minutes. The user opens it to set their own password:',
+        r.reset_url
+      );
+    } catch (err) { alert('Could not generate reset link: ' + err.message); }
   }
   async function deleteUser(uid) {
     if (!confirm('Delete user #' + uid + '? This cannot be undone.')) return;

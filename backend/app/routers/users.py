@@ -1,14 +1,17 @@
 """User management endpoints — admin only."""
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from app.auth import require_auth, require_roles, hash_password
+from app.config import settings
 from app.database import get_db
 from app.models import User
 from app.audit import log_audit
+from app.email_send import send_email
 
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -99,6 +102,39 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     db.refresh(u)
     log_audit(db, claims, "update", "user", entity_id=str(u.id), summary=f"Updated {u.email}: " + ", ".join(changes))
     return u
+
+
+class ResetLinkOut(BaseModel):
+    email: str
+    name: str
+    reset_url: str
+    expires_in_minutes: int
+    delivery: str  # "smtp" (emailed) | "log" (SMTP not configured — share the link manually)
+
+
+@router.post("/{user_id}/reset-link", response_model=ResetLinkOut)
+def generate_reset_link(user_id: int, db: Session = Depends(get_db), claims: dict = Depends(require_roles("admin"))):
+    """Admin-generated one-time password-reset link. Returns the link directly so the admin can
+    share it (e.g. via WhatsApp) — the real path while no SMTP is configured. Also emails it if
+    SMTP is set. Same single-use hashed-token mechanism as /auth/forgot-password."""
+    u = db.get(User, user_id)
+    if not u:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not u.is_active:
+        raise HTTPException(status_code=400, detail="User is inactive — reactivate before resetting")
+    token = secrets.token_urlsafe(32)
+    u.reset_token_hash = hash_password(token)
+    u.reset_token_expires = datetime.utcnow() + timedelta(minutes=settings.reset_token_ttl_minutes)
+    db.commit()
+    reset_url = f"{settings.app_base_url}/?reset={token}&email={u.email}"
+    body = (f"Hi {u.name},\n\nA Fast Track password reset was requested for your account.\n"
+            f"Open this link to set a new password:\n\n{reset_url}\n\n"
+            f"The link expires in {settings.reset_token_ttl_minutes} minutes.")
+    delivery = send_email(u.email, "Fast Track — reset your password", body)
+    log_audit(db, claims, "reset-link", "user", entity_id=str(u.id),
+              summary=f"Generated password reset link for {u.email} (delivery={delivery})")
+    return ResetLinkOut(email=u.email, name=u.name, reset_url=reset_url,
+                        expires_in_minutes=settings.reset_token_ttl_minutes, delivery=delivery)
 
 
 @router.delete("/{user_id}", status_code=204)
