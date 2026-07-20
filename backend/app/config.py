@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     weekly_report_check_seconds: int = 6 * 3600         # how often the scheduler wakes to check
     weekly_report_recipients: str = ""                  # comma-separated emails (empty → snapshot only, no email)
 
+    # Claude AI (Stage 2.3/2.4/2.5). Set ANTHROPIC_API_KEY via Zeabur env to enable; until then
+    # the AI endpoints report 'not enabled' and the UI degrades. Haiku = high-volume classification,
+    # Sonnet = careful extraction/drafting (per project plan). Called over HTTPS (no SDK dependency).
+    anthropic_api_key: str = ""
+    ai_model_fast: str = "claude-haiku-4-5-20251001"    # volume: email triage, quick summaries
+    ai_model_smart: str = "claude-sonnet-5"             # extraction: note normalization, drafts, matching
+    ai_max_tokens: int = 1024
+    ai_timeout_seconds: int = 60
+
     # Outbound email (password reset + notifications). Set SMTP_* via Zeabur env to enable
     # delivery; if unset, messages are logged (so the reset flow works + is retrievable).
     smtp_host: str = ""

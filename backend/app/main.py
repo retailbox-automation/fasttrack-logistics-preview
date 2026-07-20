@@ -42,6 +42,7 @@ from app.routers import reports as reports_router
 from app.routers import discrepancies as discrepancies_router
 from app.routers import tracking as tracking_router
 from app.routers import barcoding as barcoding_router
+from app.routers import ai as ai_router
 from app.schemas import HealthOut
 from app.auth import router as auth_router, limiter, hash_password
 from app.models import User
@@ -315,6 +316,7 @@ app.include_router(reports_router.router)
 app.include_router(discrepancies_router.router)
 app.include_router(tracking_router.router)
 app.include_router(barcoding_router.router)
+app.include_router(ai_router.router)
 
 
 # Serve frontend index.html bundled into the image
