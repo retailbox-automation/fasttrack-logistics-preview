@@ -1836,6 +1836,14 @@ body.view-customs .pagination { display: none; }
 .wr-msg--err { color: var(--crit, #dc2626); }
 .wr-list-meta { font-size: 12px; color: var(--text-dim, #5b6b7f); flex: 1; }
 .wr-list-actions { display: flex; gap: 8px; }
+.wr-list-item { display: flex; flex-direction: column; gap: 8px; }
+.wr-pull-slot:empty { display: none; }
+.wr-pull { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; background: rgba(30,77,123,0.06); border: 1px dashed var(--accent, #1e4d7b); border-radius: 8px; }
+.wr-pull__label { font-size: 12px; color: var(--text, #0e1d2f); }
+.wr-pull__label b { font-family: var(--font-mono, monospace); color: var(--text-bright, #0a1622); }
+.wr-pull__select { font-size: 12px; padding: 7px 9px; border: 1px solid var(--border, #e2e8f0); border-radius: 5px; background: var(--bg-elevated, #fff); color: var(--text, #0e1d2f); font-family: inherit; min-width: 240px; max-width: 100%; }
+.wr-pull__actions { display: flex; gap: 8px; margin-left: auto; }
+.wr-pull .pp-btn { padding: 7px 12px; }
 
 .pick-pack-view { overflow-y: auto; padding: 28px 32px; display: none; }
 body.view-pick_pack .pick-pack-view { display: block; }
@@ -4632,6 +4640,7 @@ html.ft-driver-mode .app { display: none !important; }
       update: (id, patch) => fetchJSON('/api/shipments/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
       remove: (id) => fetchJSON('/api/shipments/' + id, { method: 'DELETE' }),
       replaceAll: (items) => fetchJSON('/api/shipments/bulk', { method: 'PUT', body: JSON.stringify({ items }) }),
+      addReceipt: (llId, wrId) => fetchJSON('/api/shipments/' + llId + '/add-receipt', { method: 'POST', body: JSON.stringify({ wr_id: wrId }) }),
     },
     // Loading lists persist as shipments; expose a camelCase, id-preserving view for the
     // barcoding LL picker. The numeric `id` is what /api/barcoding/* expects; `publicId`
@@ -11941,16 +11950,20 @@ async function wrLoadList() {
   if (!items.length) { listWrap.appendChild(el("div", { class: "pp-empty", text: "No warehouse receipts yet." })); return; }
   items.forEach(wr => {
     const t = wr.totals || {};
+    const pickerSlot = el("div", { class: "wr-pull-slot" });
     const actions = el("div", { class: "wr-list-actions" }, [
       el("button", { class: "pp-btn pp-btn--ghost", text: "PDF", onclick: () => wrApi().openPdf(wr.id).catch(e => ftToast && ftToast("PDF failed: " + e.message, "error")) }),
     ]);
     if (wrCanEdit()) {
+      const pullBtn = el("button", { class: "pp-btn pp-btn--ghost", text: "Pull onto load →", title: "Add this receipt's in-stock items to an existing loading list" });
+      pullBtn.onclick = () => wrPullOntoLoad(wr, pickerSlot, pullBtn);
+      actions.insertBefore(pullBtn, actions.firstChild);
       actions.insertBefore(el("button", { class: "pp-btn", text: "Load onto truck ›", title: "Start a loading list with this receipt's items", onclick: () => wrLoadOntoTruck(wr) }), actions.firstChild);
     }
     if (wrCanDelete()) {
       actions.appendChild(el("button", { class: "pp-btn pp-btn--ghost", text: "Delete", onclick: () => wrDelete(wr) }));
     }
-    listWrap.appendChild(el("div", { class: "pp-task-row", style: "cursor:default;" }, [
+    const row = el("div", { class: "pp-task-row", style: "cursor:default;" }, [
       el("div", { class: "pp-task-ref", text: wr.public_id }),
       el("div", { class: "wr-list-meta", text: [
         (wr.vessel || "—"),
@@ -11959,7 +11972,8 @@ async function wrLoadList() {
         (wr.received_by ? ("by " + wr.received_by) : null),
       ].filter(Boolean).join("   ·   ") }),
       actions,
-    ]));
+    ]);
+    listWrap.appendChild(el("div", { class: "wr-list-item" }, [row, pickerSlot]));
   });
 }
 
@@ -12011,6 +12025,80 @@ async function wrLoadOntoTruck(wr) {
   renderPickList();
   updateBuilderSummary();
   if (window.ftToast) ftToast("Pulled " + idxs.length + " item(s) from " + wr.public_id + " — add truck details, then Generate.", "success");
+}
+
+// Parse a FastAPI error body ("API 400: {\"detail\":\"…\"}") down to its detail string
+// so 400/404 responses surface a human message in a toast instead of raw JSON.
+function wrErrDetail(err, fallback) {
+  const m = (err && err.message) || "";
+  const i = m.indexOf("{");
+  if (i >= 0) {
+    try {
+      const j = JSON.parse(m.slice(i));
+      if (j && j.detail) return typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+    } catch (e) { /* body wasn't JSON — fall through to raw message */ }
+  }
+  return fallback || m || "Request failed";
+}
+
+// Pull a receipt's still-in-stock items onto an EXISTING loading list (Stage 1.5).
+// Opens a small inline picker under the receipt row; re-clicking the button toggles it
+// closed. Confirm → POST /api/shipments/{ll}/add-receipt. The server is the source of
+// truth for what is addable (400 if nothing) and for the recomputed truck totals.
+async function wrPullOntoLoad(wr, slot, btn) {
+  if (!slot) return;
+  // Toggle: if this receipt's picker is already open, close it.
+  if (slot.firstChild) { slot.replaceChildren(); return; }
+  if (btn) btn.disabled = true;
+  let lists = [];
+  try {
+    lists = await window.FT_API.loadingLists.list();
+  } catch (e) {
+    if (window.ftToast) ftToast("Could not load loading lists: " + e.message, "error");
+    return;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+  lists = Array.isArray(lists) ? lists : [];
+  if (!lists.length) { if (window.ftToast) ftToast("Create a loading list first", "error"); return; }
+
+  const select = el("select", { class: "wr-pull__select" }, lists.map(ll =>
+    el("option", {
+      value: String(ll.id),
+      text: (ll.publicId || ("#" + ll.id)) + " — " + (ll.vessel || "no vessel") + " · " + (ll.truck || "no truck"),
+    })));
+  const confirmBtn = el("button", { class: "pp-btn", text: "Add" });
+  const cancelBtn = el("button", { class: "pp-btn pp-btn--ghost", text: "Cancel", onclick: () => slot.replaceChildren() });
+
+  confirmBtn.onclick = async () => {
+    const llId = parseInt(select.value, 10);
+    if (!llId) { if (window.ftToast) ftToast("Pick a loading list.", "error"); return; }
+    const chosen = lists.find(l => l.id === llId) || {};
+    const prevText = confirmBtn.textContent;
+    confirmBtn.disabled = select.disabled = cancelBtn.disabled = true;
+    confirmBtn.textContent = "Adding…";
+    if (window.ftSyncStatus) ftSyncStatus("saving", "Adding to load…");
+    try {
+      const load = await window.FT_API.shipments.addReceipt(llId, wr.id);
+      if (window.ftSyncStatus) ftSyncStatus("saved", "✓ Saved");
+      const llLabel = (load && load.public_id) || chosen.publicId || ("#" + llId);
+      const n = (load && load.totals && typeof load.totals.items === "number") ? load.totals.items : null;
+      const suffix = (n != null) ? (" · load now has " + n + " item(s)") : "";
+      if (window.ftToast) ftToast("Pulled " + wr.public_id + " onto " + llLabel + suffix, "ok");
+      wrLoadList();
+    } catch (e) {
+      if (window.ftSyncStatus) ftSyncStatus("error", "Sync failed");
+      if (window.ftToast) ftToast(wrErrDetail(e, "Could not add to load"), "error");
+      confirmBtn.disabled = select.disabled = cancelBtn.disabled = false;
+      confirmBtn.textContent = prevText;
+    }
+  };
+
+  slot.replaceChildren(el("div", { class: "wr-pull" }, [
+    el("div", { class: "wr-pull__label" }, ["Add ", el("b", { text: wr.public_id }), " to loading list:"]),
+    select,
+    el("div", { class: "wr-pull__actions" }, [confirmBtn, cancelBtn]),
+  ]));
 }
 
 function wrBuildForm() {
