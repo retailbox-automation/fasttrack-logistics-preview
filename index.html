@@ -759,6 +759,36 @@ body.view-msc_audit .pagination { display: none; }
 .msca-amt { font-family: var(--font-mono, monospace); font-size: 12px; font-weight: 700; color: var(--crit, #dc2626); white-space: nowrap; }
 .msca-sect { font-size: 15px; font-weight: 600; color: var(--text-bright, #0a1622); margin: 18px 0 10px; }
 .msca-note { font-size: 12px; color: var(--text-dim, #5b6b7f); margin-top: 16px; padding: 12px 14px; border: 1px dashed var(--border, #e2e8f0); border-radius: 8px; }
+
+/* ═══ INVENTORY ALERTS + TRUCK TRACKING views (admin/manager/ops) — NET-NEW ═══ */
+.inv-alerts-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-inventory_alerts .inv-alerts-view { display: block; }
+body.view-inventory_alerts .dashboard { display: none; }
+body.view-inventory_alerts .pagination { display: none; }
+
+.truck-tracking-view { overflow-y: auto; padding: 28px 32px; display: none; }
+body.view-truck_tracking .truck-tracking-view { display: block; }
+body.view-truck_tracking .dashboard { display: none; }
+body.view-truck_tracking .pagination { display: none; }
+
+.trk-note { font-size: 12px; color: var(--text-dim, #5b6b7f); margin-bottom: 16px; padding: 10px 14px; border: 1px dashed var(--border, #e2e8f0); border-radius: 8px; }
+.trk-note-line { font-size: 12px; color: var(--text-dim, #5b6b7f); margin-top: 10px; }
+.trk-card { background: var(--bg-elevated, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+.trk-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.trk-vessel { font-size: 16px; font-weight: 700; color: var(--text-bright, #0a1622); }
+.trk-sub { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--text-dim, #5b6b7f); margin-top: 3px; }
+.trk-badge { font-family: var(--font-mono, monospace); font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 9px; border-radius: 11px; white-space: nowrap; background: rgba(30,77,123,0.10); color: var(--accent, #1e4d7b); }
+.trk-badge--staged { background: rgba(100,116,139,0.15); color: #475569; }
+.trk-badge--en_route { background: rgba(96,165,250,0.16); color: var(--info, #2563eb); }
+.trk-badge--at_port { background: rgba(234,179,8,0.16); color: #a16207; }
+.trk-badge--delivered { background: rgba(22,163,74,0.15); color: var(--ok, #16a34a); }
+.trk-badge--none { background: rgba(100,116,139,0.12); color: var(--text-dim, #5b6b7f); }
+.trk-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 14px; }
+.trk-meta-label { font-family: var(--font-mono, monospace); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim, #5b6b7f); }
+.trk-meta-value { font-size: 13px; color: var(--text, #0e1d2f); margin-top: 3px; word-break: break-word; }
+.trk-controls { display: flex; align-items: flex-end; gap: 10px; margin-top: 14px; flex-wrap: wrap; border-top: 1px solid var(--border, #e2e8f0); padding-top: 14px; }
+.trk-controls .pp-field { flex: 1; min-width: 140px; }
+
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; }
 .kpi-tile { background: var(--bg-elevated, #fff); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
 .kpi-tile__label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
@@ -4225,6 +4255,15 @@ body.layout-list .pagination { display: none; }
     reports: {
       weekly: (start) => fetchJSON('/api/reports/weekly' + (start ? ('?start=' + encodeURIComponent(start)) : '')),
       kpis: () => fetchJSON('/api/reports/kpis'),
+      // Read-only inventory watchlist → { alerts:[{severity,category,ref,message,age_days}], summary, generated_at }
+      inventoryAlerts: () => fetchJSON('/api/reports/inventory-alerts'),
+    },
+    // In-transit truck loads (Stage 4.1 · live truck tracking). list() → rows;
+    // update(id, patch) PATCHes {current_location?, tracking_status?, tracking_note?}
+    // and the server stamps located_at. Authed GET/PATCH via fetchJSON. Roles: admin/manager/ops.
+    tracking: {
+      list: () => fetchJSON('/api/tracking'),
+      update: (id, patch) => fetchJSON('/api/tracking/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
     },
     fromBackend, toBackend,
     fromInvoiceBackend, toInvoiceBackend,
@@ -5171,6 +5210,34 @@ body.layout-list .pagination { display: none; }
 
     <section class="rate-card-view" id="rate-card-view">
       <div id="rc-root"></div>
+    </section>
+
+    <!-- INVENTORY ALERTS VIEW (net-new · admin/manager/ops) -->
+    <section class="inv-alerts-view" id="inv-alerts-view">
+      <div class="dashboard__header">
+        <div class="dashboard__title-block">
+          <div class="dashboard__crumb">Inventory · watchlist</div>
+          <div class="dashboard__title"><h1>Inventory Alerts</h1></div>
+        </div>
+        <div class="dashboard__actions">
+          <button class="btn btn--ghost" id="ia-refresh">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="ia-root"></div>
+    </section>
+
+    <!-- TRUCK TRACKING VIEW (net-new · admin/manager/ops) -->
+    <section class="truck-tracking-view" id="truck-tracking-view">
+      <div class="dashboard__header">
+        <div class="dashboard__title-block">
+          <div class="dashboard__crumb">Operations · in-transit loads</div>
+          <div class="dashboard__title"><h1>Truck Tracking</h1></div>
+        </div>
+        <div class="dashboard__actions">
+          <button class="btn btn--ghost" id="trk-refresh">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="trk-root"></div>
     </section>
   </main>
 
@@ -6127,6 +6194,8 @@ const SIDEBAR_DATA = {
     { label: "Time · Clock in/out",  count: "·", view: "timetracking" },
     { label: "Weekly Report",        count: "·", view: "weekly_report" },
     { label: "Operations · KPIs",    count: "·", view: "ops_kpi" },
+    { label: "Inventory Alerts",     count: "·", view: "inventory_alerts" },
+    { label: "Truck Tracking",       count: "·", view: "truck_tracking" },
     { label: "Today's Departures",   count: "15" },
     { label: "Needs Attention",      count: "23" },
     { label: "Critical",             count: "4" },
@@ -10666,7 +10735,7 @@ function switchView(view) {
     if (window.ftToast) ftToast("Your role doesn't have access to that section", "info");
     view = "dashboard";
   }
-  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-msc_audit", "view-timetracking", "view-weekly_report", "view-ops_kpi", "view-rates");
+  document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-msc_audit", "view-timetracking", "view-weekly_report", "view-ops_kpi", "view-rates", "view-inventory_alerts", "view-truck_tracking");
   document.body.classList.add("view-" + view);
   if (view === "receiving") renderReceiving();
   if (view === "customs") renderCustoms();
@@ -10685,6 +10754,8 @@ function switchView(view) {
   if (view === "credit_memos") renderCreditMemos();
   if (view === "soa") renderSOA();
   if (view === "rates") renderRates();
+  if (view === "inventory_alerts") renderInventoryAlerts();
+  if (view === "truck_tracking") renderTruckTracking();
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -10919,6 +10990,220 @@ async function rcDelete(r) {
     rcToast("Rate deleted", "info");
     rcLoadList();
   } catch (e) { rcToast("Delete failed: " + e.message, "error"); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INVENTORY ALERTS  ·  Read-only ops watchlist over GET /api/reports/inventory-alerts.
+   Summary tiles (Total / High / Aging / Missing data / In-stock items) + a
+   severity-ranked alert table (aging stock + missing data). Gated to
+   admin/manager/ops via VIEW_ROLES. Wiring mirrors Ops KPIs (sidebar →
+   switchView → renderInventoryAlerts → #ia-root). NET-NEW view — touches nothing else.
+   ═══════════════════════════════════════════════════════════════════ */
+function iaApi() { return window.FT_API && window.FT_API.reports; }
+
+async function renderInventoryAlerts() {
+  const root = document.getElementById("ia-root");
+  if (!root) return;
+
+  // Wire toolbar once
+  if (!window._iaWired) {
+    window._iaWired = true;
+    const r = document.getElementById("ia-refresh");
+    if (r) r.addEventListener("click", () => renderInventoryAlerts());
+  }
+
+  while (root.firstChild) root.removeChild(root.firstChild);
+  if (!iaApi() || !iaApi().inventoryAlerts) {
+    root.appendChild(el("div", { class: "pp-empty", text: "Backend not connected." }));
+    return;
+  }
+  root.appendChild(el("div", { class: "pp-empty", text: "Loading inventory alerts…" }));
+
+  let data;
+  try {
+    data = await iaApi().inventoryAlerts();
+  } catch (e) {
+    root.replaceChildren(el("div", { class: "pp-empty", text: "Could not load inventory alerts: " + e.message }));
+    return;
+  }
+  iaRender(root, data || {});
+}
+
+function iaRender(root, data) {
+  while (root.firstChild) root.removeChild(root.firstChild);
+  const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+  const s = data.summary || {};
+  const num = (n) => Number(n || 0);
+
+  // Summary tiles (reuse MSC-audit tile vocabulary)
+  const tiles = el("div", { class: "msca-tiles" });
+  const tile = (label, value, mod) => el("div", { class: "msca-tile" + (mod ? " msca-tile--" + mod : "") }, [
+    el("div", { class: "msca-tile__label", text: label }),
+    el("div", { class: "msca-tile__value", text: String(value) }),
+  ]);
+  tiles.appendChild(tile("Total", num(s.total)));
+  tiles.appendChild(tile("High", num(s.high), num(s.high) ? "risk" : "clean"));
+  tiles.appendChild(tile("Aging", num(s.aging), num(s.aging) ? "risk" : null));
+  tiles.appendChild(tile("Missing data", num(s.missing_data), num(s.missing_data) ? "risk" : null));
+  tiles.appendChild(tile("In-stock items", num(s.in_stock_items)));
+  root.appendChild(tiles);
+
+  if (!alerts.length) {
+    root.appendChild(el("div", { class: "pp-empty", text: "✓ No inventory alerts — stock is within aging thresholds and no records are missing data." }));
+  } else {
+    // Severity order: high → med → low
+    const rank = { high: 0, med: 1, low: 2 };
+    const rows = alerts.slice().sort((a, b) => {
+      const ra = rank[a.severity] === undefined ? 3 : rank[a.severity];
+      const rb = rank[b.severity] === undefined ? 3 : rank[b.severity];
+      return ra - rb;
+    });
+    const thead = el("thead", {}, [el("tr", {}, ["Severity", "Category", "Ref", "Message", "Age"].map(h => el("th", { text: h })))]);
+    const tbody = el("tbody", {});
+    rows.forEach(a => {
+      const sev = a.severity || "low";
+      tbody.appendChild(el("tr", {}, [
+        el("td", {}, [el("span", { class: "msca-sev msca-sev--" + sev, text: sev })]),
+        el("td", { text: a.category || "—" }),
+        el("td", {}, [a.ref ? el("span", { class: "rc-code", text: a.ref }) : el("span", { class: "rc-muted", text: "—" })]),
+        el("td", { text: a.message || "—" }),
+        el("td", { text: (a.age_days != null ? formatDays(a.age_days) : "—") }),
+      ]));
+    });
+    root.appendChild(el("div", { class: "msca-sect", text: "Alerts (most severe first)" }));
+    root.appendChild(el("table", { class: "rc-table" }, [thead, tbody]));
+  }
+
+  root.appendChild(el("div", { class: "msca-note", text:
+    "Read-only inventory watchlist — aging stock and records with missing data (GET /api/reports/inventory-alerts). Remediation happens in the Inventory control center." }));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   TRUCK TRACKING  ·  In-transit loads over GET /api/tracking + PATCH /api/tracking/{id}
+   (Stage 4.1 · live truck tracking). One card per load (vessel / truck / driver /
+   port / status) with a manual location + tracking-status + note update control;
+   the server stamps located_at. Live GPS / AirTag feed is a future source — manual
+   entry for now. Gated to admin/manager/ops via VIEW_ROLES. Wiring mirrors Rate Card
+   (sidebar → switchView → renderTruckTracking → #trk-root). NET-NEW view — touches
+   nothing else.
+   ═══════════════════════════════════════════════════════════════════ */
+const TRK_STATUSES = ["staged", "en_route", "at_port", "delivered"];
+function trkApi() { return window.FT_API && window.FT_API.tracking; }
+function trkStatusLabel(st) {
+  const m = { staged: "Staged", en_route: "En route", at_port: "At port", delivered: "Delivered" };
+  return m[st] || (st || "—");
+}
+
+async function renderTruckTracking() {
+  const root = document.getElementById("trk-root");
+  if (!root) return;
+
+  // Wire toolbar once
+  if (!window._trkWired) {
+    window._trkWired = true;
+    const r = document.getElementById("trk-refresh");
+    if (r) r.addEventListener("click", () => renderTruckTracking());
+  }
+
+  while (root.firstChild) root.removeChild(root.firstChild);
+  if (!trkApi()) {
+    root.appendChild(el("div", { class: "pp-empty", text: "Backend not connected." }));
+    return;
+  }
+  root.appendChild(el("div", { class: "pp-empty", text: "Loading loads in transit…" }));
+
+  let rows;
+  try {
+    rows = await trkApi().list();
+  } catch (e) {
+    root.replaceChildren(el("div", { class: "pp-empty", text: "Could not load truck tracking: " + e.message }));
+    return;
+  }
+  trkRenderList(root, Array.isArray(rows) ? rows : []);
+}
+
+function trkRenderList(root, rows) {
+  while (root.firstChild) root.removeChild(root.firstChild);
+
+  root.appendChild(el("div", { class: "trk-note", text:
+    "Manual location entry for now. Live GPS / AirTag feed is a future source." }));
+
+  if (!rows.length) {
+    root.appendChild(el("div", { class: "pp-empty", text: "No loads in transit." }));
+    return;
+  }
+  rows.forEach(r => root.appendChild(trkCard(r)));
+}
+
+function trkMeta(label, value) {
+  return el("div", { class: "trk-meta-item" }, [
+    el("div", { class: "trk-meta-label", text: label }),
+    el("div", { class: "trk-meta-value", text: (value == null || value === "") ? "—" : String(value) }),
+  ]);
+}
+function trkField(label, node) {
+  return el("div", { class: "pp-field" }, [el("label", { text: label }), node]);
+}
+
+function trkCard(r) {
+  const card = el("div", { class: "trk-card" });
+
+  const sub = [r.truck ? ("Truck " + r.truck) : null, r.driver, r.port].filter(Boolean).join(" · ");
+  const head = el("div", { class: "trk-head" }, [
+    el("div", {}, [
+      el("div", { class: "trk-vessel", text: r.vessel || "—" }),
+      el("div", { class: "trk-sub", text: sub || "—" }),
+    ]),
+    el("span", { class: "trk-badge trk-badge--" + (r.tracking_status || "none"), text: trkStatusLabel(r.tracking_status) }),
+  ]);
+  card.appendChild(head);
+
+  card.appendChild(el("div", { class: "trk-meta" }, [
+    trkMeta("Status", r.status),
+    trkMeta("Departure", r.departure),
+    trkMeta("Current location", r.current_location),
+    trkMeta("Updated", r.located_at),
+  ]));
+
+  if (r.tracking_note) card.appendChild(el("div", { class: "trk-note-line", text: "Note: " + r.tracking_note }));
+
+  // Update control (manual location / tracking status / note)
+  const locInput = el("input", { class: "pp-input", type: "text", placeholder: "Current location", value: r.current_location || "" });
+  const statusSel = el("select", { class: "pp-input" }, [el("option", { value: "", text: "— status —" })].concat(
+    TRK_STATUSES.map(st => el("option", { value: st, text: trkStatusLabel(st), selected: r.tracking_status === st }))
+  ));
+  const noteInput = el("input", { class: "pp-input", type: "text", placeholder: "Note (optional)", value: r.tracking_note || "" });
+  const btn = el("button", { class: "pp-btn", text: "Update location" });
+  btn.addEventListener("click", () => trkUpdate(r.id, {
+    current_location: locInput.value.trim(),
+    tracking_status: statusSel.value || null,
+    tracking_note: noteInput.value.trim(),
+  }, btn));
+
+  card.appendChild(el("div", { class: "trk-controls" }, [
+    trkField("Location", locInput),
+    trkField("Tracking status", statusSel),
+    trkField("Note", noteInput),
+    btn,
+  ]));
+
+  return card;
+}
+
+async function trkUpdate(id, patch, btn) {
+  if (!trkApi()) { if (window.ftToast) ftToast("Backend not connected", "error"); return; }
+  if (btn) btn.disabled = true;
+  if (window.ftSyncStatus) ftSyncStatus("saving", "Updating location…");
+  try {
+    await trkApi().update(id, patch);
+    if (window.ftSyncStatus) ftSyncStatus("saved", "✓ Saved");
+    if (window.ftToast) ftToast("Truck location updated", "ok");
+    renderTruckTracking();
+  } catch (e) {
+    if (window.ftSyncStatus) ftSyncStatus("error", "Sync failed");
+    if (window.ftToast) ftToast("Update failed: " + e.message, "error");
+    if (btn) btn.disabled = false;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -15116,6 +15401,8 @@ const VIEW_ROLES = {
   ops_kpi:       ["manager", "admin"],
   msc_audit:     ["manager", "admin"],
   rates:         ["admin", "manager"],
+  inventory_alerts: ["admin", "manager", "ops"],
+  truck_tracking:   ["admin", "manager", "ops"],
 };
 function viewAllowed(view) {
   const roles = VIEW_ROLES[view];
