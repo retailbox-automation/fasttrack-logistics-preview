@@ -14,8 +14,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import LoadingList, WarehouseReceipt, Invoice, CreditMemo, CustomsRecord, TimeEntry, AuditLog
-from app.auth import require_roles
+from app.models import (LoadingList, WarehouseReceipt, Invoice, CreditMemo, CustomsRecord,
+                        TimeEntry, AuditLog, InventoryItem)
+from app.auth import require_roles, require_auth
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -143,5 +144,44 @@ def kpis(db: Session = Depends(get_db)):
         "audit": {"total_actions": len(audits), "by_action": by_action,
                   "by_entity": by_entity, "active_users": len([u for u in actions_by_user if u != "—"])},
         "time": {"total_hours": round(sum(hours_by_user.values()) / 60, 1), "entries": len(tes)},
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+_AGING_WARN, _AGING_CRIT = 30, 60  # days in stock
+_REQUIRED_FIELDS = ("department", "vessel", "po_number")
+
+
+@router.get("/inventory-alerts", dependencies=[Depends(require_auth)])
+def inventory_alerts(db: Session = Depends(get_db)):
+    """Inventory exception alerts: aging stock (storage/billing risk) + missing-data (data quality)."""
+    today = date.today()
+    items = db.query(InventoryItem).filter(InventoryItem.status == "in_stock").all()
+    alerts = []
+    for it in items:
+        ref = it.warehouse_receipt or it.part_number or f"item-{it.id}"
+        if it.received_date:
+            age = (today - it.received_date).days
+            if age >= _AGING_CRIT:
+                alerts.append({"severity": "high", "category": "Aging stock", "ref": ref, "age_days": age,
+                               "message": f"{it.part_number} in stock {age}d (WR {it.warehouse_receipt}) — storage/billing risk"})
+            elif age >= _AGING_WARN:
+                alerts.append({"severity": "med", "category": "Aging stock", "ref": ref, "age_days": age,
+                               "message": f"{it.part_number} in stock {age}d — approaching storage threshold"})
+        missing = [f for f in _REQUIRED_FIELDS if not getattr(it, f, None)]
+        if missing:
+            alerts.append({"severity": "med", "category": "Missing data", "ref": ref, "age_days": None,
+                           "message": f"{it.part_number}: missing {', '.join(missing)}"})
+    order = {"high": 0, "med": 1, "low": 2}
+    alerts.sort(key=lambda a: (order.get(a["severity"], 3), -(a["age_days"] or 0)))
+    return {
+        "alerts": alerts,
+        "summary": {
+            "total": len(alerts),
+            "high": sum(1 for a in alerts if a["severity"] == "high"),
+            "aging": sum(1 for a in alerts if a["category"] == "Aging stock"),
+            "missing_data": sum(1 for a in alerts if a["category"] == "Missing data"),
+            "in_stock_items": len(items),
+        },
         "generated_at": datetime.utcnow().isoformat() + "Z",
     }

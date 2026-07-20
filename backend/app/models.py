@@ -61,6 +61,11 @@ class LoadingList(Base):
     # Stage 1.4: round-trip extras (createdAt display string, inv backend ids) + server totals
     meta: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     totals: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Live truck tracking (client priority): manual location source now; AirTag/GPS pluggable later
+    current_location: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    tracking_status: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)  # staged|en_route|at_port|delivered
+    located_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    tracking_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class ShipmentDetailReport(Base):

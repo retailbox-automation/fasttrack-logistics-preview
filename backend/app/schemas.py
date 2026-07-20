@@ -588,6 +588,32 @@ class DiscrepancyOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ── Live truck tracking (client priority) ──
+TRACKING_STATES = {"staged", "en_route", "at_port", "delivered"}
+
+
+class TrackingUpdate(BaseModel):
+    current_location: Optional[str] = None
+    tracking_status: Optional[str] = None
+    tracking_note: Optional[str] = None
+
+
+class TrackingOut(BaseModel):
+    id: int
+    public_id: str
+    vessel: str
+    truck: str
+    driver: Optional[str] = None
+    port: str
+    departure: Optional[date] = None
+    status: str
+    current_location: Optional[str] = None
+    tracking_status: Optional[str] = None
+    located_at: Optional[datetime] = None
+    tracking_note: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
 class HealthOut(BaseModel):
     status: str
     db: str

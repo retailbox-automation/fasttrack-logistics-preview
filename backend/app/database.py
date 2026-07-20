@@ -49,6 +49,10 @@ def init_db():
         ("invoices", "loading_list_public_id", "VARCHAR(32)"),
         ("shipment_detail_reports", "loading_list_public_id", "VARCHAR(32)"),
         ("discrepancy_reports", "loading_list_public_id", "VARCHAR(32)"),
+        ("loading_lists", "current_location", "VARCHAR(128)"),
+        ("loading_lists", "tracking_status", "VARCHAR(24)"),
+        ("loading_lists", "located_at", "TIMESTAMP"),
+        ("loading_lists", "tracking_note", "TEXT"),
     ]
     with engine.begin() as conn:
         for tbl, col, defn in add_column_if_missing:
