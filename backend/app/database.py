@@ -67,3 +67,31 @@ def init_db():
                 log.info("schema_ensure", extra={"table": tbl, "column": col})
             except Exception as e:
                 log.warning("schema_ensure_failed table=%s col=%s err=%s", tbl, col, e)
+
+    _ensure_alembic_baseline()
+
+
+_ALEMBIC_BASELINE_REV = "0001_baseline"  # must match alembic/versions/0001_baseline.py
+
+
+def _ensure_alembic_baseline():
+    """Stamp the DB at the Alembic baseline if it isn't tracked yet, so future Alembic
+    migrations have a base to chain from. Writes only the alembic_version marker — NO schema
+    DDL (the schema is ensured above by create_all + idempotent ALTERs).
+
+    Done with direct SQL rather than alembic's `command.stamp`: stamping is literally
+    `CREATE TABLE alembic_version (...)` + `INSERT version_num`, and doing it directly avoids
+    depending on the alembic Config / env.py / script-discovery machinery inside the container
+    (which is brittle and CWD-sensitive). `alembic current`/`upgrade` in-container then read
+    this exactly as if `alembic stamp head` had run. Never raises — supplementary to the
+    runtime create_all path, so a failure must not break startup."""
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("CREATE TABLE IF NOT EXISTS alembic_version (version_num VARCHAR(32) NOT NULL)"))
+            existing = conn.execute(text("SELECT version_num FROM alembic_version LIMIT 1")).scalar()
+            if existing is None:
+                conn.execute(text("INSERT INTO alembic_version (version_num) VALUES (:v)"),
+                             {"v": _ALEMBIC_BASELINE_REV})
+                log.info("alembic_baseline_stamped", extra={"revision": _ALEMBIC_BASELINE_REV})
+    except Exception as e:
+        log.warning("alembic_baseline_skipped err=%s", e)

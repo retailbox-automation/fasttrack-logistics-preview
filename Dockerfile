@@ -15,6 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/app ./app
 
+# Alembic migrations (baseline + future revisions) + config — present so the DB can be
+# stamped/migrated in-container. Runtime schema is still ensured by create_all()+init_db().
+COPY backend/alembic ./alembic
+COPY backend/alembic.ini ./alembic.ini
+
 # Bake frontend static assets into the same image — FastAPI mounts /static and / -> index.html
 RUN mkdir -p ./static
 COPY index.html ./static/index.html

@@ -260,8 +260,17 @@ def monitoring(db: Session = Depends(get_db)):
     order = {"high": 0, "med": 1, "low": 2}
     exceptions.sort(key=lambda e: order.get(e["severity"], 3))
 
+    # Schema/migration revision (Alembic) — None until the DB is stamped/tracked
+    schema_rev = None
+    try:
+        from sqlalchemy import text as _text
+        schema_rev = db.execute(_text("SELECT version_num FROM alembic_version")).scalar()
+    except Exception:
+        schema_rev = None
+
     return {
-        "system": {"version": settings.api_version, "server_time": now.isoformat() + "Z"},
+        "system": {"version": settings.api_version, "schema_revision": schema_rev,
+                   "server_time": now.isoformat() + "Z"},
         "integrations": integrations,
         "audit": audit,
         "exceptions": exceptions,
