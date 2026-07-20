@@ -28,6 +28,7 @@ class InventoryItem(Base):
     received_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     received_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="in_stock", index=True)
+    barcode: Mapped[Optional[str]] = mapped_column(String(64), index=True, nullable=True)  # scannable code (falls back to WR/part)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     movements: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)  # audit log
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -86,6 +87,21 @@ class TrackingPing(Base):
     speed: Mapped[Optional[float]] = mapped_column(Float, nullable=True)      # m/s
     heading: Mapped[Optional[float]] = mapped_column(Float, nullable=True)    # degrees
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class ScanEvent(Base):
+    """A single warehouse barcode scan (receiving / picking / loading). Ship-side 'gangway'
+    scans are out of scope until MSC IT access. Feeds loading-list reconciliation."""
+    __tablename__ = "scan_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    loading_list_id: Mapped[Optional[int]] = mapped_column(Integer, index=True, nullable=True)
+    mode: Mapped[str] = mapped_column(String(16), index=True)   # receiving | picking | loading
+    code: Mapped[str] = mapped_column(String(64), index=True)   # the raw scanned value
+    inventory_item_id: Mapped[Optional[int]] = mapped_column(Integer, index=True, nullable=True)
+    result: Mapped[str] = mapped_column(String(16))            # matched | duplicate | unexpected | unknown | received
+    scanned_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    scanned_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
 class ShipmentDetailReport(Base):

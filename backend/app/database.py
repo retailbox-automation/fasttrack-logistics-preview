@@ -59,6 +59,7 @@ def init_db():
         ("loading_lists", "current_lng", "DOUBLE PRECISION"),
         ("loading_lists", "driver_token_hash", "VARCHAR(64)"),
         ("loading_lists", "driver_token_expires", "TIMESTAMP"),
+        ("inventory_items", "barcode", "VARCHAR(64)"),
     ]
     with engine.begin() as conn:
         for tbl, col, defn in add_column_if_missing:
