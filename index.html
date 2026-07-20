@@ -2001,6 +2001,12 @@ body.view-rates .pagination { display: none; }
   30%  { background: radial-gradient(circle at center, rgba(239,68,68,0.45) 0%, rgba(239,68,68,0.08) 100%); }
   100% { background: radial-gradient(circle at center, #f5f7fa 0%, #eef1f5 100%); }
 }
+.bc-viewport.flash-warn { animation: bc-flash-warn 400ms ease; }
+@keyframes bc-flash-warn {
+  0%   { background: radial-gradient(circle at center, #f5f7fa 0%, #eef1f5 100%); }
+  30%  { background: radial-gradient(circle at center, rgba(180,83,9,0.42) 0%, rgba(180,83,9,0.08) 100%); }
+  100% { background: radial-gradient(circle at center, #f5f7fa 0%, #eef1f5 100%); }
+}
 
 .bc-controls { padding: 14px 18px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.03); display: flex; gap: 10px; align-items: center; }
 .bc-controls__manual { flex: 1; padding: 10px 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 4px; color: var(--text-bright); font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; }
@@ -2012,11 +2018,11 @@ body.view-rates .pagination { display: none; }
 .bc-last-result__row { display: flex; gap: 12px; padding: 12px 14px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; align-items: center; }
 .bc-last-result__row.match-ok { border-left: 3px solid var(--ok); }
 .bc-last-result__row.match-err { border-left: 3px solid var(--crit); }
-.bc-last-result__row.match-warn { border-left: 3px solid var(--accent); }
+.bc-last-result__row.match-warn { border-left: 3px solid var(--warn); }
 .bc-last-result__icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 16px; font-weight: 700; flex-shrink: 0; }
 .bc-last-result__icon--ok { background: rgba(16,185,129,0.15); color: var(--ok); }
 .bc-last-result__icon--err { background: rgba(239,68,68,0.15); color: var(--crit); }
-.bc-last-result__icon--warn { background: rgba(30,77,123,0.15); color: var(--accent-bright); }
+.bc-last-result__icon--warn { background: rgba(180,83,9,0.15); color: var(--warn); }
 .bc-last-result__detail { flex: 1; }
 .bc-last-result__msg { font-size: 13px; color: var(--text-bright); font-weight: 500; margin-bottom: 3px; }
 .bc-last-result__sub { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
@@ -2032,7 +2038,7 @@ body.view-rates .pagination { display: none; }
 .bc-history-row__icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 10px; font-weight: 700; flex-shrink: 0; }
 .bc-history-row__icon--ok { background: rgba(16,185,129,0.15); color: var(--ok); }
 .bc-history-row__icon--err { background: rgba(239,68,68,0.15); color: var(--crit); }
-.bc-history-row__icon--warn { background: rgba(30,77,123,0.15); color: var(--accent-bright); }
+.bc-history-row__icon--warn { background: rgba(180,83,9,0.15); color: var(--warn); }
 .bc-history-row__body { flex: 1; min-width: 0; }
 .bc-history-row__code { font-family: var(--font-mono); font-size: 11px; color: var(--text-bright); margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bc-history-row__msg { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2050,6 +2056,9 @@ body.view-rates .pagination { display: none; }
 .bc-reconcile-item--done .bc-reconcile-item__wr { color: var(--text-dim); text-decoration: line-through; }
 .bc-reconcile-item__desc { font-size: 11px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bc-reconcile-item--done .bc-reconcile-item__desc { color: var(--text-dim); }
+.bc-reconcile-item--missing .bc-reconcile-item__check { color: var(--text-dim); }
+.bc-reconcile-item--unexpected .bc-reconcile-item__check { border-color: var(--warn); color: var(--warn); }
+.bc-reconcile-item--unexpected .bc-reconcile-item__wr { color: var(--warn); }
 
 .bc-spec-link { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; margin-top: 16px; }
 .bc-spec-link__title { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
@@ -4624,6 +4633,25 @@ html.ft-driver-mode .app { display: none !important; }
       remove: (id) => fetchJSON('/api/shipments/' + id, { method: 'DELETE' }),
       replaceAll: (items) => fetchJSON('/api/shipments/bulk', { method: 'PUT', body: JSON.stringify({ items }) }),
     },
+    // Loading lists persist as shipments; expose a camelCase, id-preserving view for the
+    // barcoding LL picker. The numeric `id` is what /api/barcoding/* expects; `publicId`
+    // (e.g. LL-2026-0048) is the human label. Read-only wrapper over /api/shipments.
+    loadingLists: {
+      list: async () => {
+        const rows = await fetchJSON('/api/shipments');
+        return (Array.isArray(rows) ? rows : []).map(r => ({
+          id: r.id, publicId: r.public_id, vessel: r.vessel, truck: r.truck,
+          port: r.port, status: r.status,
+        }));
+      },
+    },
+    // Warehouse barcode scanning + loading-list reconciliation (Stage 3.4, FT side).
+    // scan → {result, code, mode, item, reconciliation?}; reconcile/session are GET reads.
+    barcoding: {
+      scan: (body) => fetchJSON('/api/barcoding/scan', { method: 'POST', body: JSON.stringify(body) }),
+      reconcile: (llId, mode) => fetchJSON('/api/barcoding/reconcile/' + llId + '?mode=' + (mode || 'loading')),
+      session: (llId, mode) => fetchJSON('/api/barcoding/session/' + llId + '?mode=' + (mode || 'loading')),
+    },
     attachments: {
       list: (pid) => fetchJSON('/api/shipments/' + encodeURIComponent(pid) + '/attachments'),
       upload: (pid, formData) => fetchJSON('/api/shipments/' + encodeURIComponent(pid) + '/attachments', { method: 'POST', body: formData }),
@@ -5461,20 +5489,20 @@ html.ft-driver-mode .app { display: none !important; }
           <div class="ll-crumb">Scan workflow · Magaya Flow + MSC ship reconciliation · Andrés "SUPER IMPORTANT!" 5/28</div>
           <div class="ll-title">
             <h1>Barcoding</h1>
-            <span class="ll-title-count" id="bc-title-count">Mock scanner · 4 modes</span>
+            <span class="ll-title-count" id="bc-title-count">Live scanner</span>
           </div>
         </div>
         <div style="display:flex; gap:12px; align-items:center;">
-          <button class="btn btn--accent" id="bc-simulate-btn">🔍 Simulate scan</button>
+          <button class="btn btn--accent" id="bc-simulate-btn">📷 Camera scan</button>
         </div>
       </div>
 
       <div class="bc-banner">
         <div class="bc-banner__text">
-          <strong>Mock scanner UI.</strong> 4 modes mirror the end-to-end scan chain: <strong>Receiving</strong> (warehouse intake) → <strong>Picking</strong> (pull for Loading List) → <strong>Loading</strong> (onto truck) → <strong>Gangway</strong> (MSC ship receive).
-          Real integration = Magaya Flow API (FT-side) + MSC ship-side scanning system. Architecture spec inline below.
+          <strong>Live scanning.</strong> <strong>Receiving</strong> (warehouse intake), <strong>Picking</strong> (pull for a Loading List) and <strong>Loading</strong> (onto truck) scan against the live backend and reconcile in real time.
+          <strong>Gangway</strong> (MSC ship-side receive) needs MSC IT access and is not available yet.
         </div>
-        <span class="bc-banner__pill">MOCK</span>
+        <span class="bc-banner__pill">LIVE</span>
       </div>
 
       <!-- Mode tabs -->
@@ -5535,7 +5563,7 @@ html.ft-driver-mode .app { display: none !important; }
           <div class="bc-last-result">
             <div class="bc-last-result__title">Last scan result</div>
             <div id="bc-last-result-body">
-              <div class="bc-last-result__none">No scans yet. Click "🔍 Simulate scan" or type a barcode above.</div>
+              <div class="bc-last-result__none">No scans yet. Scan or type a barcode above.</div>
             </div>
           </div>
         </div>
@@ -15726,71 +15754,126 @@ const BC_MODE_CONFIG = {
 };
 
 let BC_MODE = "receiving";
-let BC_ACTIVE_LL_IDX = null;
-let BC_HISTORY = []; // session scan history
-let BC_SCANNED_BY_LL = {}; // { llId: Set of itemIdx scanned in this session }
+let BC_LOADING_LISTS = [];   // [{id, publicId, vessel, truck, port, status}] from backend
+let BC_ACTIVE_LL = null;     // selected loading-list object; numeric id → /api/barcoding/*
+let BC_RECON = null;         // last reconciliation object returned by the backend
+let BC_RECON_SEQ = 0;        // guards out-of-order reconciliation writes on rapid scans
+let BC_SCAN_SEQ = 0;         // monotonically increasing scan sequence
+let BC_HISTORY = [];         // session display buffer, newest first: {code,result,message,sub,time}
+const BC_CAMERA_SUPPORTED = (typeof window !== "undefined" && "BarcodeDetector" in window);
+let BC_CAMERA = null;        // active getUserMedia camera-scan session (progressive enhancement)
 
-function renderBarcoding() {
-  // Tabs already in HTML, just ensure active state matches BC_MODE
+async function renderBarcoding() {
+  // Reflect the active mode on the tabs
   document.querySelectorAll(".bc-mode-tab").forEach(tab => {
     tab.classList.toggle("bc-mode-tab--active", tab.dataset.mode === BC_MODE);
   });
 
-  const config = BC_MODE_CONFIG[BC_MODE];
-  document.getElementById("bc-camera-title").textContent =
-    "Camera 01 · " + config.label + " · " + config.location;
-  document.getElementById("bc-viewport-label").textContent = "SCAN TARGET · " + BC_MODE.toUpperCase();
+  const config = BC_MODE_CONFIG[BC_MODE] || BC_MODE_CONFIG.receiving;
+  const camTitle = document.getElementById("bc-camera-title");
+  if (camTitle) camTitle.textContent = "Camera 01 · " + config.label + " · " + config.location;
+  const vpLabel = document.getElementById("bc-viewport-label");
+  if (vpLabel) vpLabel.textContent = "SCAN TARGET · " + BC_MODE.toUpperCase();
 
-  // Context bar visibility
   const ctxBar = document.getElementById("bc-context-bar");
-  if (config.requiresLL) {
-    ctxBar.style.display = "flex";
-    // Populate LL select with dispatched/loaded LLs only (no drafts for picking, no point)
-    const select = document.getElementById("bc-ll-select");
-    const eligibleLLs = LOADING_LISTS.filter(ll => {
-      if (BC_MODE === "picking") return ll.status === "draft" || ll.status === "dispatched";
-      if (BC_MODE === "loading") return ll.status === "draft" || ll.status === "dispatched";
-      if (BC_MODE === "gangway") return ll.status === "dispatched" || ll.status === "loaded";
-      return true;
-    });
-    while (select.firstChild) select.removeChild(select.firstChild);
-    select.appendChild(el("option", { value: "", text: "— select active Loading List —" }));
-    eligibleLLs.forEach(ll => {
-      const idx = LOADING_LISTS.indexOf(ll);
-      const opt = el("option", { value: String(idx), text: ll.id + " · " + ll.vessel + " · " + ll.truck + " · " + STATUS_LABELS_LL[ll.status] });
-      select.appendChild(opt);
-    });
-    // Reset to "—" when switching modes if current LL not eligible
-    if (BC_ACTIVE_LL_IDX !== null && !eligibleLLs.includes(LOADING_LISTS[BC_ACTIVE_LL_IDX])) {
-      BC_ACTIVE_LL_IDX = null;
-    }
-    if (BC_ACTIVE_LL_IDX !== null) {
-      select.value = String(BC_ACTIVE_LL_IDX);
-    }
-  } else {
-    ctxBar.style.display = "none";
-    BC_ACTIVE_LL_IDX = null;
+  const reconPanel = document.getElementById("bc-reconcile-panel");
+  const titleCount = document.getElementById("bc-title-count");
+
+  // ── Gangway: ship-side scanning needs MSC IT access — not built. Disable everything. ──
+  if (BC_MODE === "gangway") {
+    if (ctxBar) ctxBar.style.display = "none";
+    if (reconPanel) reconPanel.style.display = "none";
+    BC_ACTIVE_LL = null; BC_RECON = null; BC_HISTORY = [];
+    bcSetScanEnabled(false);
+    bcShowGangwayNotice();
+    if (titleCount) titleCount.textContent = "Ship-side · pending MSC IT";
+    renderBCProgress();
+    renderBCHistory();
+    return;
   }
 
-  renderBCProgress();
-  renderBCReconcilePanel();
-  renderBCHistory();
+  bcSetScanEnabled(true);
+  if (titleCount) titleCount.textContent = "Live · " + BC_MODE;
+  bcResetLastResult();
+
+  if (config.requiresLL) {
+    // Picking / Loading — reconcile against an active Loading List.
+    if (ctxBar) ctxBar.style.display = "flex";
+    if (reconPanel) reconPanel.style.display = "block";
+    await bcPopulateLLSelect();
+    await bcLoadLLContext();
+  } else {
+    // Receiving — no LL context; each scan registers warehouse intake.
+    if (ctxBar) ctxBar.style.display = "none";
+    if (reconPanel) reconPanel.style.display = "none";
+    BC_ACTIVE_LL = null; BC_RECON = null; BC_HISTORY = [];
+    renderBCProgress();
+    renderBCReconcilePanel();
+    renderBCHistory();
+  }
+  bcFocusInput();
+}
+
+// Fetch loading lists from the backend and (re)fill the picker. Preserves the current
+// selection if that LL is still present. Options are labelled `publicId — vessel · truck`.
+async function bcPopulateLLSelect() {
+  const select = document.getElementById("bc-ll-select");
+  if (!select) return;
+  try {
+    BC_LOADING_LISTS = await window.FT_API.loadingLists.list();
+  } catch (e) {
+    BC_LOADING_LISTS = [];
+    if (window.ftToast) ftToast("Could not load loading lists: " + bcCleanErr(e), "warn");
+  }
+  const prevId = BC_ACTIVE_LL ? BC_ACTIVE_LL.id : null;
+  while (select.firstChild) select.removeChild(select.firstChild);
+  select.appendChild(el("option", { value: "", text: "— select active Loading List —" }));
+  BC_LOADING_LISTS.forEach(ll => {
+    const label = (ll.publicId || ("LL-" + ll.id)) + " — " + (ll.vessel || "—") + " · " + (ll.truck || "—");
+    select.appendChild(el("option", { value: String(ll.id), text: label }));
+  });
+  const still = BC_LOADING_LISTS.find(ll => ll.id === prevId) || null;
+  BC_ACTIVE_LL = still;
+  select.value = still ? String(still.id) : "";
+}
+
+// Load reconciliation + session history for the active LL in the current mode.
+async function bcLoadLLContext() {
+  if (!BC_ACTIVE_LL) {
+    BC_RECON = null; BC_HISTORY = [];
+    renderBCProgress(); renderBCReconcilePanel(); renderBCHistory();
+    return;
+  }
+  const llId = BC_ACTIVE_LL.id, mode = BC_MODE;
+  try {
+    const [recon, sess] = await Promise.all([
+      window.FT_API.barcoding.reconcile(llId, mode),
+      window.FT_API.barcoding.session(llId, mode),
+    ]);
+    // Ignore if the user switched context while we awaited.
+    if (!BC_ACTIVE_LL || BC_ACTIVE_LL.id !== llId || BC_MODE !== mode) return;
+    BC_RECON = recon;
+    BC_RECON_SEQ = ++BC_SCAN_SEQ;
+    BC_HISTORY = (Array.isArray(sess) ? sess : []).map(bcSessionRowToEntry);
+  } catch (e) {
+    BC_RECON = null; BC_HISTORY = [];
+    if (window.ftToast) ftToast("Could not load LL reconciliation: " + bcCleanErr(e), "warn");
+  }
+  renderBCProgress(); renderBCReconcilePanel(); renderBCHistory();
 }
 
 function renderBCProgress() {
   const fill = document.getElementById("bc-progress-fill");
   const text = document.getElementById("bc-progress-text");
   if (!fill || !text) return;
-  if (BC_ACTIVE_LL_IDX === null) {
+  if (!BC_RECON || BC_MODE === "receiving" || BC_MODE === "gangway") {
     fill.style.width = "0%";
     text.textContent = "— / —";
     return;
   }
-  const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
-  const scanned = (BC_SCANNED_BY_LL[ll.id] || new Set()).size;
-  const total = ll.itemIdxs.length;
-  fill.style.width = total ? Math.round(scanned / total * 100) + "%" : "0%";
-  text.textContent = scanned + " / " + total + " scanned";
+  const pct = typeof BC_RECON.progress === "number" ? BC_RECON.progress : 0;
+  fill.style.width = pct + "%";
+  text.textContent = (BC_RECON.matched_count || 0) + " / " + (BC_RECON.expected_total || 0) + " scanned";
 }
 
 function renderBCReconcilePanel() {
@@ -15799,28 +15882,44 @@ function renderBCReconcilePanel() {
   const count = document.getElementById("bc-reconcile-count");
   if (!panel || !list) return;
 
-  if (BC_ACTIVE_LL_IDX === null || BC_MODE === "receiving") {
+  const config = BC_MODE_CONFIG[BC_MODE] || {};
+  if (!config.requiresLL || BC_MODE === "gangway") {
     panel.style.display = "none";
     return;
   }
   panel.style.display = "block";
   while (list.firstChild) list.removeChild(list.firstChild);
 
-  const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
-  const scanned = BC_SCANNED_BY_LL[ll.id] || new Set();
-  ll.itemIdxs.forEach(itemIdx => {
-    const item = INVENTORY[itemIdx];
-    if (!item) return;
-    const isDone = scanned.has(itemIdx);
-    const row = el("div", { class: "bc-reconcile-item" + (isDone ? " bc-reconcile-item--done" : "") });
-    row.appendChild(el("div", { class: "bc-reconcile-item__check" }));
-    const body = el("div", { class: "bc-reconcile-item__body" });
-    body.appendChild(el("div", { class: "bc-reconcile-item__wr", text: item.warehouseReceipt + " · " + item.partNumber }));
-    body.appendChild(el("div", { class: "bc-reconcile-item__desc", title: item.description, text: item.description }));
-    row.appendChild(body);
-    list.appendChild(row);
-  });
-  count.textContent = scanned.size + " / " + ll.itemIdxs.length;
+  if (!BC_ACTIVE_LL) {
+    list.appendChild(el("div", { class: "bc-history-empty", text: "Select a Loading List to see expected items" }));
+    if (count) count.textContent = "— / —";
+    return;
+  }
+  if (!BC_RECON) {
+    list.appendChild(el("div", { class: "bc-history-empty", text: "No reconciliation data yet" }));
+    if (count) count.textContent = "— / —";
+    return;
+  }
+  (BC_RECON.matched || []).forEach(it => list.appendChild(bcReconRow(it, "done")));
+  (BC_RECON.missing || []).forEach(it => list.appendChild(bcReconRow(it, "missing")));
+  (BC_RECON.unexpected || []).forEach(it => list.appendChild(bcReconRow(it, "unexpected")));
+  if (count) count.textContent = (BC_RECON.matched_count || 0) + " / " + (BC_RECON.expected_total || 0);
+}
+
+// One reconciliation row. state ∈ done (✓ matched) | missing (○) | unexpected (⚠ not on list).
+function bcReconRow(item, state) {
+  const row = el("div", { class: "bc-reconcile-item bc-reconcile-item--" + state });
+  const check = el("div", { class: "bc-reconcile-item__check" });
+  if (state === "missing") check.textContent = "○";
+  else if (state === "unexpected") check.textContent = "⚠";
+  // done → the ✓ comes from the --done ::before rule
+  row.appendChild(check);
+  const body = el("div", { class: "bc-reconcile-item__body" });
+  const wr = (item.warehouse_receipt || "—") + " · " + (item.part_number || "—");
+  body.appendChild(el("div", { class: "bc-reconcile-item__wr", text: wr }));
+  body.appendChild(el("div", { class: "bc-reconcile-item__desc", title: item.description || "", text: item.description || "" }));
+  row.appendChild(body);
+  return row;
 }
 
 function renderBCHistory() {
@@ -15829,143 +15928,258 @@ function renderBCHistory() {
   if (!body) return;
   while (body.firstChild) body.removeChild(body.firstChild);
   if (BC_HISTORY.length === 0) {
-    body.appendChild(el("div", { class: "bc-history-empty", text: "No scans yet this session" }));
+    const empty = BC_MODE === "gangway" ? "Gangway scanning not available yet" : "No scans yet this session";
+    body.appendChild(el("div", { class: "bc-history-empty", text: empty }));
   } else {
-    BC_HISTORY.slice().reverse().forEach(entry => {
+    // BC_HISTORY is stored newest-first.
+    BC_HISTORY.forEach(entry => {
+      const cls = bcResultClass(entry.result);
       const row = el("div", { class: "bc-history-row" });
-      const iconKlass = "bc-history-row__icon--" + entry.result;
-      const iconText = entry.result === "ok" ? "✓" : entry.result === "err" ? "✗" : "!";
-      row.appendChild(el("div", { class: "bc-history-row__icon " + iconKlass, text: iconText }));
+      row.appendChild(el("div", { class: "bc-history-row__icon bc-history-row__icon--" + cls, text: bcResultIcon(cls) }));
       const bodyCol = el("div", { class: "bc-history-row__body" });
-      bodyCol.appendChild(el("div", { class: "bc-history-row__code", text: entry.barcode }));
-      bodyCol.appendChild(el("div", { class: "bc-history-row__msg", text: entry.message }));
+      bodyCol.appendChild(el("div", { class: "bc-history-row__code", text: entry.code }));
+      bodyCol.appendChild(el("div", { class: "bc-history-row__msg", text: entry.message + (entry.sub ? " · " + entry.sub : "") }));
       row.appendChild(bodyCol);
-      row.appendChild(el("div", { class: "bc-history-row__time", text: entry.time }));
+      row.appendChild(el("div", { class: "bc-history-row__time", text: entry.time || "" }));
       body.appendChild(row);
     });
   }
-  count.textContent = BC_HISTORY.length + " scan" + (BC_HISTORY.length === 1 ? "" : "s");
+  if (count) count.textContent = BC_HISTORY.length + " scan" + (BC_HISTORY.length === 1 ? "" : "s");
 }
 
-function lookupBarcode(barcode) {
-  // Format A: WR-NNNNN-Pxxxx (exact item)
-  const exact = barcode.match(/^(WR-\d+)-(\S+)$/);
-  if (exact) {
-    const wr = exact[1], part = exact[2];
-    const idx = INVENTORY.findIndex(i => i.warehouseReceipt === wr && i.partNumber === part);
-    if (idx >= 0) return { matchType: "exact", itemIdx: idx, item: INVENTORY[idx] };
-    return { matchType: "none", reason: "WR/Part combo not in inventory" };
-  }
-  // Format B: Part-only — match first item with that part
-  const idx = INVENTORY.findIndex(i => i.partNumber === barcode);
-  if (idx >= 0) return { matchType: "part_only", itemIdx: idx, item: INVENTORY[idx] };
-  // Format C: WR-only — match first item with that WR
-  const idxWR = INVENTORY.findIndex(i => i.warehouseReceipt === barcode);
-  if (idxWR >= 0) return { matchType: "wr_only", itemIdx: idxWR, item: INVENTORY[idxWR] };
-  return { matchType: "none", reason: "Barcode format unrecognized or item not found" };
+// ── Result presentation helpers (map backend result codes → colour + copy) ──
+// matched / received → green (ok) · duplicate → amber (warn) · unexpected / unknown → red (err)
+function bcResultClass(result) {
+  if (result === "matched" || result === "received") return "ok";
+  if (result === "duplicate") return "warn";
+  return "err";
+}
+function bcResultIcon(cls) { return cls === "ok" ? "✓" : cls === "warn" ? "!" : "✗"; }
+function bcResultLabel(result) {
+  return ({
+    matched:    "Matched — on loading list",
+    received:   "Received into warehouse",
+    duplicate:  "Duplicate — already scanned",
+    unexpected: "Unexpected — not on this list",
+    unknown:    "Unknown code — no inventory match",
+  })[result] || (result || "scan");
+}
+function bcItemLine(item, code) {
+  if (!item) return "Code " + code + " · no matching inventory item";
+  const head = [item.warehouse_receipt, item.part_number].filter(Boolean).join(" · ");
+  const tail = [item.description, item.vessel, item.department, item.location_code].filter(Boolean).join(" · ");
+  return (head || code) + (tail ? " · " + tail : "");
+}
+// Pull FastAPI's {"detail": "..."} out of the fetchJSON error string when present.
+function bcCleanErr(e) {
+  const m = (e && e.message) || String(e);
+  const i = m.indexOf("{");
+  if (i >= 0) { try { const j = JSON.parse(m.slice(i)); if (j && j.detail) return j.detail; } catch (_) {} }
+  return m;
+}
+function bcNowTime() { return new Date().toTimeString().slice(0, 8); }
+function bcFmtTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? String(iso).slice(11, 19) : d.toTimeString().slice(0, 8);
+}
+// A backend session row → the display-entry shape used by renderBCHistory.
+function bcSessionRowToEntry(r) {
+  return {
+    code: r.code,
+    result: r.result,
+    message: bcResultLabel(r.result),
+    sub: (r.scanned_by ? r.scanned_by + " · " : "") + bcFmtTime(r.scanned_at),
+    time: bcFmtTime(r.scanned_at),
+  };
 }
 
-function processScan(barcode) {
-  if (!barcode || !barcode.trim()) return;
-  barcode = barcode.trim();
-  const config = BC_MODE_CONFIG[BC_MODE];
-  const viewport = document.getElementById("bc-viewport");
-  const resultBody = document.getElementById("bc-last-result-body");
-  const now = new Date();
-  const time = now.toISOString().slice(11, 19);
+// ── Core scan: POST /api/barcoding/scan and reflect the result live. ──
+async function bcSubmitScan(rawCode) {
+  const code = (rawCode || "").trim();
+  if (!code) return;
+  if (BC_MODE === "gangway") return;  // disabled — MSC IT not available
 
-  // Build flash + result
-  const lookup = lookupBarcode(barcode);
-  let result = "ok", icon = "ok", message = "", sub = "";
-
-  if (lookup.matchType === "none") {
-    result = "err"; icon = "err";
-    message = "No match";
-    sub = lookup.reason + " · barcode: " + barcode;
-  } else if (config.requiresLL && BC_ACTIVE_LL_IDX === null) {
-    result = "warn"; icon = "warn";
-    message = "Select active Loading List first";
-    sub = "Mode " + BC_MODE + " requires an LL context — scan registered but not actioned.";
-  } else if (config.requiresLL) {
-    const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
-    const itemInLL = ll.itemIdxs.includes(lookup.itemIdx);
-    if (!itemInLL) {
-      result = "warn"; icon = "warn";
-      message = "Item NOT on active LL — would alert MSC";
-      sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · " + lookup.item.description + " · expected on " + ll.id;
-    } else {
-      if (!BC_SCANNED_BY_LL[ll.id]) BC_SCANNED_BY_LL[ll.id] = new Set();
-      if (BC_SCANNED_BY_LL[ll.id].has(lookup.itemIdx)) {
-        result = "warn"; icon = "warn";
-        message = "Already scanned this session";
-        sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · prevents double-count";
-      } else {
-        BC_SCANNED_BY_LL[ll.id].add(lookup.itemIdx);
-        result = "ok"; icon = "ok";
-        message = config.successAction;
-        sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · " + lookup.item.description + " · " + config.audit;
-      }
+  const config = BC_MODE_CONFIG[BC_MODE] || {};
+  const body = { code, mode: BC_MODE };
+  if (config.requiresLL) {
+    if (!BC_ACTIVE_LL) {
+      bcRenderLastResult("warn", "Select a Loading List first",
+        "Mode " + BC_MODE + " needs an active Loading List before scanning.");
+      if (window.ftToast) ftToast("Select an active Loading List first", "warn");
+      return;
     }
-  } else {
-    // Receiving mode — accept any inventory hit
-    result = "ok"; icon = "ok";
-    message = config.successAction;
-    sub = lookup.item.warehouseReceipt + " · " + lookup.item.partNumber + " · " + lookup.item.description + " · " + config.audit;
+    body.loading_list_id = BC_ACTIVE_LL.id;
   }
 
-  // Flash viewport
-  viewport.classList.remove("flash", "flash-err");
-  void viewport.offsetWidth; // restart animation
-  viewport.classList.add(result === "err" ? "flash-err" : "flash");
-  setTimeout(() => viewport.classList.remove("flash", "flash-err"), 400);
+  const seq = ++BC_SCAN_SEQ;
+  let resp;
+  try {
+    resp = await window.FT_API.barcoding.scan(body);
+  } catch (e) {
+    const msg = bcCleanErr(e);
+    bcFlash("err");
+    bcRenderLastResult("err", "Scan failed", msg);
+    if (window.ftToast) ftToast("Scan failed: " + msg, "warn");
+    return;
+  }
 
-  // Update last-scan result panel
-  while (resultBody.firstChild) resultBody.removeChild(resultBody.firstChild);
-  const row = el("div", { class: "bc-last-result__row match-" + (result === "ok" ? "ok" : result === "err" ? "err" : "warn") });
-  row.appendChild(el("div", { class: "bc-last-result__icon bc-last-result__icon--" + icon, text: icon === "ok" ? "✓" : icon === "err" ? "✗" : "!" }));
+  const result = resp.result;
+  const cls = bcResultClass(result);
+  const sub = bcItemLine(resp.item, resp.code);
+  bcFlash(cls);
+  bcRenderLastResult(cls, bcResultLabel(result), sub);
+
+  // Prepend to the session history (newest first).
+  BC_HISTORY.unshift({ code: resp.code, result, message: bcResultLabel(result), sub, time: bcNowTime() });
+  if (BC_HISTORY.length > 100) BC_HISTORY.pop();
+  renderBCHistory();
+
+  // Reconciliation comes back on picking/loading scans; guard against out-of-order writes.
+  if (resp.reconciliation && seq >= BC_RECON_SEQ) {
+    BC_RECON_SEQ = seq;
+    BC_RECON = resp.reconciliation;
+    renderBCProgress();
+    renderBCReconcilePanel();
+  }
+}
+
+// Render a row into the "Last scan result" panel. cls ∈ ok | warn | err.
+function bcRenderLastResult(cls, msg, sub) {
+  const body = document.getElementById("bc-last-result-body");
+  if (!body) return;
+  while (body.firstChild) body.removeChild(body.firstChild);
+  const row = el("div", { class: "bc-last-result__row match-" + cls });
+  row.appendChild(el("div", { class: "bc-last-result__icon bc-last-result__icon--" + cls, text: bcResultIcon(cls) }));
   const detail = el("div", { class: "bc-last-result__detail" });
-  detail.appendChild(el("div", { class: "bc-last-result__msg", text: message }));
+  detail.appendChild(el("div", { class: "bc-last-result__msg", text: msg }));
   detail.appendChild(el("div", { class: "bc-last-result__sub", text: sub }));
   row.appendChild(detail);
-  resultBody.appendChild(row);
-
-  // Add to history
-  BC_HISTORY.push({ barcode, result, message, time });
-  if (BC_HISTORY.length > 50) BC_HISTORY.shift();
-  if (typeof persistDocs === 'function') persistDocs('barcode_history', () => BC_HISTORY);
-
-  // Refresh dependent panels
-  renderBCProgress();
-  renderBCReconcilePanel();
-  renderBCHistory();
+  body.appendChild(row);
 }
 
-function simulateBarcode() {
-  // Pick a barcode strategically based on mode
-  if (BC_MODE === "receiving") {
-    // Pick random inventory item, generate exact barcode
-    const item = INVENTORY[Math.floor((BC_HISTORY.length * 7 + 3) % INVENTORY.length)];
-    return item.warehouseReceipt + "-" + item.partNumber;
+function bcResetLastResult() {
+  const body = document.getElementById("bc-last-result-body");
+  if (!body) return;
+  while (body.firstChild) body.removeChild(body.firstChild);
+  body.appendChild(el("div", { class: "bc-last-result__none", text: "No scans yet. Scan or type a barcode above." }));
+}
+
+function bcShowGangwayNotice() {
+  const body = document.getElementById("bc-last-result-body");
+  if (!body) return;
+  while (body.firstChild) body.removeChild(body.firstChild);
+  const row = el("div", { class: "bc-last-result__row match-warn" });
+  row.appendChild(el("div", { class: "bc-last-result__icon bc-last-result__icon--warn", text: "!" }));
+  const detail = el("div", { class: "bc-last-result__detail" });
+  detail.appendChild(el("div", { class: "bc-last-result__msg", text: "Gangway scanning not available yet" }));
+  detail.appendChild(el("div", { class: "bc-last-result__sub", text: "Ship-side gangway scanning needs MSC IT access — not available yet." }));
+  row.appendChild(detail);
+  body.appendChild(row);
+}
+
+// Flash the viewport green (ok) / amber (warn) / red (err).
+function bcFlash(cls) {
+  const vp = document.getElementById("bc-viewport");
+  if (!vp) return;
+  vp.classList.remove("flash", "flash-warn", "flash-err");
+  void vp.offsetWidth;  // restart the animation
+  vp.classList.add(cls === "err" ? "flash-err" : cls === "warn" ? "flash-warn" : "flash");
+  setTimeout(() => vp.classList.remove("flash", "flash-warn", "flash-err"), 400);
+}
+
+// Enable/disable the scan input + buttons (disabled for gangway). Stops the camera when disabled.
+function bcSetScanEnabled(enabled) {
+  const input = document.getElementById("bc-manual-input");
+  const submit = document.getElementById("bc-manual-submit");
+  if (input) {
+    input.disabled = !enabled;
+    input.placeholder = enabled
+      ? "Scan or type a barcode manually (e.g. WR-2026-0001 or a part number)…"
+      : "Scanning disabled — ship-side gangway needs MSC IT access";
   }
-  if (BC_ACTIVE_LL_IDX !== null) {
-    const ll = LOADING_LISTS[BC_ACTIVE_LL_IDX];
-    const scanned = BC_SCANNED_BY_LL[ll.id] || new Set();
-    // Find unscanned LL item
-    const unscanned = ll.itemIdxs.filter(idx => !scanned.has(idx));
-    if (unscanned.length > 0) {
-      const item = INVENTORY[unscanned[0]];
-      return item.warehouseReceipt + "-" + item.partNumber;
-    }
-    // All scanned — simulate an out-of-list scan (warning case)
-    const otherItems = INVENTORY.filter((_, i) => !ll.itemIdxs.includes(i));
-    if (otherItems.length > 0) {
-      const item = otherItems[0];
-      return item.warehouseReceipt + "-" + item.partNumber;
-    }
+  if (submit) submit.disabled = !enabled;
+  const simBtn = document.getElementById("bc-simulate-btn");
+  if (simBtn && BC_CAMERA_SUPPORTED) simBtn.disabled = !enabled;
+  if (!enabled) bcStopCamera();
+}
+
+function bcFocusInput() {
+  if (BC_MODE === "gangway") return;
+  const input = document.getElementById("bc-manual-input");
+  if (input && !input.disabled && document.body.classList.contains("view-barcoding")) {
+    try { input.focus(); } catch (_) {}
   }
-  // Fallback — any item
-  const item = INVENTORY[0];
-  return item.warehouseReceipt + "-" + item.partNumber;
+}
+
+/* ── Camera scanning (progressive enhancement) ──────────────────────────────
+   Optional: only when the browser exposes BarcodeDetector. The USB keyboard-wedge /
+   manual input is the primary path; the camera just feeds detected codes into the same
+   bcSubmitScan handler. No external libraries. Degrades gracefully — the button is hidden
+   when BarcodeDetector is unavailable (see setupBarcoding). */
+function bcToggleCamera() {
+  if (BC_CAMERA && BC_CAMERA.running) bcStopCamera();
+  else bcStartCamera();
+}
+
+async function bcStartCamera() {
+  if (!BC_CAMERA_SUPPORTED || BC_MODE === "gangway") return;
+  const vp = document.getElementById("bc-viewport");
+  const simBtn = document.getElementById("bc-simulate-btn");
+  if (!vp || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    if (window.ftToast) ftToast("Camera not available on this device", "warn");
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    const video = el("video", { autoplay: true, muted: true });
+    video.muted = true;
+    video.setAttribute("playsinline", "");
+    video.srcObject = stream;
+    video.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;";
+    vp.insertBefore(video, vp.firstChild);
+    try { await video.play(); } catch (_) {}
+    let detector;
+    try { detector = new window.BarcodeDetector(); }
+    catch (_) { detector = new window.BarcodeDetector({ formats: ["code_128", "code_39", "ean_13", "qr_code"] }); }
+    BC_CAMERA = { stream, video, detector, timer: null, running: true, lastCode: null, lastAt: 0 };
+    if (simBtn) simBtn.textContent = "⏹ Stop camera";
+    bcCameraLoop();
+  } catch (e) {
+    if (window.ftToast) ftToast("Camera unavailable: " + (e && e.message ? e.message : e), "warn");
+    bcStopCamera();
+  }
+}
+
+async function bcCameraLoop() {
+  if (!BC_CAMERA || !BC_CAMERA.running) return;
+  try {
+    const codes = await BC_CAMERA.detector.detect(BC_CAMERA.video);
+    if (codes && codes.length) {
+      const raw = (codes[0].rawValue || "").trim();
+      const now = Date.now();
+      // Debounce: ignore the same code within 2.5s (a held barcode fires every frame).
+      if (raw && (raw !== BC_CAMERA.lastCode || now - BC_CAMERA.lastAt > 2500)) {
+        BC_CAMERA.lastCode = raw; BC_CAMERA.lastAt = now;
+        bcSubmitScan(raw);
+      }
+    }
+  } catch (_) { /* detect() can throw transiently between frames — ignore */ }
+  if (BC_CAMERA && BC_CAMERA.running) {
+    BC_CAMERA.timer = setTimeout(bcCameraLoop, 220);
+  }
+}
+
+function bcStopCamera() {
+  const simBtn = document.getElementById("bc-simulate-btn");
+  if (BC_CAMERA) {
+    BC_CAMERA.running = false;
+    if (BC_CAMERA.timer) clearTimeout(BC_CAMERA.timer);
+    try { if (BC_CAMERA.stream) BC_CAMERA.stream.getTracks().forEach(t => t.stop()); } catch (_) {}
+    try { if (BC_CAMERA.video && BC_CAMERA.video.parentNode) BC_CAMERA.video.parentNode.removeChild(BC_CAMERA.video); } catch (_) {}
+    BC_CAMERA = null;
+  }
+  if (simBtn && BC_CAMERA_SUPPORTED) simBtn.textContent = "📷 Camera scan";
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -18710,32 +18924,44 @@ function setupBarcoding() {
   // Mode tabs
   document.querySelectorAll(".bc-mode-tab").forEach(tab => {
     tab.addEventListener("click", () => {
+      if (tab.dataset.mode === BC_MODE) return;
+      bcStopCamera();               // don't leak the camera across modes
       BC_MODE = tab.dataset.mode;
       renderBarcoding();
     });
   });
 
-  // LL select
+  // LL select → reload reconciliation + session history for the chosen LL
   const llSelect = document.getElementById("bc-ll-select");
   if (llSelect) llSelect.addEventListener("change", (e) => {
-    BC_ACTIVE_LL_IDX = e.target.value ? parseInt(e.target.value, 10) : null;
-    renderBCProgress();
-    renderBCReconcilePanel();
+    const id = e.target.value ? parseInt(e.target.value, 10) : null;
+    BC_ACTIVE_LL = id != null ? (BC_LOADING_LISTS.find(ll => ll.id === id) || null) : null;
+    bcLoadLLContext();
+    bcFocusInput();
   });
 
-  // Simulate scan button
+  // Camera button — progressive enhancement. Hidden when BarcodeDetector is unavailable
+  // (manual input / USB keyboard-wedge remains the primary path).
   const simBtn = document.getElementById("bc-simulate-btn");
-  if (simBtn) simBtn.addEventListener("click", () => processScan(simulateBarcode()));
+  if (simBtn) {
+    if (BC_CAMERA_SUPPORTED) {
+      simBtn.textContent = "📷 Camera scan";
+      simBtn.addEventListener("click", bcToggleCamera);
+    } else {
+      simBtn.style.display = "none";
+    }
+  }
 
-  // Manual entry
+  // Manual entry. Clear the field synchronously on submit so a USB keyboard-wedge scanner
+  // can fire consecutive scans without the next code appending to the previous one.
   const manualInput = document.getElementById("bc-manual-input");
   const manualSubmit = document.getElementById("bc-manual-submit");
   const submitManual = () => {
-    const val = manualInput.value;
-    if (val && val.trim()) {
-      processScan(val);
-      manualInput.value = "";
-    }
+    if (!manualInput || manualInput.disabled) return;
+    const val = (manualInput.value || "").trim();
+    manualInput.value = "";
+    if (val) bcSubmitScan(val);
+    bcFocusInput();
   };
   if (manualInput) {
     manualInput.addEventListener("keydown", (e) => {
@@ -18894,7 +19120,6 @@ setInterval(tickClock, 1000);
     // Generic docs for the rest — each module's frontend uses these globals
     const generic = [
       ['NOTIFICATIONS', 'notifications', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
-      ['BC_HISTORY',    'barcode_history', () => typeof renderBarcoding === 'function' && renderBarcoding()],
       ['CT_REQUESTS',   'ct_requests',   () => typeof renderCrunchTime === 'function' && renderCrunchTime()],
       ['CT_AUDIT_TRAIL','ct_audit_trail',() => typeof renderCrunchTime === 'function' && renderCrunchTime()],
       ['SHIPMENTS',     'shipments',     () => { try { if (typeof renderCards === 'function') renderCards(); if (typeof renderList === 'function') renderList(); } catch(e){} }],
@@ -18974,7 +19199,6 @@ setInterval(tickClock, 1000);
       notifications:        ['NOTIFICATIONS', () => typeof renderNotifPanel === 'function' && renderNotifPanel()],
       ct_requests:          ['CT_REQUESTS',   () => typeof renderCrunchTime === 'function' && renderCrunchTime()],
       ct_audit_trail:       ['CT_AUDIT_TRAIL',() => typeof renderCrunchTime === 'function' && renderCrunchTime()],
-      barcode_history:      ['BC_HISTORY',    () => typeof renderBarcoding === 'function' && renderBarcoding()],
       emails:               ['EMAILS',        () => typeof buildInboxList === 'function' && buildInboxList()],
       shipments:            ['SHIPMENTS',     () => { try { typeof renderCards === 'function' && renderCards(); typeof renderList === 'function' && renderList(); } catch(e){} }],
     };
