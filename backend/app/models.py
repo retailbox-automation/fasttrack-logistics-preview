@@ -326,6 +326,9 @@ class User(Base):
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)  # force change on first login
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    # Password reset (forgot-password flow): bcrypt-hashed one-time token + expiry
+    reset_token_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reset_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
 
 class EmailMessage(Base):

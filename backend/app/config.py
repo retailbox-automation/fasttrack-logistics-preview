@@ -28,6 +28,17 @@ class Settings(BaseSettings):
     email_sync_interval_seconds: int = 300  # background auto-sync cadence (0 = disabled)
     email_sync_top: int = 25  # messages pulled per mailbox per cycle
 
+    # Outbound email (password reset + notifications). Set SMTP_* via Zeabur env to enable
+    # delivery; if unset, messages are logged (so the reset flow works + is retrievable).
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""            # From address (defaults to smtp_user)
+    smtp_use_tls: bool = True
+    app_base_url: str = "https://ftmsc1.zeabur.app"  # for building reset links
+    reset_token_ttl_minutes: int = 60
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     @property

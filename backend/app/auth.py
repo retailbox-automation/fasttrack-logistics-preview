@@ -18,6 +18,7 @@ require_roles(roles) gates endpoints to specific roles.
 Rate-limit on login: 8 attempts / minute per IP (slowapi).
 """
 import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -191,3 +192,54 @@ def change_password(payload: PasswordChangeIn, claims: dict = Depends(require_au
     user.must_change_password = False
     db.commit()
     log.info("password_changed", extra={"user_id": user.id})
+
+
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordIn(BaseModel):
+    email: EmailStr
+    token: str
+    new_password: str
+
+
+@router.post("/forgot-password", status_code=200)
+@limiter.limit("5/minute")
+def forgot_password(request: Request, payload: ForgotPasswordIn, db: Session = Depends(get_db)):
+    """Generate a one-time reset token + email a reset link. Same response whether or not the
+    email exists (no user enumeration). Token is stored bcrypt-hashed with an expiry."""
+    from app.email_send import send_email
+    user = db.query(User).filter(User.email == payload.email.lower(), User.is_active == True).first()
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token_hash = hash_password(token)
+        user.reset_token_expires = datetime.utcnow() + timedelta(minutes=settings.reset_token_ttl_minutes)
+        db.commit()
+        reset_url = f"{settings.app_base_url}/?reset={token}&email={user.email}"
+        body = (f"Hi {user.name},\n\nWe received a request to reset your Fast Track password.\n"
+                f"Open this link to set a new password:\n\n{reset_url}\n\n"
+                f"The link expires in {settings.reset_token_ttl_minutes} minutes. "
+                f"If you didn't request this, you can ignore this email.")
+        method = send_email(user.email, "Fast Track — reset your password", body)
+        log.info("password_reset_requested", extra={"user_id": user.id, "delivery": method})
+    return {"ok": True, "message": "If that email is registered, a password reset link has been sent."}
+
+
+@router.post("/reset-password", status_code=204)
+@limiter.limit("10/minute")
+def reset_password(request: Request, payload: ResetPasswordIn, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == payload.email.lower()).first()
+    now = datetime.utcnow()
+    if (not user or not user.reset_token_hash or not user.reset_token_expires
+            or user.reset_token_expires < now
+            or not verify_password(payload.token, user.reset_token_hash)):
+        raise HTTPException(status_code=400, detail="Invalid or expired reset link. Please request a new one.")
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=400, detail="New password must be at least 8 characters")
+    user.password_hash = hash_password(payload.new_password)
+    user.reset_token_hash = None
+    user.reset_token_expires = None
+    user.must_change_password = False
+    db.commit()
+    log.info("password_reset_done", extra={"user_id": user.id})

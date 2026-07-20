@@ -53,6 +53,8 @@ def init_db():
         ("loading_lists", "tracking_status", "VARCHAR(24)"),
         ("loading_lists", "located_at", "TIMESTAMP"),
         ("loading_lists", "tracking_note", "TEXT"),
+        ("users", "reset_token_hash", "VARCHAR(255)"),
+        ("users", "reset_token_expires", "TIMESTAMP"),
     ]
     with engine.begin() as conn:
         for tbl, col, defn in add_column_if_missing:
