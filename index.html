@@ -4138,6 +4138,17 @@ body.layout-list .pagination { display: none; }
       create: (body) => fetchJSON('/api/rates', { method: 'POST', body: JSON.stringify(body) }),
       update: (id, patch) => fetchJSON('/api/rates/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
       remove: (id) => fetchJSON('/api/rates/' + id, { method: 'DELETE' }),
+      // Resolve the effective rate for an ADS code from the DB rate card (Stage 2.2
+      // rate-matrix loop). Code-only = baseline; pass ship/port to resolve
+      // vessel/port-specific overrides once seeded. Null/empty ship/port are skipped.
+      // Returns { ads_code, ship, port, found, rate, op, percent_surcharge, match, rate_card_id }.
+      lookup: (adsCode, ship, port) => {
+        const usp = new URLSearchParams();
+        usp.append('ads_code', adsCode);
+        if (ship !== undefined && ship !== null && ship !== '') usp.append('ship', ship);
+        if (port !== undefined && port !== null && port !== '') usp.append('port', port);
+        return fetchJSON('/api/rates/lookup?' + usp.toString());
+      },
     },
     audit: {
       list: (params) => {
@@ -15375,14 +15386,29 @@ function renderBuilderLines() {
         line.code = rate.code;
         line.desc = rate.desc;
         line.rate = rate.rate;
-        renderBuilderLines();
+        // Client ADS_RATES fill is an auto-fill (not a manual override). Update
+        // this row in place — no full re-render, so element refs and focus
+        // survive — then let the authoritative rate card refine the rate async.
+        line._rateAutofilled = true;
+        descSpan.textContent = line.desc || "—";
+        descSpan.title = line.desc || "";
+        rateInp.value = String(line.rate);
+        rateInp.dataset.autofilled = "1";
+        rateInp.title = "";
+        const tc = row.querySelector(".invc-line-row__total");
+        if (tc) tc.textContent = "$" + ((line.qty || 0) * (line.rate || 0)).toFixed(2);
         updateInvcSummary();
+        // Refine from the DB rate card (Stage 2.2 rate-matrix loop). Baseline
+        // lookup by code only for now; pass (code, vessel, port) here once the
+        // builder carries vessel/port context so ship/port rates auto-resolve.
+        applyCardRate(line, rateInp, row);
       }
     });
     row.appendChild(codeSel);
 
     // Description (text — shows ADS desc)
-    row.appendChild(el("span", { class: "invc-line-row__desc", text: line.desc || "—", title: line.desc }));
+    const descSpan = el("span", { class: "invc-line-row__desc", text: line.desc || "—", title: line.desc || "" });
+    row.appendChild(descSpan);
 
     // Qty
     const qtyInp = el("input", { type: "number", min: "1", value: String(line.qty || 1) });
@@ -15395,11 +15421,18 @@ function renderBuilderLines() {
     });
     row.appendChild(qtyInp);
 
-    // Rate (editable)
+    // Rate (editable — auto-filled from the rate card, but stays hand-editable)
     const rateInp = el("input", { type: "number", min: "0", step: "0.01", value: String(line.rate || 0) });
     rateInp.className = "invc-line-row__num";
+    // Preserve auto-filled state across re-renders (add/remove line, etc.).
+    if (line._rateAutofilled) rateInp.dataset.autofilled = "1";
     rateInp.addEventListener("input", () => {
       line.rate = parseFloat(rateInp.value) || 0;
+      // User typed a rate → manual override: protect it from any in-flight/late
+      // rate-card lookup and drop the "from card" hint.
+      line._rateAutofilled = false;
+      rateInp.dataset.autofilled = "";
+      rateInp.title = "";
       const totalCell = row.querySelector(".invc-line-row__total");
       if (totalCell) totalCell.textContent = "$" + ((line.qty || 0) * (line.rate || 0)).toFixed(2);
       updateInvcSummary();
@@ -15421,6 +15454,38 @@ function renderBuilderLines() {
 
     list.appendChild(row);
   });
+}
+
+/* Refine an invoice line's rate from the authoritative DB rate card (Stage 2.2).
+   Convenience only: fully async, failures swallowed, never blocks typing/submit.
+   Overrides the rate ONLY while it is still auto-filled (user hasn't hand-typed)
+   and only when the card returns a match; otherwise the existing rate is kept. */
+function applyCardRate(line, rateInp, row) {
+  if (!line || !line.code) return;
+  if (!(window.FT_API && window.FT_API.rates && window.FT_API.rates.lookup)) return;
+  const requestedCode = line.code;
+  // Ship/port context is not carried on invoice lines yet → baseline lookup by
+  // code only. TODO: pass vessel/port once the builder captures that context.
+  window.FT_API.rates.lookup(requestedCode)
+    .then(res => {
+      // Not in the card (or no rate) → leave the rate untouched.
+      if (!res || !res.found || res.rate === null || res.rate === undefined) return;
+      // Bail if the code changed again before this resolved, or the user has
+      // since hand-typed a rate (manual override wins over the lookup).
+      if (line.code !== requestedCode || res.ads_code !== requestedCode) return;
+      if (!rateInp || rateInp.dataset.autofilled !== "1") return;
+      const cardRate = Number(res.rate);
+      if (!isFinite(cardRate)) return;
+      line.rate = cardRate;
+      line._rateAutofilled = true;
+      rateInp.value = String(cardRate);
+      rateInp.dataset.autofilled = "1";
+      rateInp.title = "Rate auto-filled from rate card (" + (res.match || "baseline") + " match)";
+      const tc = row && row.querySelector(".invc-line-row__total");
+      if (tc) tc.textContent = "$" + ((line.qty || 0) * (line.rate || 0)).toFixed(2);
+      updateInvcSummary();
+    })
+    .catch(() => { /* lookup unavailable → silent; keep the hand/ADS_RATES rate */ });
 }
 
 function updateInvcSummary() {
