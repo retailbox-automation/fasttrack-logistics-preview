@@ -129,6 +129,36 @@ async def _auto_sync_loop():
         await asyncio.sleep(interval)
 
 
+async def _weekly_report_loop():
+    """Background: ensure the previous complete week's ops-report snapshot exists (Stage 4.1).
+    Wakes on a fixed cadence and generates last week's snapshot if missing (idempotent per week).
+    Mirrors the email auto-sync loop; errors are logged, never crash the app."""
+    if not settings.weekly_report_auto:
+        log.info("weekly_report_auto_disabled")
+        return
+    interval = settings.weekly_report_check_seconds
+    await asyncio.sleep(30)  # let the app settle after boot
+    while True:
+        try:
+            from datetime import date, timedelta
+            from app.routers.reports import generate_weekly_snapshot
+            last_week = date.today() - timedelta(days=7)
+
+            def _gen():
+                db = SessionLocal()
+                try:
+                    return generate_weekly_snapshot(db, last_week, generated_by="scheduler").id
+                finally:
+                    db.close()
+            sid = await asyncio.to_thread(_gen)
+            log.info("weekly_report_ensured", extra={"snapshot_id": sid})
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            log.exception("weekly_report_failed: %s", e)
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("lifespan_start")
@@ -142,12 +172,15 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         log.exception("db_init_failed: %s", e)
     sync_task = asyncio.create_task(_auto_sync_loop())
+    weekly_task = asyncio.create_task(_weekly_report_loop())
     yield
-    sync_task.cancel()
-    try:
-        await sync_task
-    except (asyncio.CancelledError, Exception):
-        pass
+    for t in (sync_task, weekly_task):
+        t.cancel()
+    for t in (sync_task, weekly_task):
+        try:
+            await t
+        except (asyncio.CancelledError, Exception):
+            pass
     log.info("lifespan_shutdown")
 
 

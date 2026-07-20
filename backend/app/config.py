@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     email_sync_interval_seconds: int = 300  # background auto-sync cadence (0 = disabled)
     email_sync_top: int = 25  # messages pulled per mailbox per cycle
 
+    # Weekly ops report auto-generation (Stage 4.1)
+    weekly_report_auto: bool = True                     # background scheduler on/off
+    weekly_report_check_seconds: int = 6 * 3600         # how often the scheduler wakes to check
+    weekly_report_recipients: str = ""                  # comma-separated emails (empty → snapshot only, no email)
+
     # Outbound email (password reset + notifications). Set SMTP_* via Zeabur env to enable
     # delivery; if unset, messages are logged (so the reset flow works + is retrievable).
     smtp_host: str = ""
@@ -48,6 +53,10 @@ class Settings(BaseSettings):
     @property
     def graph_mailbox_list(self) -> list[str]:
         return [m.strip() for m in self.ms_graph_mailboxes.split(",") if m.strip()]
+
+    @property
+    def weekly_report_recipient_list(self) -> list[str]:
+        return [m.strip() for m in self.weekly_report_recipients.split(",") if m.strip()]
 
 
 settings = Settings()

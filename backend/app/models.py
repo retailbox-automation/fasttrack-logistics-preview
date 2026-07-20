@@ -491,3 +491,19 @@ class RateCard(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ReportSnapshot(Base):
+    """A generated report saved at a point in time (Stage 4.1 auto-generation). Currently the
+    weekly ops report; deduped per (kind, period_start) so the scheduler is idempotent."""
+    __tablename__ = "report_snapshots"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(24), default="weekly", index=True)
+    period_start: Mapped[Optional[date]] = mapped_column(Date, index=True, nullable=True)
+    period_end: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    payload: Mapped[dict] = mapped_column(JSON)           # the full report body
+    delivery: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)   # smtp | log | none
+    recipients: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    generated_by: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)  # user, or 'scheduler'
+    generated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)

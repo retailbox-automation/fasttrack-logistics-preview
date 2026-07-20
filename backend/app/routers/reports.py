@@ -10,15 +10,17 @@ defaults to the current week). Manager/admin.
 """
 from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import graph
 from app.config import settings
 from app.database import get_db
+from app.email_send import send_email
 from app.models import (LoadingList, WarehouseReceipt, Invoice, CreditMemo, CustomsRecord,
-                        TimeEntry, AuditLog, InventoryItem, EmailMessage, DiscrepancyReport)
+                        TimeEntry, AuditLog, InventoryItem, EmailMessage, DiscrepancyReport,
+                        ReportSnapshot)
 from app.auth import require_roles, require_auth
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -41,6 +43,10 @@ def weekly(start: str | None = Query(default=None), db: Session = Depends(get_db
         wk_start = _monday(date.fromisoformat(start)) if start else _monday(date.today())
     except (ValueError, TypeError):
         wk_start = _monday(date.today())
+    return _compute_weekly(db, wk_start)
+
+
+def _compute_weekly(db: Session, wk_start: date) -> dict:
     wk_end = wk_start + timedelta(days=6)
 
     def in_d(d):
@@ -277,3 +283,86 @@ def monitoring(db: Session = Depends(get_db)):
         "exception_count": len(exceptions),
         "generated_at": now.isoformat() + "Z",
     }
+
+
+# ── Weekly report auto-generation + snapshots (Stage 4.1) ──
+
+def _weekly_email_text(p: dict) -> str:
+    wk = p.get("week", {}) or {}
+    d = p.get("dispatches", {}) or {}
+    r = p.get("receipts", {}) or {}
+    b = p.get("billing", {}) or {}
+    ex = p.get("exceptions", {}) or {}
+    return (
+        "Fast Track — Weekly Operations Report\n"
+        f"Week {wk.get('start')} to {wk.get('end')}\n\n"
+        f"Dispatches: {d.get('loads', 0)} loads · {d.get('vessels', 0)} vessels · {d.get('trucks', 0)} trucks\n"
+        f"Warehouse receipts: {r.get('count', 0)} ({r.get('pieces', 0)} pcs)\n"
+        f"Invoiced: ${b.get('invoiced_total', 0):,.2f} across {b.get('invoices', 0)} invoice(s)\n"
+        f"Open items: {ex.get('invoices_pending', 0)} invoice(s) pending · "
+        f"{ex.get('customs_open_or_hold', 0)} customs open/hold\n"
+    )
+
+
+def generate_weekly_snapshot(db: Session, wk_start: date | None = None, generated_by: str = "scheduler") -> ReportSnapshot:
+    """Compute the weekly report, persist it as a ReportSnapshot (deduped per week), and email
+    it if recipients are configured (logs when SMTP is unset). Idempotent per (weekly, period_start)."""
+    wk_start = _monday(wk_start or date.today())
+    wk_end = wk_start + timedelta(days=6)
+    existing = (db.query(ReportSnapshot)
+                .filter(ReportSnapshot.kind == "weekly", ReportSnapshot.period_start == wk_start).first())
+    if existing:
+        return existing
+    payload = _compute_weekly(db, wk_start)
+    recipients = settings.weekly_report_recipient_list
+    delivery = "none"
+    if recipients:
+        delivery = send_email(", ".join(recipients),
+                              f"Fast Track — weekly ops report ({wk_start.isoformat()})",
+                              _weekly_email_text(payload))
+    snap = ReportSnapshot(kind="weekly", period_start=wk_start, period_end=wk_end, payload=payload,
+                          delivery=delivery, recipients=(", ".join(recipients) if recipients else None),
+                          generated_by=generated_by)
+    db.add(snap)
+    db.commit()
+    db.refresh(snap)
+    return snap
+
+
+def _snap_out(s: ReportSnapshot, include_payload: bool = False) -> dict:
+    out = {"id": s.id, "kind": s.kind,
+           "period_start": s.period_start.isoformat() if s.period_start else None,
+           "period_end": s.period_end.isoformat() if s.period_end else None,
+           "delivery": s.delivery, "recipients": s.recipients, "generated_by": s.generated_by,
+           "generated_at": s.generated_at.isoformat() + "Z"}
+    if include_payload:
+        out["payload"] = s.payload
+    return out
+
+
+@router.post("/weekly/generate")
+def generate_weekly(start: str | None = Query(default=None), db: Session = Depends(get_db),
+                    claims: dict = Depends(require_roles("admin", "manager"))):
+    """Generate + save (and email, if recipients set) a weekly snapshot. Defaults to LAST
+    complete week. Idempotent — returns the existing snapshot if that week is already saved."""
+    try:
+        wk_start = _monday(date.fromisoformat(start)) if start else _monday(date.today() - timedelta(days=7))
+    except (ValueError, TypeError):
+        wk_start = _monday(date.today() - timedelta(days=7))
+    snap = generate_weekly_snapshot(db, wk_start, generated_by=(claims.get("name") or "manual"))
+    return _snap_out(snap, include_payload=True)
+
+
+@router.get("/snapshots", dependencies=[Depends(require_roles("admin", "manager"))])
+def snapshots(kind: str = Query(default="weekly"), limit: int = 20, db: Session = Depends(get_db)):
+    rows = (db.query(ReportSnapshot).filter(ReportSnapshot.kind == kind)
+            .order_by(ReportSnapshot.generated_at.desc()).limit(min(max(limit, 1), 100)).all())
+    return [_snap_out(s) for s in rows]
+
+
+@router.get("/snapshots/{snap_id}", dependencies=[Depends(require_roles("admin", "manager"))])
+def snapshot_detail(snap_id: int, db: Session = Depends(get_db)):
+    s = db.get(ReportSnapshot, snap_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    return _snap_out(s, include_payload=True)
