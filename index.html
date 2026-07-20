@@ -4513,6 +4513,16 @@ html.ft-driver-mode .app { display: none !important; }
       report: (qs) => fetchJSON('/api/time/report' + (qs || '')),
       correct: (id, patch) => fetchJSON('/api/time/entries/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
     },
+    // AI (Anthropic-backed) — Email AI + note normalization. status() is safe to poll
+    // (200 always, no AI call). The other calls return 503 until the API key is set on
+    // the backend, and 502 on an AI failure; fetchJSON surfaces both as "API <status>: <body>".
+    ai: {
+      status: () => fetchJSON('/api/ai/status'),
+      summarizeEmail: (subject, body) => fetchJSON('/api/ai/summarize-email', { method: 'POST', body: JSON.stringify({ subject, body }) }),
+      draftReply: (subject, body, context) => fetchJSON('/api/ai/draft-reply', { method: 'POST', body: JSON.stringify({ subject, body, context: context || '' }) }),
+      normalizeNote: (note) => fetchJSON('/api/ai/normalize-note', { method: 'POST', body: JSON.stringify({ note }) }),
+      matchRemittance: (email_body) => fetchJSON('/api/ai/match-remittance', { method: 'POST', body: JSON.stringify({ email_body }) }),
+    },
     // Reference/lookup data (vessels/ports/departments/service_codes). Dropdowns can
     // adopt this with their hardcoded list as fallback — not rewired yet (low-risk).
     reference: (kind) => fetchJSON('/api/reference/' + encodeURIComponent(kind)),
@@ -10221,6 +10231,189 @@ function setupInbox() {
   });
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   EMAIL AI  ·  summarize + draft reply (client's #1 priority)
+   Backend: /api/ai/*. Human-in-the-loop — drafts are shown for a person to
+   review/copy, never auto-sent. Gated on /api/ai/status so the buttons show a
+   "pending key" state until the Anthropic API key is set on the backend, then
+   light up automatically on the next status re-check (app load + inbox entry).
+   ═══════════════════════════════════════════════════════════════════ */
+
+// Cached gate — default false until status() confirms the key is configured.
+function ftAiConfigured() { return window.__ftAiConfigured === true; }
+
+// Poll /api/ai/status (safe: 200 always, no AI call) and cache the result. When
+// rerender is truthy and the inbox is open, rebuild the open email so the AI
+// buttons flip between "pending key" and active without a manual refresh.
+async function ftAiRefreshStatus(rerender) {
+  if (!(window.FT_API && window.FT_API.ai)) { window.__ftAiConfigured = false; return false; }
+  try {
+    const s = await window.FT_API.ai.status();
+    window.__ftAiConfigured = !!(s && s.configured);
+  } catch (e) {
+    window.__ftAiConfigured = false;  // 403 / network / etc → treat as not-enabled
+  }
+  if (rerender && document.body.classList.contains("view-inbox")) {
+    try { const em = EMAILS[selectedEmailIdx]; if (em) buildInboxDetail(em); } catch (e) {}
+  }
+  return window.__ftAiConfigured;
+}
+
+// Extract the backend {detail:...} message from a fetchJSON error, whose message
+// is "API <status>: <body>". Returns { status, detail }.
+function ftAiParseError(e) {
+  const raw = (e && e.message) || "AI request failed";
+  const m = raw.match(/^API\s+(\d+):\s*([\s\S]*)$/);
+  let status = 0, detail = raw;
+  if (m) {
+    status = parseInt(m[1], 10);
+    detail = m[2] || raw;
+    try { const j = JSON.parse(m[2]); if (j && j.detail) detail = j.detail; } catch (_) {}
+  }
+  return { status: status, detail: detail };
+}
+
+// Toast the backend detail (never crash). On a 503 (key not set) reconcile the
+// gate so the buttons drop back to the "pending key" state.
+function ftAiHandleError(e) {
+  const p = ftAiParseError(e);
+  if (window.ftToast) ftToast(p.detail, "warn");
+  if (p.status === 503) { window.__ftAiConfigured = false; ftAiRefreshStatus(true); }
+}
+
+// One structured fact row, matching the existing .ai-fact styling.
+function ftAiFact(type, label, value) {
+  const row = el("div", { class: "ai-fact" });
+  const icon = type === "ok" ? "✓" : type === "warn" ? "!" : "ⓘ";
+  row.appendChild(el("span", { class: "ai-fact__icon ai-fact__icon--" + type, text: icon }));
+  const txt = el("span", { class: "ai-fact__text" });
+  if (label) txt.appendChild(el("strong", { text: label + " " }));
+  txt.appendChild(document.createTextNode(value == null || value === "" ? "—" : String(value)));
+  row.appendChild(txt);
+  return row;
+}
+
+const FT_AI_URGENCY_COLOR = { high: "var(--crit)", medium: "var(--warn)", low: "var(--ok)" };
+
+// AI actions toolbar shown in the email detail. Present in both states; when the
+// key isn't configured the buttons are disabled with an explanatory hint.
+function ftBuildEmailAiActions(email) {
+  const configured = ftAiConfigured();
+  const wrap = el("div", { class: "ai-actions", style: "margin-top:20px;" });
+
+  const bar = el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap;" });
+  const sumBtn = el("button", {
+    class: "draft-reply__btn",
+    text: configured ? "✨ AI summary" : "✨ AI summary (pending key)",
+    title: configured ? "Summarize this email with AI" : "AI not enabled yet — awaiting Anthropic API key",
+  });
+  const draftBtn = el("button", {
+    class: "draft-reply__btn",
+    text: configured ? "✍ Draft reply" : "✍ Draft reply (pending key)",
+    title: configured ? "Generate a draft reply for a person to review" : "AI not enabled yet — awaiting Anthropic API key",
+  });
+  if (!configured) {
+    [sumBtn, draftBtn].forEach(b => { b.disabled = true; b.style.opacity = "0.55"; b.style.cursor = "not-allowed"; });
+  }
+  bar.appendChild(sumBtn);
+  bar.appendChild(draftBtn);
+  if (!configured) {
+    bar.appendChild(el("span", { style: "font-family:var(--font-mono);font-size:10px;color:var(--text-dim);", text: "AI not enabled yet — awaiting Anthropic API key" }));
+  }
+  wrap.appendChild(bar);
+
+  // Inline results render here (summary above, draft below).
+  const results = el("div", { class: "ai-actions__results" });
+  wrap.appendChild(results);
+
+  sumBtn.addEventListener("click", () => ftAiRunSummary(email, sumBtn, results));
+  draftBtn.addEventListener("click", () => ftAiRunDraft(email, draftBtn, results));
+  return wrap;
+}
+
+// ✨ AI summary → summary + color-coded urgency + category + suggested next action, inline.
+async function ftAiRunSummary(email, btn, results) {
+  const prev = document.getElementById("ai-summary-out");
+  if (prev) prev.remove();
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "✨ Summarizing…";
+  try {
+    const r = await window.FT_API.ai.summarizeEmail(email.subject || "", email.body || "") || {};
+    const box = el("div", { id: "ai-summary-out", class: "ai-block", style: "margin-top:16px;" });
+    const out = el("div", { class: "ai-output" });
+    out.appendChild(el("span", { class: "ai-output__label", text: "AI · email summary" }));
+
+    const head = el("div", { style: "display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;" });
+    const urg = (r.urgency || "").toLowerCase();
+    if (urg) head.appendChild(el("span", {
+      style: "font-family:var(--font-mono);font-size:10px;padding:2px 9px;border-radius:10px;color:#fff;letter-spacing:.04em;background:" + (FT_AI_URGENCY_COLOR[urg] || "var(--text-dim)") + ";",
+      text: "Urgency: " + urg.toUpperCase(),
+    }));
+    if (r.category) head.appendChild(el("span", {
+      style: "font-family:var(--font-mono);font-size:10px;padding:2px 9px;border-radius:10px;color:var(--accent-bright);border:1px solid var(--border-accent);",
+      text: String(r.category),
+    }));
+    if (r.language) head.appendChild(el("span", {
+      style: "font-family:var(--font-mono);font-size:10px;padding:2px 9px;border-radius:10px;color:var(--text-dim);border:1px solid var(--border);",
+      text: String(r.language).toUpperCase(),
+    }));
+    if (r.is_request === true) head.appendChild(el("span", {
+      style: "font-family:var(--font-mono);font-size:10px;padding:2px 9px;border-radius:10px;color:var(--text-dim);border:1px solid var(--border);",
+      text: "Needs reply",
+    }));
+    if (head.childNodes.length) out.appendChild(head);
+
+    if (r.summary) out.appendChild(ftAiFact("info", "Summary:", r.summary));
+    if (r.next_action) out.appendChild(ftAiFact(urg === "high" ? "warn" : "ok", "Suggested next action:", r.next_action));
+    if (!r.summary && !r.next_action && !head.childNodes.length) out.appendChild(ftAiFact("info", "", "No summary returned."));
+    box.appendChild(out);
+    results.insertBefore(box, results.firstChild);
+  } catch (e) {
+    ftAiHandleError(e);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+// ✍ Draft reply → editable textarea + Copy (human-in-the-loop; NOT auto-sent).
+async function ftAiRunDraft(email, btn, results) {
+  const prev = document.getElementById("ai-draft-out");
+  if (prev) prev.remove();
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = "✍ Drafting…";
+  try {
+    const r = await window.FT_API.ai.draftReply(email.subject || "", email.body || "") || {};
+    const box = el("div", { id: "ai-draft-out", class: "draft-reply", style: "margin-top:24px;" });
+    box.appendChild(el("div", { class: "draft-reply__hint", text: "AI-generated draft — review and edit before sending. Your team always decides. This is not sent automatically." }));
+    const ta = el("textarea", { class: "draft-reply__textarea" });
+    ta.value = r.draft || "";
+    box.appendChild(ta);
+
+    const actions = el("div", { class: "draft-reply__actions" });
+    actions.appendChild(el("span", { class: "draft-reply__status", text: "Draft · for human review" }));
+    const copyBtn = el("button", { class: "draft-reply__btn", text: "Copy" });
+    copyBtn.addEventListener("click", () => {
+      const done = () => { if (window.ftToast) ftToast("Draft copied to clipboard", "ok"); };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(ta.value).then(done).catch(() => { ta.select(); try { document.execCommand("copy"); done(); } catch (e2) {} });
+        } else { ta.select(); document.execCommand("copy"); done(); }
+      } catch (e2) { ta.select(); }
+    });
+    const regenBtn = el("button", { class: "draft-reply__btn", text: "Regenerate" });
+    regenBtn.addEventListener("click", () => ftAiRunDraft(email, btn, results));
+    actions.appendChild(copyBtn);
+    actions.appendChild(regenBtn);
+    box.appendChild(actions);
+    results.appendChild(box);
+    try { ta.focus(); } catch (e) {}
+  } catch (e) {
+    ftAiHandleError(e);
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
 function buildInboxDetail(email) {
   const root = document.getElementById("inbox-detail");
   while (root.firstChild) root.removeChild(root.firstChild);
@@ -10267,6 +10460,10 @@ function buildInboxDetail(email) {
   }
 
   root.appendChild(el("div", { class: "inbox-detail__body", text: email.body }));
+
+  // Email AI — on-demand summary + draft reply (client's #1 priority). Gated on
+  // /api/ai/status; degrades to a "pending key" state until the Anthropic key lands.
+  root.appendChild(ftBuildEmailAiActions(email));
 
   // Key-facts block — AI when processed, otherwise rule-based auto-classification
   if (email.aiSummary && email.aiSummary.length) {
@@ -11347,6 +11544,9 @@ function switchView(view) {
   if (view === "rates") renderRates();
   if (view === "inventory_alerts") renderInventoryAlerts();
   if (view === "truck_tracking") renderTruckTracking();
+  // Re-probe AI availability on inbox entry so the Email AI buttons flip from
+  // "pending key" to active automatically once the Anthropic key is set.
+  if (view === "inbox") { try { ftAiRefreshStatus(true); } catch (e) {} }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -19208,6 +19408,9 @@ setInterval(tickClock, 1000);
     if (!window.FT_API) return;
     // Refresh the user chip / permission display with the real signed-in user
     try { if (typeof applyUserChip === "function") applyUserChip(); if (typeof renderUserSwitcher === "function") renderUserSwitcher(); } catch (e) {}
+    // Probe AI availability once on load so the Email AI buttons reflect the real
+    // key state (they render "pending key" until this resolves configured=true).
+    try { if (typeof ftAiRefreshStatus === "function") ftAiRefreshStatus(true); } catch (e) {}
     const tasks = [];
     // Inventory uses its dedicated endpoint + camelCase mapping
     tasks.push(window.FT_API.inventory.list().then(rows => {
