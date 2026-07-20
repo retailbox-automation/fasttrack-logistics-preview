@@ -4688,6 +4688,8 @@ html.ft-driver-mode .app { display: none !important; }
       kpis: () => fetchJSON('/api/reports/kpis'),
       // Read-only inventory watchlist → { alerts:[{severity,category,ref,message,age_days}], summary, generated_at }
       inventoryAlerts: () => fetchJSON('/api/reports/inventory-alerts'),
+      // System health + integration status + ranked operational exceptions (4.2)
+      monitoring: () => fetchJSON('/api/reports/monitoring'),
     },
     // In-transit truck loads (Stage 4.1 · live truck tracking). list() → rows;
     // update(id, patch) PATCHes {current_location?, tracking_status?, tracking_note?}
@@ -10756,12 +10758,58 @@ async function renderOpsKpi() {
     try {
       const data = await window.FT_API.reports.kpis();
       renderOpsKpiFromServer(body, data);
+      await okpiRenderMonitoring(body);  // prepend system-health & alerts (never throws)
       return;
     } catch (e) {
       console.warn("[Ops KPIs] server fetch failed — client-side fallback:", e);
     }
   }
   renderOpsKpiClientSide();
+}
+
+/* Prepend a system-health + alerts card to the KPIs view, fed by GET /api/reports/monitoring.
+   Never throws — on any error it silently no-ops so the KPIs below still render. (4.2) */
+async function okpiRenderMonitoring(body) {
+  if (!body || !(window.FT_API && window.FT_API.reports && window.FT_API.reports.monitoring)) return;
+  let m;
+  try { m = await window.FT_API.reports.monitoring(); } catch (e) { return; }
+  if (!m) return;
+  try {
+    const num = (n) => Number(n || 0);
+    const card = el("div", { class: "wr-card" });
+    card.appendChild(el("div", { class: "wr-section-title", text: "System health & alerts" }));
+
+    const ig = m.integrations || {};
+    const email = ig.email_ingest || {};
+    const stateLabel = { ok: "OK", stale: "Stale", idle: "Idle", not_configured: "Not configured" };
+    const grid = el("div", { class: "kpi-grid" });
+    grid.appendChild(_okpiTile("Email ingest", stateLabel[email.state] || (email.state || "—")));
+    grid.appendChild(_okpiTile("Emails · 24h", num(email.last_24h)));
+    grid.appendChild(_okpiTile("Newest email", email.newest_minutes == null ? "—" : (num(email.newest_minutes) + " min")));
+    grid.appendChild(_okpiTile("Database", ((ig.database || {}).state === "up") ? "Up" : "—"));
+    grid.appendChild(_okpiTile("Actions · 24h", num((m.audit || {}).last_24h)));
+    card.appendChild(grid);
+
+    const exc = Array.isArray(m.exceptions) ? m.exceptions : [];
+    const exTitle = el("div", { class: "wr-section-title", text: "Active alerts (" + exc.length + ")" });
+    exTitle.style.marginTop = "12px";
+    card.appendChild(exTitle);
+    if (!exc.length) {
+      card.appendChild(el("div", { class: "wr-pending", text: "No active alerts — all clear." }));
+    } else {
+      const dot = { high: "#dc2626", med: "#f59e0b", low: "#94a3b8" };
+      exc.forEach(e => {
+        const row = el("div", {});
+        row.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(148,163,184,.12);";
+        const d = el("span");
+        d.style.cssText = "flex:0 0 auto;width:9px;height:9px;border-radius:50%;background:" + (dot[e.severity] || dot.low) + ";";
+        row.appendChild(d);
+        row.appendChild(el("span", { text: (e.category ? (e.category + " · ") : "") + (e.message || "") }));
+        card.appendChild(row);
+      });
+    }
+    body.insertBefore(card, body.firstChild);  // health sits at the top
+  } catch (e) { /* never break the KPIs view */ }
 }
 
 /* Server-fed KPIs from GET /api/reports/kpis. Tiles (total actions / active users /
