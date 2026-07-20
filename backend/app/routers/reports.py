@@ -11,11 +11,14 @@ defaults to the current week). Manager/admin.
 from datetime import date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app import graph
+from app.config import settings
 from app.database import get_db
 from app.models import (LoadingList, WarehouseReceipt, Invoice, CreditMemo, CustomsRecord,
-                        TimeEntry, AuditLog, InventoryItem)
+                        TimeEntry, AuditLog, InventoryItem, EmailMessage, DiscrepancyReport)
 from app.auth import require_roles, require_auth
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -184,4 +187,84 @@ def inventory_alerts(db: Session = Depends(get_db)):
             "in_stock_items": len(items),
         },
         "generated_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@router.get("/monitoring", dependencies=[Depends(require_roles("admin", "manager"))])
+def monitoring(db: Session = Depends(get_db)):
+    """System health + integration status + audit coverage + operational exception signals (4.2).
+
+    A single 'is everything healthy' snapshot: are the integrations flowing, is the audit trail
+    being written, and what operational problems (open customs, rejected invoices, open
+    discrepancies, aging stock) need attention right now."""
+    now = datetime.utcnow()
+    day_ago = now - timedelta(hours=24)
+
+    # ── Integrations ──
+    newest_email = db.query(func.max(EmailMessage.received_at)).scalar()
+    email_age = int((now - newest_email).total_seconds() // 60) if newest_email else None
+    emails_24h = db.query(EmailMessage).filter(EmailMessage.received_at >= day_ago).count()
+    if not graph.is_configured():
+        email_state = "not_configured"
+    elif email_age is None:
+        email_state = "idle"
+    elif email_age < 60:
+        email_state = "ok"
+    else:
+        email_state = "stale"
+    integrations = {
+        "email_ingest": {"configured": graph.is_configured(), "newest_minutes": email_age,
+                         "last_24h": emails_24h, "state": email_state},
+        "database": {"state": "up"},
+    }
+
+    # ── Audit coverage ──
+    total_audit = db.query(AuditLog).count()
+    audit_24h_rows = db.query(AuditLog).filter(AuditLog.created_at >= day_ago).all()
+    by_action_24h: dict[str, int] = {}
+    users_24h = set()
+    for a in audit_24h_rows:
+        by_action_24h[a.action] = by_action_24h.get(a.action, 0) + 1
+        if a.user_name:
+            users_24h.add(a.user_name)
+    recent = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(15).all()
+    audit = {
+        "total": total_audit, "last_24h": len(audit_24h_rows), "active_users_24h": len(users_24h),
+        "by_action_24h": by_action_24h,
+        "recent": [{"at": a.created_at.isoformat() + "Z", "user": a.user_name or "—",
+                    "action": a.action, "entity": a.entity_kind, "entity_id": a.entity_id,
+                    "summary": a.summary} for a in recent],
+    }
+
+    # ── Operational exception signals ──
+    exceptions = []
+
+    def _exc(sev, category, count, message):
+        if count:
+            exceptions.append({"severity": sev, "category": category, "count": count, "message": message})
+
+    open_cust = db.query(CustomsRecord).filter(CustomsRecord.status.in_(["open", "hold"])).count()
+    _exc("high", "Customs", open_cust, f"{open_cust} customs record(s) open or on hold — may block dispatch")
+    rejected_inv = db.query(Invoice).filter(Invoice.status == "rejected").count()
+    _exc("high", "Billing", rejected_inv, f"{rejected_inv} invoice(s) rejected — need correction")
+    pending_inv = db.query(Invoice).filter(Invoice.status.in_(["draft", "pending_approval"])).count()
+    _exc("med", "Billing", pending_inv, f"{pending_inv} invoice(s) awaiting approval/send")
+    open_disc = db.query(DiscrepancyReport).filter(DiscrepancyReport.status == "open").count()
+    _exc("med", "Discrepancies", open_disc, f"{open_disc} discrepancy report(s) still open")
+    aging = sum(1 for it in db.query(InventoryItem).filter(InventoryItem.status == "in_stock").all()
+                if it.received_date and (date.today() - it.received_date).days >= _AGING_CRIT)
+    _exc("med", "Inventory", aging, f"{aging} item(s) aging in stock ≥ {_AGING_CRIT}d")
+    if email_state == "stale":
+        exceptions.append({"severity": "med", "category": "Integration", "count": 1,
+                           "message": f"Email ingest last updated {email_age} min ago"})
+    order = {"high": 0, "med": 1, "low": 2}
+    exceptions.sort(key=lambda e: order.get(e["severity"], 3))
+
+    return {
+        "system": {"version": settings.api_version, "server_time": now.isoformat() + "Z"},
+        "integrations": integrations,
+        "audit": audit,
+        "exceptions": exceptions,
+        "exception_count": len(exceptions),
+        "generated_at": now.isoformat() + "Z",
     }

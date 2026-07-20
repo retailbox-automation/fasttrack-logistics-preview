@@ -788,6 +788,9 @@ body.view-truck_tracking .pagination { display: none; }
 .trk-meta-value { font-size: 13px; color: var(--text, #0e1d2f); margin-top: 3px; word-break: break-word; }
 .trk-controls { display: flex; align-items: flex-end; gap: 10px; margin-top: 14px; flex-wrap: wrap; border-top: 1px solid var(--border, #e2e8f0); padding-top: 14px; }
 .trk-controls .pp-field { flex: 1; min-width: 140px; }
+.trk-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+#trk-map-wrap { margin-bottom: 18px; }
+#trk-map { height: 340px; width: 100%; border-radius: 10px; border: 1px solid var(--border, #e2e8f0); overflow: hidden; }
 
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 14px; }
 .kpi-tile { background: var(--bg-elevated, #fff); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
@@ -3591,6 +3594,56 @@ body.layout-list .pagination { display: none; }
   transition: background .15s;
 }
 .signout-btn:hover { background: rgba(0,0,0,.05); }
+
+/* ── Driver GPS-share page (pre-auth; ?driver=<token>&ll=<id>). Full-screen,
+   mobile-first, matches the sign-in look. Hides the app + auth gate when active. ── */
+#ft-driver {
+  position: fixed; inset: 0; z-index: 100000;
+  display: none;
+  align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: 24px 16px;
+  background: radial-gradient(circle at 30% 20%, #1a3a5f 0%, #0e1d2f 60%, #050b15 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+html.ft-driver-mode #ft-driver { display: flex; }
+html.ft-driver-mode #auth-gate { display: none !important; }
+html.ft-driver-mode .app { display: none !important; }
+#ft-driver .ftd-card {
+  background: #fff; width: 420px; max-width: 100%; box-sizing: border-box;
+  border-radius: 14px; padding: 28px 24px; margin: auto 0;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+#ft-driver .ftd-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+#ft-driver .ftd-title { font-size: 20px; font-weight: 800; color: #0e1d2f; letter-spacing: .5px; }
+#ft-driver .ftd-sub { font-size: 12.5px; color: #6b7280; margin: 2px 0 0; line-height: 1.5; }
+#ft-driver .ftd-load { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; margin: 16px 0 20px; }
+#ft-driver .ftd-load-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; padding: 5px 0; }
+#ft-driver .ftd-load-label { color: #6b7280; }
+#ft-driver .ftd-load-val { color: #0e1d2f; font-weight: 600; text-align: right; word-break: break-word; }
+#ft-driver .ftd-btn {
+  width: 100%; box-sizing: border-box; padding: 16px; border: none; border-radius: 10px;
+  font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px;
+  background: linear-gradient(135deg, #1e4d7b, #2d6da3); color: #fff;
+}
+#ft-driver .ftd-btn:disabled { opacity: .55; cursor: wait; }
+#ft-driver .ftd-btn--stop { background: #dc2626; }
+#ft-driver .ftd-status { font-size: 14px; color: #0e1d2f; line-height: 1.6; margin: 4px 0 0; }
+#ft-driver .ftd-status b { color: #047857; }
+#ft-driver .ftd-coords {
+  font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: #374151;
+  background: #f3f4f6; border-radius: 8px; padding: 10px 12px; margin-top: 12px; word-break: break-all;
+}
+#ft-driver .ftd-err {
+  margin-top: 14px; padding: 11px 13px; background: #fef2f2; color: #b91c1c;
+  border: 1px solid #fecaca; border-radius: 8px; font-size: 13px; line-height: 1.5;
+}
+#ft-driver .ftd-note { font-size: 11.5px; color: #9ca3af; text-align: center; margin-top: 18px; line-height: 1.5; }
+#ft-driver .ftd-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: #16a34a;
+  display: inline-block; margin-right: 7px; animation: ftdpulse 1.4s ease-in-out infinite;
+}
+@keyframes ftdpulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 </style>
 </head>
 <body>
@@ -3644,6 +3697,15 @@ body.layout-list .pagination { display: none; }
     <button type="submit" class="gate-submit" id="auth-gate-newpw-submit">Set password</button>
     <div class="gate-footer"><a href="#" id="auth-gate-newpw-forgot" class="gate-link" style="display:none;">Request a new reset link</a></div>
   </form>
+</div>
+
+<!-- Driver GPS-share page — shown INSTEAD of the app + auth gate when the URL has
+     ?driver=<token>&ll=<id>. Pre-auth (token in URL); the driver never sees login.
+     Content is rendered by initDriverPage() in the auth-gate script below. -->
+<div id="ft-driver">
+  <div class="ftd-card" id="ft-driver-card">
+    <div style="text-align:center;color:#6b7280;font-size:14px;padding:24px 0;">Loading…</div>
+  </div>
 </div>
 
 <!-- Sync status pill (top-right) -->
@@ -3956,6 +4018,168 @@ body.layout-list .pagination { display: none; }
         newpwSubmit.textContent = 'Set password';
       }
     };
+  }
+
+  /* ===== Driver GPS-share page (pre-auth; NO Authorization header) =====
+     Reached via ?driver=<token>&ll=<id>. Full-screen mobile page that watches the
+     device GPS and posts fixes to the pre-auth tracking endpoints. Mirrors the
+     password-reset fetch pattern (plain fetch, no Bearer token). */
+  function initDriverPage(llId, token) {
+    const card = document.getElementById('ft-driver-card');
+    if (!card) return;
+    const base = window.FT_API_BASE || '';
+    const driverPath = '/api/tracking/driver/' + encodeURIComponent(llId);
+    let watchId = null;      // geolocation watch handle
+    let lastSentMs = 0;      // throttle anchor: last POST attempt (ms epoch)
+    let lastAckMs = 0;       // last 204-acked send, for the "last sent" label
+    let stopped = false;     // true once the driver taps Stop / page hides
+    let loaded = null;       // last successful load payload (for re-render)
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+      });
+    }
+    function fmtTime(d) { try { return d.toLocaleTimeString([], { hour12: false }); } catch (e) { return ''; } }
+    function brand() { return '<div class="ftd-brand"><div class="ft-logo" style="height:38px;width:100px;"></div></div><div class="ftd-title">Fast Track</div>'; }
+    function loadRow(label, val) {
+      return '<div class="ftd-load-row"><span class="ftd-load-label">' + esc(label) +
+             '</span><span class="ftd-load-val">' + esc(val == null || val === '' ? '—' : val) + '</span></div>';
+    }
+    function showInlineError(msg) {
+      const e = document.getElementById('ftd-err');
+      if (e) { e.textContent = msg; e.style.display = 'block'; }
+    }
+
+    function renderLoading() {
+      card.innerHTML = '<div style="text-align:center;color:#6b7280;font-size:14px;padding:24px 0;">Loading…</div>';
+    }
+    function renderInvalid() {
+      stopSharing();
+      card.innerHTML = brand() +
+        '<div class="ftd-err" style="margin-top:16px;">This driver link is invalid or has expired. Ask the office for a new link.</div>';
+    }
+    function renderServerError(msg) {
+      card.innerHTML = brand() +
+        '<div class="ftd-err" style="margin-top:16px;">' + esc(msg) + '</div>' +
+        '<button class="ftd-btn" id="ftd-retry" style="margin-top:16px;">Try again</button>';
+      const rb = document.getElementById('ftd-retry');
+      if (rb) rb.onclick = fetchLoad;
+    }
+    function renderLoaded(d) {
+      card.innerHTML = brand() +
+        '<div class="ftd-sub">Share your location with the dispatch office while you drive.</div>' +
+        '<div class="ftd-load">' +
+          loadRow('Load', d.public_id) +
+          loadRow('Vessel', d.vessel) +
+          loadRow('Port', d.port) +
+          loadRow('Destination', d.destination) +
+        '</div>' +
+        '<button class="ftd-btn" id="ftd-start">Start sharing location</button>' +
+        '<div class="ftd-err" id="ftd-err" style="display:none;"></div>' +
+        '<div class="ftd-note">Your location is shared only while this page is open and you are sharing. ' +
+        'Tap Stop sharing or close this page to stop.</div>';
+      const startBtn = document.getElementById('ftd-start');
+      if (startBtn) startBtn.onclick = startSharing;
+    }
+    function renderSharing() {
+      card.innerHTML = brand() +
+        '<div class="ftd-status" id="ftd-status"><span class="ftd-dot"></span>Starting location sharing…</div>' +
+        '<div class="ftd-coords" id="ftd-coords">Waiting for GPS fix…</div>' +
+        '<button class="ftd-btn ftd-btn--stop" id="ftd-stop" style="margin-top:16px;">Stop sharing</button>' +
+        '<div class="ftd-err" id="ftd-err" style="display:none;"></div>';
+      const stopBtn = document.getElementById('ftd-stop');
+      if (stopBtn) stopBtn.onclick = function(){ stopSharing(); if (loaded) renderLoaded(loaded); };
+    }
+    function updateSharingUI(pos) {
+      const st = document.getElementById('ftd-status');
+      const co = document.getElementById('ftd-coords');
+      if (st) st.innerHTML = '<span class="ftd-dot"></span>Sharing location…' +
+        (lastAckMs ? (' last sent <b>' + esc(fmtTime(new Date(lastAckMs))) + '</b>') : '');
+      if (co && pos && pos.coords) {
+        const c = pos.coords;
+        co.textContent = 'Lat ' + c.latitude.toFixed(5) + '   Lng ' + c.longitude.toFixed(5) +
+          (c.accuracy != null ? ('   ±' + Math.round(c.accuracy) + ' m') : '');
+      }
+    }
+
+    function postPing(pos) {
+      lastSentMs = Date.now();  // optimistic anchor so rapid fixes don't burst
+      const c = pos.coords;
+      fetch(base + driverPath + '/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: token,
+          lat: c.latitude,
+          lng: c.longitude,
+          accuracy: (c.accuracy != null ? c.accuracy : null),
+          speed: (c.speed != null ? c.speed : null),
+          heading: (c.heading != null ? c.heading : null),
+        }),
+      }).then(function(resp){
+        if (resp.status === 204 || resp.ok) { lastAckMs = Date.now(); updateSharingUI(pos); }
+        else if (resp.status === 401) { renderInvalid(); }
+        else if (resp.status === 400) { /* bad coords — skip this fix, keep watching */ }
+      }).catch(function(){ /* offline — retry on next due fix */ });
+    }
+    function onFix(pos) {
+      if (stopped) return;
+      const now = Date.now();
+      if (lastSentMs === 0 || (now - lastSentMs) >= 10000) postPing(pos);  // ≤ 1 POST / 10s, immediate first
+      updateSharingUI(pos);
+    }
+    function onErr(err) {
+      if (err && err.code === 1) {
+        if (loaded) renderLoaded(loaded);
+        showInlineError('Location permission was denied. Please allow location access for this page, then tap Start sharing location.');
+      } else {
+        showInlineError('Could not get your location' + (err && err.message ? (': ' + err.message) : '') + '. Trying again…');
+      }
+    }
+    function startSharing() {
+      if (!('geolocation' in navigator)) { showInlineError('This device or browser does not support location sharing.'); return; }
+      stopped = false; lastSentMs = 0; lastAckMs = 0;
+      renderSharing();
+      try {
+        watchId = navigator.geolocation.watchPosition(onFix, onErr, {
+          enableHighAccuracy: true, maximumAge: 5000, timeout: 20000,
+        });
+      } catch (e) { showInlineError('Could not start location sharing: ' + e.message); }
+    }
+    function stopSharing() {
+      stopped = true;
+      if (watchId != null && navigator.geolocation) { try { navigator.geolocation.clearWatch(watchId); } catch (e) {} }
+      watchId = null;
+    }
+    function fetchLoad() {
+      renderLoading();
+      fetch(base + driverPath + '?token=' + encodeURIComponent(token), {
+        headers: { 'Content-Type': 'application/json' },
+      }).then(async function(resp){
+        if (resp.status === 401) { renderInvalid(); return; }
+        if (!resp.ok) { renderServerError('Could not load this link (' + resp.status + '). Please try again.'); return; }
+        const d = await resp.json();
+        loaded = d;
+        renderLoaded(d);
+      }).catch(function(err){ renderServerError('Cannot reach the server: ' + err.message); });
+    }
+
+    window.addEventListener('pagehide', stopSharing);
+    fetchLoad();
+  }
+
+  // A driver GPS-share link takes priority over BOTH the emailed reset link and
+  // login — the driver must never see the sign-in screen. Additive: leaves the
+  // normal login / reset paths below untouched for everyone else.
+  const _driverToken = qs.get('driver');
+  const _driverLL = qs.get('ll');
+  if (_driverToken && _driverLL) {
+    window.FT_DRIVER_MODE = true;
+    document.documentElement.classList.add('ft-driver-mode');
+    gate.classList.add('hidden');
+    initDriverPage(_driverLL, _driverToken);
+    return;
   }
 
   // Initial gate check — an emailed reset link (?reset=&email=) takes priority.
@@ -4471,6 +4695,10 @@ body.layout-list .pagination { display: none; }
     tracking: {
       list: () => fetchJSON('/api/tracking'),
       update: (id, patch) => fetchJSON('/api/tracking/' + id, { method: 'PATCH', body: JSON.stringify(patch) }),
+      // Mint a pre-auth driver share link (admin/manager) → { driver_url, public_id, expires_in_minutes }.
+      driverLink: (id) => fetchJSON('/api/tracking/' + id + '/driver-link', { method: 'POST' }),
+      // GPS breadcrumb trail for one load, oldest→newest → [{lat,lng,recorded_at,speed}].
+      trail: (id) => fetchJSON('/api/tracking/' + id + '/trail'),
     },
     fromBackend, toBackend,
     fromInvoiceBackend, toInvoiceBackend,
@@ -5444,6 +5672,9 @@ body.layout-list .pagination { display: none; }
           <button class="btn btn--ghost" id="trk-refresh">↻ Refresh</button>
         </div>
       </div>
+      <!-- Live map (Leaflet, lazy-loaded when this view first opens). Hidden until
+           the library loads; if it fails to load the cards below still render. -->
+      <div id="trk-map-wrap" style="display:none;"><div id="trk-map"></div></div>
       <div id="trk-root"></div>
     </section>
   </main>
@@ -10944,6 +11175,8 @@ function switchView(view) {
   }
   document.body.classList.remove("view-inbox", "view-dashboard", "view-inventory", "view-receiving", "view-loading_lists", "view-customs", "view-discrepancies", "view-crunchtime", "view-barcoding", "view-pick_pack", "view-invoices", "view-sdr", "view-credit_memos", "view-soa", "view-msc_audit", "view-timetracking", "view-weekly_report", "view-ops_kpi", "view-rates", "view-inventory_alerts", "view-truck_tracking");
   document.body.classList.add("view-" + view);
+  // Leaving any view stops the truck-tracking auto-refresh; renderTruckTracking restarts it when entered.
+  if (typeof trkStopAutoRefresh === "function") trkStopAutoRefresh();
   if (view === "receiving") renderReceiving();
   if (view === "customs") renderCustoms();
   if (view === "timetracking") renderTimeTracking();
@@ -11301,6 +11534,10 @@ function trkStatusLabel(st) {
   return m[st] || (st || "—");
 }
 
+// Live-map state (Leaflet is lazy-loaded on first open — see trkLoadLeaflet).
+let _trkMap = null, _trkMarkers = {}, _trkTrailLayer = null, _trkFitDone = false;
+let _trkTimer = null, _trkLeafletPromise = null;
+
 async function renderTruckTracking() {
   const root = document.getElementById("trk-root");
   if (!root) return;
@@ -11326,14 +11563,17 @@ async function renderTruckTracking() {
     root.replaceChildren(el("div", { class: "pp-empty", text: "Could not load truck tracking: " + e.message }));
     return;
   }
-  trkRenderList(root, Array.isArray(rows) ? rows : []);
+  rows = Array.isArray(rows) ? rows : [];
+  trkRenderList(root, rows);
+  trkSyncMap(rows);            // draw/update GPS markers (Leaflet lazy-loads here)
+  trkStartAutoRefresh();       // keep list + markers fresh while the view is open
 }
 
 function trkRenderList(root, rows) {
   while (root.firstChild) root.removeChild(root.firstChild);
 
   root.appendChild(el("div", { class: "trk-note", text:
-    "Manual location entry for now. Live GPS / AirTag feed is a future source." }));
+    "Enter locations manually, or send a driver a \"Driver link\" so their phone shares live GPS onto the map above." }));
 
   if (!rows.length) {
     root.appendChild(el("div", { class: "pp-empty", text: "No loads in transit." }));
@@ -11374,6 +11614,13 @@ function trkCard(r) {
 
   if (r.tracking_note) card.appendChild(el("div", { class: "trk-note-line", text: "Note: " + r.tracking_note }));
 
+  // Live-GPS actions: hand the driver a share link, or draw this load's trail on the map.
+  const linkBtn = el("button", { class: "pp-btn pp-btn--ghost", text: "Driver link" });
+  linkBtn.addEventListener("click", () => trkDriverLink(r.id, linkBtn));
+  const routeBtn = el("button", { class: "pp-btn pp-btn--ghost", text: "Show route" });
+  routeBtn.addEventListener("click", () => trkShowRoute(r.id, routeBtn));
+  card.appendChild(el("div", { class: "trk-actions" }, [linkBtn, routeBtn]));
+
   // Update control (manual location / tracking status / note)
   const locInput = el("input", { class: "pp-input", type: "text", placeholder: "Current location", value: r.current_location || "" });
   const statusSel = el("select", { class: "pp-input" }, [el("option", { value: "", text: "— status —" })].concat(
@@ -11411,6 +11658,159 @@ async function trkUpdate(id, patch, btn) {
     if (window.ftToast) ftToast("Update failed: " + e.message, "error");
     if (btn) btn.disabled = false;
   }
+}
+
+// Lazy-load Leaflet from CDN the first time the tracking view needs a map. The app
+// is otherwise dependency-light, so we inject the CSS + JS at runtime (guarded against
+// double injection) and resolve with window.L. Rejects if the CDN can't be reached.
+function trkLoadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  if (_trkLeafletPromise) return _trkLeafletPromise;
+  _trkLeafletPromise = new Promise(function (resolve, reject) {
+    if (!document.getElementById("trk-leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "trk-leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+    let s = document.getElementById("trk-leaflet-js");
+    if (s) {
+      if (window.L) { resolve(window.L); return; }
+      s.addEventListener("load", function () { resolve(window.L); });
+      s.addEventListener("error", function () { reject(new Error("Leaflet failed to load")); });
+      return;
+    }
+    s = document.createElement("script");
+    s.id = "trk-leaflet-js";
+    s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    s.onload = function () { resolve(window.L); };
+    s.onerror = function () { reject(new Error("Leaflet failed to load")); };
+    document.head.appendChild(s);
+  });
+  return _trkLeafletPromise;
+}
+
+// Popup content for a marker — built as DOM (never HTML strings) so staff-entered
+// text can't inject markup.
+function trkPopupNode(r) {
+  const bits = [r.truck ? ("Truck " + r.truck) : null, r.driver, r.current_location].filter(Boolean).join(" · ");
+  return el("div", {}, [
+    el("strong", { text: r.vessel || r.public_id || "Load" }),
+    bits ? el("div", { text: bits }) : null,
+  ]);
+}
+
+// Draw/update one marker per load that has current_lat/current_lng. Reuses existing
+// markers (so 15s refreshes don't flicker), removes stale ones, and fits bounds once.
+// If Leaflet can't load, the map area is hidden and the cards still render.
+async function trkSyncMap(rows) {
+  const wrap = document.getElementById("trk-map-wrap");
+  if (!wrap) return;
+  const located = (rows || []).filter(function (r) { return r.current_lat != null && r.current_lng != null; });
+  let L;
+  try { L = await trkLoadLeaflet(); } catch (e) { wrap.style.display = "none"; return; }
+  if (!L) { wrap.style.display = "none"; return; }
+  wrap.style.display = "";
+  if (!_trkMap) {
+    _trkMap = L.map("trk-map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(_trkMap);
+    _trkMap.setView([25.9, -80.2], 9);  // default: Miami area until real fixes arrive
+  }
+  const seen = {};
+  located.forEach(function (r) {
+    seen[r.id] = true;
+    const pos = [r.current_lat, r.current_lng];
+    if (_trkMarkers[r.id]) {
+      _trkMarkers[r.id].setLatLng(pos);
+      _trkMarkers[r.id].setPopupContent(trkPopupNode(r));
+    } else {
+      _trkMarkers[r.id] = L.marker(pos).addTo(_trkMap).bindPopup(trkPopupNode(r));
+    }
+  });
+  Object.keys(_trkMarkers).forEach(function (id) {
+    if (!seen[id]) { _trkMap.removeLayer(_trkMarkers[id]); delete _trkMarkers[id]; }
+  });
+  if (!_trkFitDone && located.length) {
+    try {
+      _trkMap.fitBounds(L.latLngBounds(located.map(function (r) { return [r.current_lat, r.current_lng]; })),
+        { padding: [40, 40], maxZoom: 13 });
+    } catch (e) {}
+    _trkFitDone = true;
+  }
+  setTimeout(function () { try { _trkMap.invalidateSize(); } catch (e) {} }, 0);
+}
+
+// Draw one load's GPS breadcrumb trail as a polyline and fit the map to it.
+async function trkShowRoute(id, btn) {
+  if (!trkApi()) { if (window.ftToast) ftToast("Backend not connected", "error"); return; }
+  let L;
+  try { L = await trkLoadLeaflet(); } catch (e) { if (window.ftToast) ftToast("Map unavailable", "error"); return; }
+  if (!_trkMap) await trkSyncMap([]);   // create the map if it doesn't exist yet
+  if (!_trkMap) { if (window.ftToast) ftToast("Map unavailable", "error"); return; }
+  if (btn) btn.disabled = true;
+  let trail;
+  try {
+    trail = await trkApi().trail(id);
+  } catch (e) {
+    if (window.ftToast) ftToast("Could not load route: " + e.message, "error");
+    if (btn) btn.disabled = false;
+    return;
+  }
+  if (btn) btn.disabled = false;
+  trail = Array.isArray(trail) ? trail : [];
+  if (!trail.length) { if (window.ftToast) ftToast("No route points yet for this load", "info"); return; }
+  const pts = trail.map(function (p) { return [p.lat, p.lng]; });
+  if (_trkTrailLayer) { try { _trkMap.removeLayer(_trkTrailLayer); } catch (e) {} _trkTrailLayer = null; }
+  _trkTrailLayer = L.polyline(pts, { color: "#1e4d7b", weight: 4, opacity: 0.85 }).addTo(_trkMap);
+  const wrap = document.getElementById("trk-map-wrap");
+  if (wrap) wrap.style.display = "";
+  try { _trkMap.fitBounds(_trkTrailLayer.getBounds(), { padding: [30, 30] }); } catch (e) {}
+  setTimeout(function () { try { _trkMap.invalidateSize(); } catch (e) {} }, 0);
+}
+
+// Mint a pre-auth driver share link and copy it to the clipboard (prompt fallback).
+async function trkDriverLink(id, btn) {
+  if (!trkApi()) { if (window.ftToast) ftToast("Backend not connected", "error"); return; }
+  if (btn) btn.disabled = true;
+  try {
+    const res = await trkApi().driverLink(id);
+    const url = res && res.driver_url ? res.driver_url : "";
+    if (!url) throw new Error("No link returned");
+    let copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(url); copied = true; }
+    } catch (e) { copied = false; }
+    if (copied) { if (window.ftToast) ftToast("Driver link copied — send it to the driver", "ok"); }
+    else { window.prompt("Copy this driver link and send it to the driver:", url); }
+  } catch (e) {
+    if (window.ftToast) ftToast("Could not create driver link: " + e.message, "error");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Auto-refresh list + markers every ~15s while the tracking view is open.
+function trkStartAutoRefresh() {
+  if (_trkTimer) return;
+  _trkTimer = setInterval(trkAutoRefresh, 15000);
+}
+function trkStopAutoRefresh() {
+  if (_trkTimer) { clearInterval(_trkTimer); _trkTimer = null; }
+}
+async function trkAutoRefresh() {
+  if (!document.body.classList.contains("view-truck_tracking")) { trkStopAutoRefresh(); return; }
+  const root = document.getElementById("trk-root");
+  if (!root || !trkApi()) return;
+  let rows;
+  try { rows = await trkApi().list(); } catch (e) { return; }  // stay quiet on a background refresh
+  rows = Array.isArray(rows) ? rows : [];
+  trkSyncMap(rows);
+  // Don't clobber a dispatcher who is mid-edit — only re-render cards when focus is elsewhere.
+  if (!root.contains(document.activeElement)) trkRenderList(root, rows);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -18542,7 +18942,9 @@ setInterval(tickClock, 1000);
     }).catch(() => {});
   };
 
-  if (localStorage.getItem('ft_jwt')) {
+  if (window.FT_DRIVER_MODE) {
+    // Driver GPS-share page — do NOT boot the operations app or open SSE.
+  } else if (localStorage.getItem('ft_jwt')) {
     setTimeout(() => { loadAll(); window.ftRealtime && window.ftRealtime.connect(); }, 80);
   } else {
     document.addEventListener('ft-auth-ready', () => setTimeout(() => { loadAll(); window.ftRealtime && window.ftRealtime.connect(); }, 80), { once: true });

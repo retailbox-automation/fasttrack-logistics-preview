@@ -66,6 +66,26 @@ class LoadingList(Base):
     tracking_status: Mapped[Optional[str]] = mapped_column(String(24), nullable=True)  # staged|en_route|at_port|delivered
     located_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     tracking_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Driver-mode GPS: phone streams geolocation via a per-load share token (no login).
+    # Token is a 256-bit random value stored as a SHA-256 hex digest (fast to verify per ping).
+    current_lat: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    current_lng: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    driver_token_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    driver_token_expires: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+
+class TrackingPing(Base):
+    """One GPS fix streamed from a driver's phone for a loading list (the route trail)."""
+    __tablename__ = "tracking_pings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    loading_list_id: Mapped[int] = mapped_column(Integer, index=True)
+    lat: Mapped[float] = mapped_column(Float)
+    lng: Mapped[float] = mapped_column(Float)
+    accuracy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)   # metres
+    speed: Mapped[Optional[float]] = mapped_column(Float, nullable=True)      # m/s
+    heading: Mapped[Optional[float]] = mapped_column(Float, nullable=True)    # degrees
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
 class ShipmentDetailReport(Base):

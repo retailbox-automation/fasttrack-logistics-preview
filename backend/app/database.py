@@ -55,6 +55,10 @@ def init_db():
         ("loading_lists", "tracking_note", "TEXT"),
         ("users", "reset_token_hash", "VARCHAR(255)"),
         ("users", "reset_token_expires", "TIMESTAMP"),
+        ("loading_lists", "current_lat", "DOUBLE PRECISION"),
+        ("loading_lists", "current_lng", "DOUBLE PRECISION"),
+        ("loading_lists", "driver_token_hash", "VARCHAR(64)"),
+        ("loading_lists", "driver_token_expires", "TIMESTAMP"),
     ]
     with engine.begin() as conn:
         for tbl, col, defn in add_column_if_missing:

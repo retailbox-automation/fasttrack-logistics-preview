@@ -611,6 +611,43 @@ class TrackingOut(BaseModel):
     tracking_status: Optional[str] = None
     located_at: Optional[datetime] = None
     tracking_note: Optional[str] = None
+    current_lat: Optional[float] = None
+    current_lng: Optional[float] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ── Driver-mode GPS (phone streams location via a per-load share link, no login) ──
+class DriverLinkOut(BaseModel):
+    loading_list_id: int
+    public_id: str
+    driver_url: str
+    expires_in_minutes: int
+
+
+class DriverBootstrapOut(BaseModel):
+    """Minimal load info returned to the driver page (token-validated, pre-auth)."""
+    loading_list_id: int
+    public_id: str
+    vessel: str
+    port: str
+    destination: Optional[str] = None
+    tracking_status: Optional[str] = None
+
+
+class DriverPingIn(BaseModel):
+    token: str
+    lat: float
+    lng: float
+    accuracy: Optional[float] = None
+    speed: Optional[float] = None
+    heading: Optional[float] = None
+
+
+class TrailPoint(BaseModel):
+    lat: float
+    lng: float
+    recorded_at: datetime
+    speed: Optional[float] = None
     model_config = ConfigDict(from_attributes=True)
 
 
