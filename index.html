@@ -4727,6 +4727,10 @@ html.ft-driver-mode .app { display: none !important; }
       inventoryAlerts: () => fetchJSON('/api/reports/inventory-alerts'),
       // System health + integration status + ranked operational exceptions (4.2)
       monitoring: () => fetchJSON('/api/reports/monitoring'),
+      // Weekly report snapshots (4.1 auto-generation)
+      generateWeekly: (start) => fetchJSON('/api/reports/weekly/generate' + (start ? ('?start=' + encodeURIComponent(start)) : ''), { method: 'POST' }),
+      snapshots: (kind) => fetchJSON('/api/reports/snapshots' + (kind ? ('?kind=' + encodeURIComponent(kind)) : '')),
+      deleteSnapshot: (id) => fetchJSON('/api/reports/snapshots/' + id, { method: 'DELETE' }),
     },
     // In-transit truck loads (Stage 4.1 · live truck tracking). list() → rows;
     // update(id, patch) PATCHes {current_location?, tracking_status?, tracking_note?}
@@ -5121,9 +5125,11 @@ html.ft-driver-mode .app { display: none !important; }
           <button class="btn btn--ghost" id="wr-next">Next ›</button>
           <button class="btn btn--ghost" id="wr-export">↓ CSV</button>
           <button class="btn btn--ghost" id="wr-print">Print</button>
+          <button class="btn btn--ghost" id="wr-generate" title="Generate and save a snapshot of this week's report">⤓ Save snapshot</button>
         </div>
       </div>
       <div id="wr-body"></div>
+      <div id="wr-snapshots" class="wr-noprint"></div>
     </section>
 
     <!-- OPERATIONS · KPIs VIEW -->
@@ -10490,6 +10496,50 @@ function _wrExportCsv() {
   const a = document.createElement("a"); a.href = url; a.download = "weekly_report_" + w.start + ".csv"; a.click(); URL.revokeObjectURL(url);
 }
 
+/* Saved weekly snapshots (4.1). Optional panel — never blocks the report; renders into
+   #wr-snapshots below the report body. Admins can delete a snapshot. */
+async function renderWrSnapshots() {
+  const wrap = document.getElementById("wr-snapshots");
+  if (!wrap) return;
+  if (!(window.FT_API && FT_API.reports && FT_API.reports.snapshots)) { wrap.replaceChildren(); return; }
+  let rows;
+  try { rows = await FT_API.reports.snapshots("weekly"); }
+  catch (e) { wrap.replaceChildren(); return; }
+  wrap.replaceChildren();
+  const card = el("div", { class: "wr-card" });
+  card.appendChild(el("div", { class: "wr-section-title", text: "Saved snapshots" }));
+  if (!Array.isArray(rows) || !rows.length) {
+    card.appendChild(el("div", { class: "wr-pending", text: "No saved snapshots yet. Weekly snapshots generate automatically; use “Save snapshot” to capture the current week now." }));
+    wrap.appendChild(card);
+    return;
+  }
+  const isAdmin = (typeof ftRole === "function") && ftRole() === "admin";
+  const t = el("table", { class: "wr-table" });
+  const head = [el("th", { text: "Week" }), el("th", { text: "Generated" }), el("th", { text: "By" }), el("th", { text: "Email" })];
+  if (isAdmin) head.push(el("th", { text: "" }));
+  t.appendChild(el("tr", {}, head));
+  rows.forEach(s => {
+    const cells = [
+      el("td", { text: (s.period_start || "—") + " → " + (s.period_end || "—") }),
+      el("td", { text: (s.generated_at || "").replace("T", " ").slice(0, 16) }),
+      el("td", { text: s.generated_by || "—" }),
+      el("td", { text: s.delivery === "smtp" ? "emailed" : (s.delivery === "log" ? "logged" : "—") }),
+    ];
+    if (isAdmin) {
+      const del = el("button", { class: "btn btn--ghost", text: "Delete", style: "padding:2px 8px;font-size:11px;" });
+      del.addEventListener("click", async () => {
+        if (!confirm("Delete this snapshot?")) return;
+        try { await FT_API.reports.deleteSnapshot(s.id); if (window.ftToast) ftToast("Snapshot deleted", "ok"); renderWrSnapshots(); }
+        catch (e) { if (window.ftToast) ftToast("Delete failed: " + e.message, "error"); }
+      });
+      cells.push(el("td", {}, [del]));
+    }
+    t.appendChild(el("tr", {}, cells));
+  });
+  card.appendChild(t);
+  wrap.appendChild(card);
+}
+
 async function renderWeeklyReport() {
   const body = document.getElementById("wr-body");
   if (!body) return;
@@ -10506,7 +10556,23 @@ async function renderWeeklyReport() {
     on("wr-week", () => { const v = document.getElementById("wr-week").value; if (v) { _wrWeekStart = _wrMonday(v); renderWeeklyReport(); } });
     on("wr-print", () => window.print());
     on("wr-export", _wrExportCsv);
+    on("wr-generate", async () => {
+      const btn = document.getElementById("wr-generate");
+      if (btn) btn.disabled = true;
+      if (window.ftSyncStatus) ftSyncStatus("saving", "Saving snapshot…");
+      try {
+        await FT_API.reports.generateWeekly(_wrWeekStart || _wrMonday());
+        if (window.ftSyncStatus) ftSyncStatus("saved", "✓ Saved");
+        if (window.ftToast) ftToast("Weekly snapshot saved", "ok");
+        renderWrSnapshots();
+      } catch (e) {
+        if (window.ftSyncStatus) ftSyncStatus("error", "Failed");
+        if (window.ftToast) ftToast("Could not save snapshot: " + e.message, "error");
+      } finally { if (btn) btn.disabled = false; }
+    });
   }
+
+  renderWrSnapshots();
 
   while (body.firstChild) body.removeChild(body.firstChild);
 

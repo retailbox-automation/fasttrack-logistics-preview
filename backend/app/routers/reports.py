@@ -366,3 +366,12 @@ def snapshot_detail(snap_id: int, db: Session = Depends(get_db)):
     if not s:
         raise HTTPException(status_code=404, detail="Snapshot not found")
     return _snap_out(s, include_payload=True)
+
+
+@router.delete("/snapshots/{snap_id}", status_code=204, dependencies=[Depends(require_roles("admin"))])
+def delete_snapshot(snap_id: int, db: Session = Depends(get_db)):
+    s = db.get(ReportSnapshot, snap_id)
+    if not s:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    db.delete(s)
+    db.commit()
