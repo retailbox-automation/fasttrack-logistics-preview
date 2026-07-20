@@ -14,10 +14,11 @@ template once the client sends it (ops manual §4.4 used meanwhile).
 """
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import LoadingList, InventoryItem, CustomsRecord
+from app.models import LoadingList, InventoryItem, CustomsRecord, WarehouseReceipt
 from app.schemas import ShipmentCreate, ShipmentUpdate, ShipmentOut, ShipmentBulk
 from app.auth import require_auth, require_roles
 from app.audit import log_audit
@@ -129,6 +130,49 @@ def update_shipment(ll_id: int, payload: ShipmentUpdate, request: Request, db: S
               summary=f"Updated {ll.public_id}: {list(data.keys())}",
               ip=request.client.host if request.client else None)
     broadcast("shipments.changed", {"action": "update", "id": ll.id, "by_name": claims.get("name")})
+    return ll
+
+
+class AddReceiptIn(BaseModel):
+    wr_id: int
+
+
+@router.post("/{ll_id}/add-receipt", response_model=ShipmentOut)
+def add_receipt(ll_id: int, payload: AddReceiptIn, request: Request, db: Session = Depends(get_db),
+                claims: dict = Depends(require_roles("admin", "manager", "ops"))):
+    """Pull a Warehouse Receipt's received cargo straight onto this loading list (Stage 1.5,
+    the part that doesn't need the warehouse walkthrough). Appends the WR's still-in-stock
+    inventory to the load's backend ids, re-marks that inventory as pulled/loaded, and
+    recomputes truck totals. Idempotent: items already on the load are skipped. (Cross-dock
+    semantics remain deferred to the walkthrough.)"""
+    ll = db.get(LoadingList, ll_id)
+    if not ll:
+        raise HTTPException(status_code=404, detail="Loading list not found")
+    wr = db.get(WarehouseReceipt, payload.wr_id)
+    if not wr:
+        raise HTTPException(status_code=404, detail="Warehouse receipt not found")
+
+    existing = list((ll.meta or {}).get("inv_backend_ids", []) or [])
+    candidate = [i for i in (wr.item_ids or []) if i not in existing]
+    rows = db.query(InventoryItem).filter(InventoryItem.id.in_(candidate)).all() if candidate else []
+    addable = [r.id for r in rows if (r.status or "in_stock") in ("in_stock", "pulled")]
+    if not addable:
+        raise HTTPException(status_code=400,
+                            detail="Nothing to add — this receipt's items are already on the load, loaded elsewhere, or out of stock")
+
+    new_meta = dict(ll.meta or {})
+    new_meta["inv_backend_ids"] = existing + addable
+    ll.meta = new_meta  # reassign so SQLAlchemy flags the JSON column dirty
+    ll.totals = _totals_for(db, new_meta["inv_backend_ids"])
+    _mark_inventory(db, addable, ll.status)
+    db.commit()
+    db.refresh(ll)
+    log_audit(db, claims, "add-receipt", "shipment", entity_id=str(ll.id),
+              summary=f"Pulled {wr.public_id} onto {ll.public_id} (+{len(addable)} item(s))",
+              ip=request.client.host if request.client else None)
+    broadcast("shipments.changed", {"action": "add-receipt", "id": ll.id, "wr": wr.public_id,
+                                    "added": len(addable), "by_name": claims.get("name")})
+    broadcast("inventory.changed", {"action": "pull", "count": len(addable), "by_name": claims.get("name")})
     return ll
 
 
